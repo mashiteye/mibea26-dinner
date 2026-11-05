@@ -644,20 +644,66 @@ body{
 .hero-actions.show{opacity:1;transform:none;pointer-events:auto}
 .hero-btn{min-height:42px;padding:0 18px;border-radius:999px;border:1px solid rgba(111,67,47,.36);background:rgba(255,249,239,.9);color:#6f432f;font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
 .hero-btn.primary{background:#6f432f;color:#fff8ec;border-color:#6f432f}
-.hero-table-result{
-  min-height:0;
-  margin-top:10px;
-  color:#6f432f;
-  font-family:var(--serif);
-  font-size:18px;
-  font-weight:600;
-  opacity:0;
-  transform:translateY(5px);
-  transition:opacity .35s ease,transform .35s ease;
+/* Place card resting on a porcelain charger. */
+.table-dialog{
+  border:0;padding:20px;margin:auto;width:min(94vw,560px);
+  max-height:94vh;max-height:94dvh;overflow:auto;
+  background:transparent;color:var(--cocoa);
 }
-.hero-table-result.show{
-  opacity:1;
-  transform:none;
+.table-dialog::backdrop{
+  background:rgba(49,32,24,.55);backdrop-filter:blur(9px);
+  -webkit-backdrop-filter:blur(9px);
+}
+.table-dialog[open]{animation:placeReveal .5s var(--ease) both}
+.table-dialog[open]::backdrop{animation:placeVeil .4s ease both}
+.place-setting{
+  position:relative;isolation:isolate;text-align:center;
+  padding:70px 30px 52px;
+}
+.place-setting::before{
+  content:"";position:absolute;z-index:-1;inset:12px 0 0;border-radius:50%;
+  background:radial-gradient(ellipse at 46% 36%,#fffefa 0 49%,#ede5d8 50%,#fffdf7 53% 64%,#d4b77b 64.4% 64.8%,#fff8eb 65.2% 71%,#c3a367 71.4% 71.8%,#f5eddf 72.2%);
+  box-shadow:0 24px 60px rgba(35,22,15,.3),inset 0 2px 6px #fff;
+}
+.place-card{
+  position:relative;padding:35px 20px 30px;border:1px solid #d7be8e;
+  border-radius:8px;background:linear-gradient(145deg,#fffcf4,#f2e6d1);
+  box-shadow:0 16px 26px rgba(85,57,34,.18),0 2px 3px rgba(85,57,34,.1);
+}
+.place-card::before{
+  content:"";position:absolute;inset:7px;border:1px solid rgba(197,154,82,.3);
+  border-radius:4px;pointer-events:none;
+}
+.place-ornament{color:#a78344;font-family:var(--serif);font-size:24px;letter-spacing:.15em}
+.place-label{margin:15px 0 12px;font-size:10px;letter-spacing:.32em;font-weight:500}
+.place-card h2{margin:0;font-family:var(--serif);font-size:clamp(38px,10vw,60px);font-weight:500;line-height:1.05}
+.place-guest{margin:13px 0 0;font-family:var(--serif);font-size:clamp(23px,6vw,30px)}
+.place-rule{width:58px;height:1px;margin:20px auto;background:linear-gradient(90deg,transparent,#bc9855,transparent)}
+.place-welcome{margin:0 auto;max-width:220px;font-family:var(--serif);font-style:italic;font-size:19px;line-height:1.3;color:#795644}
+.table-close{
+  display:block;margin:25px auto 0;min-height:44px;padding:0 22px;
+  border:1px solid rgba(122,80,61,.32);border-radius:999px;
+  background:#fff9ee;color:var(--cocoa);font-size:10px;letter-spacing:.2em;
+  text-transform:uppercase;cursor:pointer;
+}
+.table-close:focus-visible{outline:2px solid #8d652f;outline-offset:4px}
+@keyframes placeReveal{from{opacity:0;transform:translateY(12px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes placeVeil{from{opacity:0}to{opacity:1}}
+/* Existing sheets must sit above the photographic invitation. */
+.veil{z-index:110}
+.sheet{z-index:111;max-height:95vh;overflow:auto}
+.toast{z-index:112;pointer-events:none}
+@media(max-width:380px){
+  .table-dialog{padding:8px}
+  .place-setting{padding:55px 18px 35px}
+  .place-card{padding:28px 15px}
+}
+@media(max-height:520px){
+  .place-setting{padding:18px 22px}
+  .place-card{padding:18px}
+  .place-label{margin:6px 0}
+  .place-rule{margin:10px auto}
+  .table-close{margin-top:12px}
 }
 @media(max-width:380px){
   .hero-actions{gap:7px}
@@ -681,12 +727,11 @@ body{
     <div class="hero-actions" id="heroActions">
       <button class="hero-btn primary" id="heroRsvpBtn" type="button">RSVP</button>
       <a class="hero-btn" href="https://www.google.com/maps/dir/?api=1&destination=5.600437%2C-0.103578" target="_blank" rel="noopener">Directions</a>
-      <button class="hero-btn" id="heroTableBtn" type="button">Table</button>
+      <button class="hero-btn" id="heroTableBtn" type="button" aria-haspopup="dialog">Table</button>
     </div>
-    <div class="hero-table-result" id="heroTableResult" aria-live="polite"></div>
   </div>
 </div>
-<main class="scene" id="scene" aria-label="Private dinner invitation">
+<main class="scene" id="scene" inert aria-label="Private dinner invitation">
   <div class="ambient"></div>
   <div class="fabric"></div>
 
@@ -778,9 +823,23 @@ body{
   <div class="hint" id="hint">An evening reserved for you</div>
 </main>
 
+<dialog class="table-dialog" id="tableDialog" aria-labelledby="placeTitle" aria-describedby="placeGuest placeWelcome">
+  <div class="place-setting">
+    <div class="place-card">
+      <div class="place-ornament" aria-hidden="true">— ✧ —</div>
+      <p class="place-label">YOUR TABLE</p>
+      <h2 id="placeTitle">TABLE 1</h2>
+      <p class="place-guest" id="placeGuest">Honored Guest 1</p>
+      <div class="place-rule" aria-hidden="true"></div>
+      <p class="place-welcome" id="placeWelcome">We look forward to welcoming you.</p>
+    </div>
+    <button class="table-close" id="tableClose" type="button" autofocus>Close</button>
+  </div>
+</dialog>
+
 <div class="veil" id="veil"></div>
 
-<section class="sheet" id="rsvpSheet" role="dialog" aria-modal="true" aria-labelledby="rsvpTitle">
+<section class="sheet" id="rsvpSheet" inert role="dialog" aria-modal="true" aria-labelledby="rsvpTitle">
   <h2 id="rsvpTitle">Will you join us?</h2>
   <p>Sunday, 20 December · 4:00 pm</p>
   <div class="stack">
@@ -791,7 +850,7 @@ body{
   <button class="close" id="rsvpClose" type="button">Close</button>
 </section>
 
-<section class="sheet" id="codeSheet" role="dialog" aria-modal="true" aria-labelledby="codeTitle">
+<section class="sheet" id="codeSheet" inert role="dialog" aria-modal="true" aria-labelledby="codeTitle">
   <h2 id="codeTitle">Your place is ready</h2>
   <p>Enter the final four digits of your registered phone number.</p>
   <div class="pin" id="pin">
@@ -814,7 +873,8 @@ body{
   var typedLines=[].slice.call(document.querySelectorAll('.typed-line'));
   var heroActions=document.getElementById('heroActions');
   var heroTableBtn=document.getElementById('heroTableBtn');
-  var heroTableResult=document.getElementById('heroTableResult');
+  var tableDialog=document.getElementById('tableDialog');
+  var sheetTrigger=null;
   var clocheBtn=document.getElementById('clocheBtn');
   var hint=document.getElementById('hint');
   var veil=document.getElementById('veil');
@@ -825,7 +885,8 @@ body{
   var revealed=false;
 
   var GUEST={
-    table:7,
+    table:1,
+    name:'Honored Guest 1',
     pin:'8023'
   };
 
@@ -858,11 +919,22 @@ body{
     typeNext();
   }
 
-  function openSheet(el){veil.classList.add('show');el.classList.add('show');}
+  function openSheet(el){
+    sheetTrigger=document.activeElement;
+    veil.classList.add('show');
+    el.inert=false;
+    el.classList.add('show');
+    openingHero.inert=true;
+    el.querySelector('button,input').focus();
+  }
   function closeSheets(){
     veil.classList.remove('show');
     rsvpSheet.classList.remove('show');
     codeSheet.classList.remove('show');
+    rsvpSheet.inert=true;
+    codeSheet.inert=true;
+    openingHero.inert=false;
+    if(sheetTrigger)sheetTrigger.focus();
   }
   veil.addEventListener('click',closeSheets);
   document.getElementById('rsvpClose').addEventListener('click',closeSheets);
@@ -883,18 +955,22 @@ body{
     var inputs=[].slice.call(document.querySelectorAll('#pin input'));
     inputs.forEach(function(i){i.value='';});
     openSheet(codeSheet);
-    setTimeout(function(){inputs[0].focus();},350);
+    setTimeout(function(){if(codeSheet.classList.contains('show'))inputs[0].focus();},350);
   }
 
   function revealTable(){
     revealed=true;
     closeSheets();
-    document.getElementById('tableNo').textContent=GUEST.table;
-    if(heroTableResult){
-      heroTableResult.textContent='Your table: ' + GUEST.table;
-      heroTableResult.classList.add('show');
-    }
+    document.getElementById('placeTitle').textContent='TABLE '+GUEST.table;
+    document.getElementById('placeGuest').textContent=GUEST.name;
+    tableDialog.showModal();
   }
+
+  document.getElementById('tableClose').addEventListener('click',function(){tableDialog.close();});
+  tableDialog.addEventListener('click',function(e){
+    if(e.target===tableDialog)tableDialog.close();
+  });
+  tableDialog.addEventListener('close',function(){heroTableBtn.focus();});
 
   clocheBtn.addEventListener('click',function(){
     if(isDinnerDay()){
@@ -909,7 +985,7 @@ body{
   if(heroRsvpBtn)heroRsvpBtn.addEventListener('click',function(){openSheet(rsvpSheet);});
   if(heroTableBtn)heroTableBtn.addEventListener('click',function(){
     if(revealed){
-      if(heroTableResult)heroTableResult.classList.add('show');
+      revealTable();
     }else{
       askCode();
     }
@@ -955,7 +1031,16 @@ body{
   }
 
   document.addEventListener('keydown',function(e){
-    if(isDinnerDay()&&(e.key==='Enter'||e.key===' ')&&!revealed)askCode();
+    var activeSheet=codeSheet.classList.contains('show')?codeSheet:
+      rsvpSheet.classList.contains('show')?rsvpSheet:null;
+    if(!activeSheet)return;
+    if(e.key==='Escape'){e.preventDefault();closeSheets();}
+    if(e.key==='Tab'){
+      var focusable=activeSheet.querySelectorAll('button,input');
+      var first=focusable[0],last=focusable[focusable.length-1];
+      if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+      else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+    }
   });
 
   runOpeningTypewriter();
