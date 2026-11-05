@@ -658,6 +658,12 @@ button,a,input{font:inherit}
   document.addEventListener('keydown',function(e){
     if((e.key==='Enter'||e.key===' ')&&!opened&&!isDinnerDay())openInvite();
   });
+
+  if(!isDinnerDay()){
+    setTimeout(function(){
+      if(!opened)openInvite();
+    },2600);
+  }
 })();
 </script>
 </body>
