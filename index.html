@@ -644,6 +644,25 @@ body{
 .hero-actions.show{opacity:1;transform:none;pointer-events:auto}
 .hero-btn{min-height:42px;padding:0 18px;border-radius:999px;border:1px solid rgba(111,67,47,.36);background:rgba(255,249,239,.9);color:#6f432f;font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
 .hero-btn.primary{background:#6f432f;color:#fff8ec;border-color:#6f432f}
+.hero-table-result{
+  min-height:0;
+  margin-top:10px;
+  color:#6f432f;
+  font-family:var(--serif);
+  font-size:18px;
+  font-weight:600;
+  opacity:0;
+  transform:translateY(5px);
+  transition:opacity .35s ease,transform .35s ease;
+}
+.hero-table-result.show{
+  opacity:1;
+  transform:none;
+}
+@media(max-width:380px){
+  .hero-actions{gap:7px}
+  .hero-btn{padding:0 13px;font-size:9px;letter-spacing:.13em}
+}
 @media(max-height:720px){.opening-invite{min-height:48%;padding-top:24px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}.typed-copy{font-size:15px}.typed-landmark,.typed-note{font-size:12px}.hero-actions{margin-top:8px}}
 
 </style>
@@ -658,11 +677,13 @@ body{
     <div class="typed-line typed-date" data-type="20 · 12 · 26 · Sunday · 4:00 pm"></div>
     <div class="typed-line typed-venue" data-type="Events Rising Sun · Teshie"></div>
     <div class="typed-line typed-landmark" data-type="Opposite First Junction EV filling station"></div>
-    <div class="typed-line typed-note" data-type="Your table will be revealed from 2:00 pm on 20 December."></div>
+    <div class="typed-line typed-note" data-type="Tap Table to reveal your table number."></div>
     <div class="hero-actions" id="heroActions">
       <button class="hero-btn primary" id="heroRsvpBtn" type="button">RSVP</button>
       <a class="hero-btn" href="https://www.google.com/maps/dir/?api=1&destination=5.600437%2C-0.103578" target="_blank" rel="noopener">Directions</a>
+      <button class="hero-btn" id="heroTableBtn" type="button">Table</button>
     </div>
+    <div class="hero-table-result" id="heroTableResult" aria-live="polite"></div>
   </div>
 </div>
 <main class="scene" id="scene" aria-label="Private dinner invitation">
@@ -792,6 +813,8 @@ body{
   var openingHero=document.getElementById('openingHero');
   var typedLines=[].slice.call(document.querySelectorAll('.typed-line'));
   var heroActions=document.getElementById('heroActions');
+  var heroTableBtn=document.getElementById('heroTableBtn');
+  var heroTableResult=document.getElementById('heroTableResult');
   var clocheBtn=document.getElementById('clocheBtn');
   var hint=document.getElementById('hint');
   var veil=document.getElementById('veil');
@@ -866,9 +889,11 @@ body{
   function revealTable(){
     revealed=true;
     closeSheets();
-    scene.classList.add('day','lift');
-    setTimeout(function(){scene.classList.add('revealed');},760);
     document.getElementById('tableNo').textContent=GUEST.table;
+    if(heroTableResult){
+      heroTableResult.textContent='Your table: ' + GUEST.table;
+      heroTableResult.classList.add('show');
+    }
   }
 
   clocheBtn.addEventListener('click',function(){
@@ -882,6 +907,13 @@ body{
   document.getElementById('rsvpBtn').addEventListener('click',function(){openSheet(rsvpSheet);});
   var heroRsvpBtn=document.getElementById('heroRsvpBtn');
   if(heroRsvpBtn)heroRsvpBtn.addEventListener('click',function(){openSheet(rsvpSheet);});
+  if(heroTableBtn)heroTableBtn.addEventListener('click',function(){
+    if(revealed){
+      if(heroTableResult)heroTableResult.classList.add('show');
+    }else{
+      askCode();
+    }
+  });
   document.getElementById('yesBtn').addEventListener('click',function(){
     try{localStorage.setItem('mibea26-dinner-rsvp','yes');}catch(e){}
     document.getElementById('rsvpMessage').textContent='Thank you. Your place is reserved. Your table will be available from 2:00 pm on 20 December.';
@@ -919,9 +951,6 @@ body{
   }
 
   if(isDinnerDay()){
-    if(openingHero)openingHero.style.display='none';
-    scene.classList.add('day');
-    hint.textContent='Tap to reveal your table';
     document.getElementById('lockedMessage').textContent='Your place is ready.';
   }
 
@@ -929,9 +958,7 @@ body{
     if(isDinnerDay()&&(e.key==='Enter'||e.key===' ')&&!revealed)askCode();
   });
 
-  if(!isDinnerDay()){
-    runOpeningTypewriter();
-  }
+  runOpeningTypewriter();
 })();
 </script>
 </body>
