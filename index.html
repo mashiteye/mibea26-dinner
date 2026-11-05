@@ -711,11 +711,28 @@ body{
 }
 @media(max-height:720px){.opening-invite{min-height:48%;padding-top:24px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}.typed-copy{font-size:15px}.typed-landmark,.typed-note{font-size:12px}.hero-actions{margin-top:8px}}
 
+.opening-video{
+  position:absolute;inset:0;z-index:2;width:100%;height:100%;
+  object-fit:cover;object-position:center;pointer-events:none;opacity:0;
+  transition:opacity .6s ease;
+}
+.opening-video.playing{opacity:1}
+.motion-toggle{
+  position:absolute;z-index:4;top:calc(14px + env(safe-area-inset-top));right:14px;
+  min-height:44px;padding:0 14px;border:1px solid rgba(255,249,238,.45);
+  border-radius:999px;background:rgba(60,39,26,.65);color:#fff9ee;
+  font-size:11px;cursor:pointer;
+}
+.motion-toggle[hidden]{display:none}
+.motion-toggle:focus-visible{outline:2px solid #fff9ee;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.opening-video,.motion-toggle{display:none}}
 </style>
 </head>
 <body>
 <div class="opening-hero" id="openingHero">
   <img class="opening-photo" src="./dinner-background.png" alt="">
+  <video class="opening-video" id="dinnerVideo" data-src="./dinner-candlelight.mp4" poster="./dinner-background.png" autoplay muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+  <button class="motion-toggle" id="motionToggle" type="button" hidden>Pause motion</button>
   <div class="opening-invite">
     <div class="typed-line typed-kicker" data-type="An evening reserved for you"></div>
     <div class="typed-line typed-names" data-type="Michael & Beatrice"></div>
@@ -991,6 +1008,50 @@ body{
       else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
     }
   });
+
+  // Keep the still image until playback succeeds; respect motion/data preferences.
+  var dinnerVideo=document.getElementById('dinnerVideo');
+  var motionToggle=document.getElementById('motionToggle');
+  var motionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
+  var connection=navigator.connection;
+  var motionPaused=false;
+  function prefersStill(){return motionPreference.matches || (connection&&connection.saveData);}
+  function videoFallback(){
+    dinnerVideo.classList.remove('playing');
+    motionToggle.hidden=true;
+  }
+  function syncDinnerVideo(){
+    if(prefersStill()){
+      dinnerVideo.pause();
+      videoFallback();
+      dinnerVideo.removeAttribute('src');
+      dinnerVideo.load();
+      return;
+    }
+    if(document.hidden||motionPaused){dinnerVideo.pause();return;}
+    if(!dinnerVideo.getAttribute('src')){
+      dinnerVideo.muted=true;
+      dinnerVideo.src=dinnerVideo.dataset.src;
+    }
+    var playback=dinnerVideo.play();
+    if(playback)playback.catch(videoFallback);
+  }
+  dinnerVideo.addEventListener('playing',function(){
+    if(prefersStill()){syncDinnerVideo();return;}
+    dinnerVideo.classList.add('playing');
+    motionToggle.hidden=false;
+    motionToggle.textContent='Pause motion';
+  });
+  dinnerVideo.addEventListener('error',videoFallback);
+  motionToggle.addEventListener('click',function(){
+    motionPaused=!motionPaused;
+    motionToggle.textContent=motionPaused?'Play motion':'Pause motion';
+    syncDinnerVideo();
+  });
+  motionPreference.addEventListener('change',syncDinnerVideo);
+  if(connection&&connection.addEventListener)connection.addEventListener('change',syncDinnerVideo);
+  document.addEventListener('visibilitychange',syncDinnerVideo);
+  syncDinnerVideo();
 
   runOpeningTypewriter();
 })();
