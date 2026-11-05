@@ -850,18 +850,6 @@ body{
   <button class="close" id="rsvpClose" type="button">Close</button>
 </section>
 
-<section class="sheet" id="codeSheet" inert role="dialog" aria-modal="true" aria-labelledby="codeTitle">
-  <h2 id="codeTitle">Your place is ready</h2>
-  <p>Enter the final four digits of your registered phone number.</p>
-  <div class="pin" id="pin">
-    <input inputmode="numeric" maxlength="1" aria-label="Digit 1">
-    <input inputmode="numeric" maxlength="1" aria-label="Digit 2">
-    <input inputmode="numeric" maxlength="1" aria-label="Digit 3">
-    <input inputmode="numeric" maxlength="1" aria-label="Digit 4">
-  </div>
-  <p>If the number does not match, please see an usher at the entrance.</p>
-  <button class="close" id="codeClose" type="button">Close</button>
-</section>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -879,15 +867,12 @@ body{
   var hint=document.getElementById('hint');
   var veil=document.getElementById('veil');
   var rsvpSheet=document.getElementById('rsvpSheet');
-  var codeSheet=document.getElementById('codeSheet');
   var toast=document.getElementById('toast');
   var opened=false;
-  var revealed=false;
 
   var GUEST={
     table:1,
-    name:'Honored Guest 1',
-    pin:'8023'
+    name:'Honored Guest 1'
   };
 
   var TABLE_OPENS=Date.UTC(2026,11,20,14,0,0);
@@ -930,15 +915,12 @@ body{
   function closeSheets(){
     veil.classList.remove('show');
     rsvpSheet.classList.remove('show');
-    codeSheet.classList.remove('show');
     rsvpSheet.inert=true;
-    codeSheet.inert=true;
     openingHero.inert=false;
     if(sheetTrigger)sheetTrigger.focus();
   }
   veil.addEventListener('click',closeSheets);
   document.getElementById('rsvpClose').addEventListener('click',closeSheets);
-  document.getElementById('codeClose').addEventListener('click',closeSheets);
 
   function openInvite(){
     if(opened||isDinnerDay())return;
@@ -951,15 +933,7 @@ body{
     setTimeout(function(){scene.classList.add('open');},1750);
   }
 
-  function askCode(){
-    var inputs=[].slice.call(document.querySelectorAll('#pin input'));
-    inputs.forEach(function(i){i.value='';});
-    openSheet(codeSheet);
-    setTimeout(function(){if(codeSheet.classList.contains('show'))inputs[0].focus();},350);
-  }
-
   function revealTable(){
-    revealed=true;
     closeSheets();
     document.getElementById('placeTitle').textContent='TABLE '+GUEST.table;
     document.getElementById('placeGuest').textContent=GUEST.name;
@@ -974,7 +948,7 @@ body{
 
   clocheBtn.addEventListener('click',function(){
     if(isDinnerDay()){
-      if(!revealed)askCode();
+      revealTable();
     }else{
       openInvite();
     }
@@ -983,13 +957,7 @@ body{
   document.getElementById('rsvpBtn').addEventListener('click',function(){openSheet(rsvpSheet);});
   var heroRsvpBtn=document.getElementById('heroRsvpBtn');
   if(heroRsvpBtn)heroRsvpBtn.addEventListener('click',function(){openSheet(rsvpSheet);});
-  if(heroTableBtn)heroTableBtn.addEventListener('click',function(){
-    if(revealed){
-      revealTable();
-    }else{
-      askCode();
-    }
-  });
+  if(heroTableBtn)heroTableBtn.addEventListener('click',revealTable);
   document.getElementById('yesBtn').addEventListener('click',function(){
     try{localStorage.setItem('mibea26-dinner-rsvp','yes');}catch(e){}
     document.getElementById('rsvpMessage').textContent='Thank you. Your place is reserved. Your table will be available from 2:00 pm on 20 December.';
@@ -999,24 +967,6 @@ body{
     try{localStorage.setItem('mibea26-dinner-rsvp','no');}catch(e){}
     document.getElementById('rsvpMessage').textContent='Thank you for letting us know. We’ll miss you.';
     showToast('Response saved');
-  });
-
-  var inputs=[].slice.call(document.querySelectorAll('#pin input'));
-  inputs.forEach(function(input,index){
-    input.addEventListener('input',function(){
-      input.value=input.value.replace(/\D/g,'').slice(-1);
-      if(input.value&&index<3)inputs[index+1].focus();
-      var code=inputs.map(function(i){return i.value;}).join('');
-      if(code.length===4){
-        if(code===GUEST.pin){
-          revealTable();
-        }else{
-          inputs.forEach(function(i){i.value='';});
-          inputs[0].focus();
-          showToast('That code does not match.');
-        }
-      }
-    });
   });
 
   function showToast(message){
@@ -1031,8 +981,7 @@ body{
   }
 
   document.addEventListener('keydown',function(e){
-    var activeSheet=codeSheet.classList.contains('show')?codeSheet:
-      rsvpSheet.classList.contains('show')?rsvpSheet:null;
+    var activeSheet=rsvpSheet.classList.contains('show')?rsvpSheet:null;
     if(!activeSheet)return;
     if(e.key==='Escape'){e.preventDefault();closeSheets();}
     if(e.key==='Tab'){
