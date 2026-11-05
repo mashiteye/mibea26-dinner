@@ -420,6 +420,7 @@ button,a{font:inherit}
   /* ---------- champagne bubbles, drawn inside the flute in the photo ---------- */
   var canvas=document.getElementById('bubbles');
   var ctx=canvas.getContext('2d');
+  var invite=document.getElementById('invite');
   var IMG_W=1024,IMG_H=1536;
   /* the champagne inside the flute, measured on the photo: [y, left x, right x], surface to the foot of the bowl */
   var BOWL=[[222,676,760],[260,680,756],[300,685,750],[340,694,740],[372,702,731],[392,709,725]];
@@ -440,7 +441,35 @@ button,a{font:inherit}
     canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0);
     var s=Math.max(w/IMG_W,h/IMG_H);   /* object-fit:cover, centred */
-    map={s:s,ox:(w-IMG_W*s)/2,oy:(h-IMG_H*s)/2,w:w,h:h};
+    map={s:s,ox:(w-IMG_W*s)/2,oy:(h-IMG_H*s)/2,w:w,h:h,
+         dustTop:h*.08,dustBottom:Math.max(h*.3,invite.offsetTop-24)};   /* the photo half, above the text block */
+  }
+
+  /* ---------- gold dust: sixteen warm specks drifting up through the photo half, like embers off the candles ---------- */
+  var DUST_COUNT=16,dust=[];
+  function spawnDust(born){
+    dust.push({
+      x:Math.random()*map.w,
+      y:map.dustTop+Math.random()*(map.dustBottom-map.dustTop),
+      r:.7+Math.random()*1.1,
+      v:6+Math.random()*10,                       /* css px per second, upward */
+      sway:4+Math.random()*8,ph:Math.random()*6.28,fq:.3+Math.random()*.5,
+      born:born,life:7000+Math.random()*6000
+    });
+  }
+  function drawDust(now,dt){
+    if(!dust.length)for(var k=0;k<DUST_COUNT;k++)spawnDust(now-Math.random()*7000);   /* staggered ages, so nothing fades in as a group */
+    while(dust.length<DUST_COUNT)spawnDust(now);
+    for(var i=dust.length-1;i>=0;i--){
+      var p=dust[i],age=(now-p.born)/p.life;
+      if(age>=1||p.y<map.dustTop-10){dust.splice(i,1);continue;}
+      p.y-=p.v*dt;
+      var x=p.x+Math.sin(now/1000*p.fq+p.ph)*p.sway;
+      var a=Math.min(1,age*6)*Math.min(1,(1-age)*3)*(.6+.4*Math.sin(now/700+p.ph));
+      a*=Math.max(0,Math.min(1,(map.dustBottom-p.y)/40));            /* gone before the text block */
+      ctx.beginPath();ctx.arc(x,p.y,p.r*2.4,0,6.2832);ctx.fillStyle='rgba(255,208,138,'+(a*.18).toFixed(3)+')';ctx.fill();
+      ctx.beginPath();ctx.arc(x,p.y,p.r,0,6.2832);ctx.fillStyle='rgba(255,226,170,'+(a*.8).toFixed(3)+')';ctx.fill();
+    }
   }
   function spawn(){
     var y=FLOOR-Math.random()*70,g=halfWidth(y);
@@ -457,7 +486,8 @@ button,a{font:inherit}
     if(!map)fitCanvas();
     var dt=Math.min((now-(last||now))/1000,.05);last=now;
     ctx.clearRect(0,0,map.w,map.h);
-    /* skip the work when the glass is out of frame (landscape) */
+    drawDust(now,dt);
+    /* skip the bubble work when the glass is out of frame (landscape) */
     var top=map.oy+SURFACE*map.s,bottom=map.oy+FLOOR*map.s;
     if(bottom>0&&top<map.h){
       while(bubbles.length<14)spawn();
@@ -481,7 +511,8 @@ button,a{font:inherit}
   }
   function startBubbles(){if(!raf){last=0;raf=requestAnimationFrame(frame);}}
   function stopBubbles(){if(raf){cancelAnimationFrame(raf);raf=null;}}
-  window.addEventListener('resize',function(){map=null;});
+  window.addEventListener('resize',function(){map=null;dust.length=0;});
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){map=null;});   /* text block height settles once the web fonts land */
 
   /* ---------- one control for all motion: candlelight, drift, bubbles, pulse ---------- */
   function syncMotion(){
