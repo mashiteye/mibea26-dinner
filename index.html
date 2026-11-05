@@ -41,17 +41,15 @@ button,a{font:inherit}
 
 /* ---------- hero ---------- */
 .hero{position:fixed;inset:0;overflow:hidden;background:#2a1a12}
-/* photo, candlelight loop and bubble canvas share one slowly drifting stage, so the bubbles stay in the glass */
+/* photo, bottle and canvas share one slowly drifting stage, so the bubbles stay in the glass */
 .stage{position:absolute;inset:0;transform-origin:50% 50%;animation:drift 26s ease-in-out infinite alternate;will-change:transform;transition:filter 2.5s ease}
 /* the room follows the guest's clock: dimmer and warmer after six, a touch lighter in the morning */
 .hero.evening .stage{filter:brightness(.9) saturate(1.1) sepia(.07)}
 .hero.morning .stage{filter:brightness(1.04) saturate(.97)}
 @keyframes drift{from{transform:scale(1) translate(0,0)}to{transform:scale(1.06) translate(-1.1%,.7%)}}
-.hero-photo,.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block}
+.hero-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block}
 /* the full glass sits over the empty one and is revealed from the foot of the bowl up as the champagne pours */
 html:not(.js) .hero-photo-full{clip-path:none!important}
-.hero-video{z-index:1;opacity:0;pointer-events:none;transition:opacity .6s ease}
-.hero-video.playing{opacity:1}
 .bubbles{position:absolute;inset:0;z-index:2;width:100%;height:100%;pointer-events:none}
 /* the bottle: its own layer, placed in photo coordinates, tipped in from the top right by script */
 .bottle{position:absolute;z-index:1;opacity:0;pointer-events:none;transform-origin:88% 40%;will-change:transform,opacity}
@@ -258,7 +256,7 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
 
 @media(prefers-reduced-motion:reduce){
   .js .line,.actions,.sheet,.veil,.toast{transition-duration:.01s!important}
-  .hero-video,.bubbles{display:none}
+  .bubbles{display:none}
   .music .eq i{animation:none!important}
   .hero-photo-full{clip-path:none!important}
   .stage,.btn.pulse,.names.sheen{animation:none}
@@ -273,7 +271,6 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   <div class="stage" id="stage">
     <img class="hero-photo" id="photoEmpty" src="./dinner-background-empty.jpg" alt="" width="1024" height="1536" fetchpriority="high">
     <img class="hero-photo hero-photo-full" id="photoFull" src="./dinner-background.jpg" alt="" width="1024" height="1536" fetchpriority="high" style="clip-path:inset(100% 0 0 0)">
-    <video class="hero-video" id="dinnerVideo" data-src="./dinner-candlelight.mp4" poster="./dinner-background.jpg" autoplay muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
     <img class="bottle" id="bottle" src="./bottle.png" alt="" width="304" height="161" decoding="async">
     <canvas class="bubbles" id="bubbles" aria-hidden="true"></canvas>
   </div>
@@ -492,35 +489,10 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   dialog.addEventListener('click',function(e){if(e.target===dialog)dialog.close();});
   dialog.addEventListener('close',function(){tableBtn.focus();});
 
-  /* ---------- candlelight loop: still image until playback succeeds; honour motion and data preferences ---------- */
-  var video=document.getElementById('dinnerVideo');
+  /* ---------- motion preferences ---------- */
   var motionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
   var connection=navigator.connection;
   function prefersStill(){return motionPreference.matches||(connection&&connection.saveData);}
-  var videoReady=false;
-  function videoFallback(){video.classList.remove('playing');videoReady=false;}
-  function syncVideo(){
-    if(prefersStill()){
-      video.pause();
-      videoFallback();
-      video.removeAttribute('src');
-      video.load();
-      return;
-    }
-    if(document.hidden){video.pause();return;}
-    if(!video.getAttribute('src')){
-      video.muted=true;
-      video.src=video.dataset.src;
-    }
-    var playback=video.play();
-    if(playback)playback.catch(videoFallback);
-  }
-  video.addEventListener('playing',function(){
-    if(prefersStill()){syncVideo();return;}
-    videoReady=true;
-    if(pour.done)video.classList.add('playing');   /* the loop shows a full glass, so it waits for the pour */
-  });
-  video.addEventListener('error',videoFallback);
 
   /* ---------- champagne bubbles, drawn inside the flute in the photo ---------- */
   var canvas=document.getElementById('bubbles');
@@ -654,12 +626,39 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
       drawLeaf(p,now,p.landed?Math.max(0,1-Math.max(0,p.life-(p.landT+5))/3):1);
     }
   }
-  /* ---------- after six, the candles glow warmer ---------- */
+  /* ---------- the flames, alive inside the lantern glass ---------- */
+  var FLAMES=[[476,420,26,11,0],[565,420,26,11,2.1],[396,466,17,8,4.2]];   /* image px: base x, base y, height, width, and a phase so they never flicker in step */
+  function drawFlames(now){
+    var s=map.s;
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    FLAMES.forEach(function(f){
+      var x=map.ox+f[0]*s,y=map.oy+f[1]*s,seed=f[4];
+      var n=Math.sin(now/90+seed)*.5+Math.sin(now/37+seed*2)*.3+Math.sin(now/230+seed*3)*.2;   /* three rates of flicker */
+      var hh=f[2]*s*(1+n*.14),ww=f[3]*s*(1-n*.1),sway=n*ww*.35;
+      var halo=ctx.createRadialGradient(x,y-hh*.45,0,x,y-hh*.45,hh*1.7);
+      halo.addColorStop(0,'rgba(255,176,80,'+(.2+n*.04).toFixed(3)+')');halo.addColorStop(1,'rgba(255,150,60,0)');
+      ctx.fillStyle=halo;ctx.beginPath();ctx.arc(x,y-hh*.45,hh*1.7,0,6.2832);ctx.fill();
+      ctx.save();ctx.translate(x,y);
+      var body=ctx.createLinearGradient(0,0,0,-hh);
+      body.addColorStop(0,'rgba(255,120,30,.55)');body.addColorStop(.45,'rgba(255,205,90,.8)');body.addColorStop(1,'rgba(255,240,205,.25)');
+      ctx.fillStyle=body;ctx.beginPath();ctx.moveTo(-ww/2,0);
+      ctx.bezierCurveTo(-ww/2,-hh*.45,sway-ww*.12,-hh*.78,sway,-hh);
+      ctx.bezierCurveTo(sway+ww*.12,-hh*.78,ww/2,-hh*.45,ww/2,0);ctx.closePath();ctx.fill();
+      var core=ctx.createLinearGradient(0,0,0,-hh*.55);
+      core.addColorStop(0,'rgba(255,250,220,.0)');core.addColorStop(.5,'rgba(255,250,225,.6)');core.addColorStop(1,'rgba(255,250,225,0)');
+      ctx.fillStyle=core;ctx.beginPath();ctx.moveTo(-ww*.22,-hh*.08);
+      ctx.bezierCurveTo(-ww*.22,-hh*.3,sway*.5-ww*.05,-hh*.45,sway*.5,-hh*.55);
+      ctx.bezierCurveTo(sway*.5+ww*.05,-hh*.45,ww*.22,-hh*.3,ww*.22,-hh*.08);ctx.closePath();ctx.fill();
+      ctx.restore();
+    });
+    ctx.restore();
+  }
+  /* ---------- after six, the lanterns glow warmer ---------- */
   var evening=hero.classList.contains('evening');
   function drawEvening(now){
     if(!evening)return;
     var s=map.s;
-    [[480,95,1],[566,44,.9]].forEach(function(c,i){
+    [[476,400,1],[565,400,1],[396,455,.7]].forEach(function(c,i){
       var x=map.ox+c[0]*s,y=map.oy+c[1]*s,r=(70+Math.sin(now/230+i*2)*5)*s,a=.16*c[2]+Math.sin(now/170+i)*.015;
       var g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(255,176,80,'+a.toFixed(3)+')');g.addColorStop(1,'rgba(255,176,80,0)');
       ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,6.2832);ctx.fill();
@@ -690,7 +689,7 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
     bottle.style.transform='translate('+(tx*100).toFixed(2)+'%,'+(ty*100).toFixed(2)+'%) rotate('+rot.toFixed(2)+'deg)';
   }
   function finishPour(){
-    /* the glass is full: the pour carries on for the night, but the text, the pool, the video and the sound settle */
+    /* the glass is full: the pour carries on for the night, but the text, the pool and the sound settle */
     if(pour.done)return;
     pour.done=true;pour.line=SURFACE;
     photoFull.style.clipPath='none';
@@ -699,7 +698,6 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
       pool.on=true;pool.t=POOL_MS;pool.k=1;hero.classList.add('flooded');
       bottle.style.opacity='1';bottle.style.transform='translate(0%,0%) rotate(0deg)';
     }else{pour.active=false;pour.stream=0;pour.foam=0;}
-    if(videoReady&&!prefersStill())video.classList.add('playing');
   }
   function beginPour(){
     if(!map)fitCanvas();
@@ -951,6 +949,7 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
     if(!map){fitCanvas();if(pour.active)placeBottle();placeMenuTab();}
     var dt=Math.min((now-(last||now))/1000,.05);last=now;
     ctx.clearRect(0,0,map.w,map.h);
+    drawFlames(now);
     drawDust(now,dt);
     updatePour(dt);
     /* skip the bubble work when the glass is out of frame (landscape) */
@@ -993,7 +992,6 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
     if(prefersStill())finishPour();
     if(still){stopBubbles();if(prefersStill())ctx.clearRect(0,0,canvas.width,canvas.height);}
     else startBubbles();
-    syncVideo();
   }
   if(motionPreference.addEventListener)motionPreference.addEventListener('change',syncMotion);
   if(connection&&connection.addEventListener)connection.addEventListener('change',syncMotion);
