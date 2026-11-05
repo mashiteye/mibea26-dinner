@@ -790,7 +790,8 @@ body{
   'use strict';
   var scene=document.getElementById('scene');
   var openingHero=document.getElementById('openingHero');
-  var openingType=document.getElementById('openingType');
+  var typedLines=[].slice.call(document.querySelectorAll('.typed-line'));
+  var heroActions=document.getElementById('heroActions');
   var clocheBtn=document.getElementById('clocheBtn');
   var hint=document.getElementById('hint');
   var veil=document.getElementById('veil');
@@ -810,18 +811,28 @@ body{
   function isDinnerDay(){return previewDay || Date.now()>=TABLE_OPENS;}
 
   function runOpeningTypewriter(){
-    if(!openingType)return;
-    var text=openingType.getAttribute('data-text')||'';
-    var i=0;
-    openingType.textContent='';
-    openingType.classList.add('typing');
-    var timer=setInterval(function(){
-      openingType.textContent=text.slice(0,++i);
-      if(i>=text.length){
-        clearInterval(timer);
-        setTimeout(function(){openingType.classList.remove('typing');},90);
+    if(!typedLines.length)return;
+    typedLines.forEach(function(line){line.textContent='';});
+    var lineIndex=0;
+    function typeNext(){
+      if(lineIndex>=typedLines.length){
+        if(heroActions)heroActions.classList.add('show');
+        return;
       }
-    },18);
+      var line=typedLines[lineIndex++];
+      var text=line.getAttribute('data-type')||'';
+      var i=0;
+      line.classList.add('typing');
+      var timer=setInterval(function(){
+        line.textContent=text.slice(0,++i);
+        if(i>=text.length){
+          clearInterval(timer);
+          line.classList.remove('typing');
+          setTimeout(typeNext,85);
+        }
+      },text.length>60?10:14);
+    }
+    typeNext();
   }
 
   function openSheet(el){veil.classList.add('show');el.classList.add('show');}
@@ -869,6 +880,8 @@ body{
   });
 
   document.getElementById('rsvpBtn').addEventListener('click',function(){openSheet(rsvpSheet);});
+  var heroRsvpBtn=document.getElementById('heroRsvpBtn');
+  if(heroRsvpBtn)heroRsvpBtn.addEventListener('click',function(){openSheet(rsvpSheet);});
   document.getElementById('yesBtn').addEventListener('click',function(){
     try{localStorage.setItem('mibea26-dinner-rsvp','yes');}catch(e){}
     document.getElementById('rsvpMessage').textContent='Thank you. Your place is reserved. Your table will be available from 2:00 pm on 20 December.';
@@ -913,14 +926,11 @@ body{
   }
 
   document.addEventListener('keydown',function(e){
-    if((e.key==='Enter'||e.key===' ')&&!opened&&!isDinnerDay())openInvite();
+    if(isDinnerDay()&&(e.key==='Enter'||e.key===' ')&&!revealed)askCode();
   });
 
   if(!isDinnerDay()){
     runOpeningTypewriter();
-    setTimeout(function(){
-      if(!opened)openInvite();
-    },650);
   }
 })();
 </script>
