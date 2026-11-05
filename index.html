@@ -842,7 +842,7 @@ html:not(.js) .needs-js{display:none}
     if(t>=POOL_START&&!pool.on){pool.on=true;hero.classList.add('flooded');}
     if(!pour.done&&t>STREAM_END+600)finishPour();
     moveBottle(performance.now());
-    if(sfxReady())sfxPour(pour.stream*(fill<1?1:.5),(t>POUR_MS?1:fill*.6)*(pool.k<1?1:.7));
+    if(sfx.pendingClink)sfxReady();                               /* a clink that came before the first tap plays once sound is allowed */
   }
   function drawPour(now,dt){
     if(!pour.active||pour.t<0)return;
@@ -1209,29 +1209,15 @@ html:not(.js) .needs-js{display:none}
   setMusicUI();
   playMusic();
 
-  /* ---------- sound effects: the pour, the clink, the pop; same context as the music, so one tap starts all of it ---------- */
-  var sfx={ready:false,pourGain:null,fizzGain:null,pendingClink:false};
+  /* ---------- sound effects: the clink and the pop, short and tuned, on the same context as the music.
+     No pour or fizz sound: it was noise, and with the bottle pouring all night it hissed under the music ---------- */
+  var sfx={ready:false,pendingClink:false};
   function sfxReady(){
     if(sfx.ready)return actx&&actx.state==='running';
     if(!actx||actx.state!=='running'||!sfxBus)return false;
-    var sr=actx.sampleRate,len=sr*2,buf=actx.createBuffer(1,len,sr),data=buf.getChannelData(0),i;
-    for(i=0;i<len;i++)data[i]=Math.random()*2-1;
-    var src=actx.createBufferSource();src.buffer=buf;src.loop=true;
-    var lp=actx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=420;lp.Q.value=.8;
-    var bp=actx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=3600;bp.Q.value=.8;
-    sfx.pourGain=actx.createGain();sfx.pourGain.gain.value=0;
-    sfx.fizzGain=actx.createGain();sfx.fizzGain.gain.value=0;
-    src.connect(lp);lp.connect(sfx.pourGain);sfx.pourGain.connect(sfxBus);
-    src.connect(bp);bp.connect(sfx.fizzGain);sfx.fizzGain.connect(sfxBus);
-    src.start();
     sfx.ready=true;
     if(sfx.pendingClink){sfx.pendingClink=false;setTimeout(sfxClink,400);}
     return true;
-  }
-  function sfxPour(pourLevel,fizzLevel){
-    var t=actx.currentTime;
-    sfx.pourGain.gain.setTargetAtTime(pourLevel*.55*(.85+Math.random()*.3),t,.06);      /* the liquid, with a little unevenness */
-    sfx.fizzGain.gain.setTargetAtTime(fizzLevel*.5*(.4+Math.random()*.6),t,.03);         /* the fizz, crackling */
   }
   function sfxClink(){
     if(!sfxReady()){sfx.pendingClink=true;return;}
@@ -1280,7 +1266,6 @@ html:not(.js) .needs-js{display:none}
       ['Names in liquid gold','Once, as the pool reaches the text',runSheen,'Show'],
       ['Crystal glint and clink','Once, when the pour settles',toastGlint,'Show'],
       ['Music bar and jazz loop','Starts on the first tap'],
-      ['Pour sound','Starts with the music'],
       ['Countdown to the second','Always on'],
       ['“Tonight” on the day','From 4 pm on 20 December',function(){forceTonight=!forceTonight;tick();},'Toggle'],
       ['Evening light','After 6 pm on the guest’s phone',function(){setLight('evening');},'Show'],
