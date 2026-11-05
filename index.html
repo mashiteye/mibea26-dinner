@@ -80,9 +80,11 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
 .names.sheen i{color:inherit}
 @keyframes sheen{from{background-position:100% 0}to{background-position:0% 0}}
 .copy{margin:12px auto 0;max-width:330px;font-family:var(--serif);font-style:italic;font-size:clamp(15px,4.2vw,17px);line-height:1.35;color:var(--ink)}
-.date{margin-top:18px;font-family:var(--serif);font-size:clamp(22px,6.4vw,27px);line-height:1.1;color:var(--choc-deep)}
-.where{margin-top:8px;font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--choc)}
-.landmark{margin-top:5px;font-size:11px;letter-spacing:.04em;color:var(--soft)}
+.date,.time,.venue{font-family:var(--serif);font-weight:500;font-size:clamp(25px,7.4vw,31px);line-height:1.12;color:var(--choc-deep)}
+.date{margin-top:16px}
+.time{margin-top:2px}
+.venue{margin-top:2px}
+.landmark{margin-top:5px;font-size:12px;letter-spacing:.03em;color:var(--soft)}
 .countdown{margin-top:10px;min-height:1em;font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--soft);font-variant-numeric:tabular-nums}
 .countdown[hidden]{display:none}
 
@@ -194,7 +196,8 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
 @media(max-height:700px){
   .invite{padding-top:44px}
   .copy{font-size:14px}
-  .date{margin-top:12px}
+  .date{margin-top:10px}
+  .date,.time,.venue{font-size:clamp(22px,6.8vw,27px)}
   .countdown{margin-top:7px}
   .actions{margin-top:12px}
 }
@@ -253,9 +256,10 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   <div class="invite" id="invite">
     <div class="line eyebrow">An evening reserved for you</div>
     <h1 class="line names">Michael <i>&amp;</i> Beatrice</h1>
-    <p class="line copy">The Ashiteye and Laryea families invite you to Dinner Night, an evening of dinner and celebration.</p>
+    <p class="line copy">The Ashiteye and Laryea families invite you to Dinner Night.</p>
     <div class="line date">Sunday, 20 December 2026</div>
-    <div class="line where">4:00 pm · Events Rising Sun · Teshie</div>
+    <div class="line time">4:00 pm</div>
+    <div class="line venue">Events Rising Sun, Teshie</div>
     <div class="line landmark">Opposite First Junction EV filling station</div>
     <div class="line countdown" id="countdown"></div>
     <div class="actions" id="actions">
