@@ -95,6 +95,7 @@ table.hosts td a{color:var(--choc);font-weight:600;text-decoration:none}
     var hosts=D.seats.filter(function(s){return s.table===t&&s.host;}).map(function(s){return s.host;});
     var u=hosts.filter(function(v,i,a){return a.indexOf(v)===i;});
     var fam=D.seats.some(function(s){return s.table===t&&s.family;});
+    if(!u.length)return 'Spare';
     if(fam)return u.length>1?'Family':(u[0]==='mike'?'Michael’s':'Beatrice’s')+' family';
     return u.length>1?'Shared':D.hostName(u[0]);
   }

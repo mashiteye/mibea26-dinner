@@ -104,7 +104,7 @@
       '<span class="chip">'+n.open+' open</span>';
     document.getElementById('chips').innerHTML=chips;
 
-    var helper={mum:'If someone helps Mum with this, they open this same link.',dad:'If someone helps Dad with this, they open this same link.'}[me];
+    var helper={parents:'If someone helps Mum & Dad with this, they open this same link.'}[me];
     document.getElementById('intro').textContent='Each box is a chair. Tap an empty one to invite a guest. A household takes several chairs at one table, so families sit together. Guests don’t see their table before the day: the gate shows them to it, so tables can still change.'+(helper?' '+helper:'');
     var html='';
     [false,true].forEach(function(isFam){
@@ -112,7 +112,7 @@
       var keys=Object.keys(tables).map(Number).sort(function(a,b){return a-b;});
       if(!keys.length)return;
       html+='<p class="section-title">'+(isFam?'Your family':'Your guests')+'</p>'+
-        (isFam?'<p class="note">Family get an invitation and a gate code like every guest, so nobody gets in just by saying they are family.</p>':'');
+        (isFam?'<p class="note">Family get an invitation and a gate code like every guest, so nobody gets in just by saying they are family. Children come in with an adult and take no chair.</p>':'');
       keys.forEach(function(t){
       var row=D.seats.filter(function(s){return s.table===t;});
       var own=tables[t].length;
@@ -183,7 +183,7 @@
     var s=D.byCode[code],h=s.hh,st=D.seatState(s,false);
     var chairs='chair'+(h.chairs.length>1?'s ':' ')+h.chairs.map(function(c){return D.byCode[c].chair;}).join(', ');
     var head='<h3 id="sheetTitle">'+esc(h.name)+'</h3><div class="meta">'+esc(D.tableLabel(h.table))+' · '+chairs+'</div>';
-    var kv='<dl class="kv"><dt>Number you entered</dt><dd>'+esc(D.fmtPhone(h.hostPhone))+'</dd>'+(h.size>1?'<dt>Household</dt><dd>'+h.size+' chairs</dd>':'')+
+    var kv='<dl class="kv"><dt>Number you entered</dt><dd>'+esc(D.fmtPhone(h.hostPhone))+'</dd>'+(h.size>1?'<dt>Household</dt><dd>'+h.size+' chairs</dd>':'')+(h.kids?'<dt>Children</dt><dd>'+h.kids+(h.kidsWho?' ('+esc(h.kidsWho)+')':'')+', no chair</dd>':'')+
       (h.status==='confirmed'?'<dt>Gate digits</dt><dd>'+D.last4(h)+'</dd>':'')+'</dl>';
     var body='',btns='';
     if(st==='freed'){

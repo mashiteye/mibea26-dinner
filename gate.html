@@ -118,7 +118,7 @@
   function guest(h){
     var left=h.att-h.arrived,host=D.hostName(h.host);
     var html='<div class="meta" id="sheetTitle">Your table is</div><div class="big-table">'+esc(D.tableName(h.table))+'</div><div class="table-no">Table '+h.table+'</div>'+
-      '<div class="who"><b>'+dots(h.initials)+'</b> · '+esc(host)+'’s guests'+(h.family?' · family':'')+'</div>'+
+      '<div class="who"><b>'+dots(h.initials)+'</b> · '+esc(host)+'’s guests'+(h.family?' · family':'')+'</div>'+(h.kids?'<div class="who">With '+h.kids+' children, who take no chair</div>':'')+
       '<div class="count">'+h.arrived+' of '+h.att+' in</div>';
     if(left<=0){
       html+='<div class="banner bad">Already admitted'+(h.arrivedAt?' at '+esc(h.arrivedAt):'')+'. Someone has come in on these digits. Ask for the name; if it doesn’t match, call '+esc(host)+'.</div>'+
