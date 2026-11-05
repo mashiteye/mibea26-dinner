@@ -18,6 +18,10 @@
 .box .bn{font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--soft)}
 .box .bi{font-family:var(--serif);font-size:22px;line-height:1.05}
 .box .bi small{display:block;font-family:var(--sans);font-size:11px;color:var(--soft)}
+.box .bi .lbl{display:block;font-size:16px;line-height:1.1}
+.box.confirmed .bi small{color:#f1dfc3}
+.note{margin:2px 2px 0;font-size:12.5px;line-height:1.45;color:var(--soft)}
+.card-head h2 small{display:inline-block;white-space:nowrap;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-deep);margin-left:6px}
 .box .bs{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--choc)}
 .box .hh{position:absolute;top:7px;right:8px;font-size:10px;font-weight:600;color:var(--gold-deep)}
 .box .dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 2px #fff}
@@ -51,7 +55,7 @@
   <div class="chips" id="chips"></div>
 </div></header>
 <main class="wrap">
-  <p class="intro">Each box is a chair. Tap an empty one to invite a guest. A household takes several chairs at one table, so families sit together.</p>
+  <p class="intro" id="intro">Each box is a chair. Tap an empty one to invite a guest. A household takes several chairs at one table, so families sit together. Guests don’t see their table before the day: the gate shows them to it, so tables can still change.</p>
   <div id="tables"></div>
   <p class="section-title">Key</p>
   <div class="legend">
@@ -70,7 +74,7 @@
   var D=window.DEMO,Q=new URLSearchParams(location.search);
   var me=D.HOSTS[Q.get('h')]?Q.get('h'):'mike';
   var who=document.getElementById('who');
-  Object.keys(D.HOSTS).forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=D.HOSTS[k].name;if(k===me)o.selected=true;who.appendChild(o);});
+  Object.keys(D.HOSTS).forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=D.HOSTS[k].name+(D.HOSTS[k].role?' ('+D.HOSTS[k].role+')':'');if(k===me)o.selected=true;who.appendChild(o);});
   who.addEventListener('change',function(){location.search='?h='+who.value;});
 
   var sheet=document.getElementById('sheet'),veil=document.getElementById('veil'),toast=document.getElementById('toast');
@@ -93,30 +97,48 @@
       else if(st==='declined'||st==='freed')n.replace++;
       if(s.hh&&!seenHH[s.hh.id]&&D.mismatch(s.hh)){seenHH[s.hh.id]=1;n.check++;}
     });
-    var chips='<span class="chip">'+guests.length+' seats'+(fam.length?' · '+fam.length+' family':'')+'</span>'+
+    var chips='<span class="chip">'+(fam.length?(guests.length+fam.length)+' chairs · '+guests.length+' guests':guests.length+' guests')+'</span>'+
       '<span class="chip">'+n.sent+' sent</span><span class="chip ok">'+n.confirmed+' confirmed</span>'+
       (n.replace?'<span class="chip warn">'+n.replace+' to replace</span>':'')+
       (n.check?'<span class="chip bad">'+n.check+' number'+(n.check>1?'s':'')+' to check</span>':'')+
       '<span class="chip">'+n.open+' open</span>';
     document.getElementById('chips').innerHTML=chips;
 
-    var tables={};mine.forEach(function(s){(tables[s.table]=tables[s.table]||[]).push(s);});
+    var helper={mum:'If someone helps Juliana with this, they open this same link.',dad:'If someone helps Samuel with this, they open this same link.'}[me];
+    document.getElementById('intro').textContent='Each box is a chair. Tap an empty one to invite a guest. A household takes several chairs at one table, so families sit together. Guests don’t see their table before the day: the gate shows them to it, so tables can still change.'+(helper?' '+helper:'');
     var html='';
+    function box(s,t){
+      var st=D.seatState(s,false),h=s.hh,first=h&&h.chairs[0]===s.code;
+      var label={open:'Invite',sent:'Sent',confirmed:'Confirmed',declined:'Declined',freed:'Not coming'}[st];
+      var tag=h?(h.label||h.initials):'';
+      var main=st==='open'?'+':(first?(h.label?'<span class="lbl">'+esc(h.label)+'</span>':esc(h.initials)):'<small>with '+(h.label&&h.label.indexOf('You')===0?'you':esc(tag))+'</small>');
+      return '<button type="button" class="box '+st+'" data-code="'+s.code+'" aria-label="'+esc(D.tableLabel(t))+', chair '+s.chair+', '+label+(h?', '+esc(tag):'')+'">'+
+        '<span class="bn">'+s.chair+'</span><span class="bi">'+main+'</span><span class="bs">'+label+(st==='declined'||st==='freed'?' · replace':'')+'</span>'+
+        (h&&first&&h.size>1&&!D.mismatch(h)?'<span class="hh">×'+h.size+'</span>':'')+
+        (h&&first&&D.mismatch(h)?'<span class="dot" aria-hidden="true"></span>':'')+'</button>';
+    }
+    function other(s,text){return '<div class="box other" aria-hidden="true"><span class="bn">'+s.chair+'</span><span class="bi">'+esc(text)+'</span><span class="bs"></span></div>';}
+    /* the host's own chairs, at the family table: they come in with a code like everyone else */
+    var own=mine.filter(function(s){return s.family;});
+    if(own.length){
+      var t0=own[0].table,h0=own[0].hh;
+      html+='<p class="section-title">You</p><section class="card"><div class="card-head"><h2>'+esc(D.tableName(t0))+'<small>Table '+t0+'</small></h2><span>The family table</span></div>'+
+        '<p class="note">'+(own.length>1?'Your chairs at the family table come':'Your chair at the family table comes')+' out of your 20. At the gate you give your four digits like every guest.'+(h0&&h0.kidsNote?' '+esc(h0.kidsNote):'')+'</p><div class="grid">';
+      own.forEach(function(s){html+=box(s,t0);});
+      html+='</div></section>';
+    }
+    /* the guests, table by table; other hosts' chairs show faintly */
+    var tables={};mine.forEach(function(s){if(!s.family)(tables[s.table]=tables[s.table]||[]).push(s);});
+    html+='<p class="section-title">Your guests</p>';
     Object.keys(tables).map(Number).sort(function(a,b){return a-b;}).forEach(function(t){
       var row=D.seats.filter(function(s){return s.table===t;});
-      var own=tables[t].length,fam=tables[t][0].family;
+      var count=tables[t].length;
       var others=row.filter(function(s){return s.host&&s.host!==me;}).map(function(s){return D.hostName(s.host);});
       var shared=others.length?' · shared with '+others.filter(function(v,i,a){return a.indexOf(v)===i;}).join(', '):'';
-      html+='<section class="card"><div class="card-head"><h2>Table '+t+(fam?' · family':'')+'</h2><span>'+own+' of 9 chairs'+shared+'</span></div><div class="grid">';
+      html+='<section class="card"><div class="card-head"><h2>'+esc(D.tableName(t))+'<small>Table '+t+'</small></h2><span>'+count+' of 9 chairs'+(row.some(function(s){return s.family;})?' · the family table':'')+shared+'</span></div><div class="grid">';
       row.forEach(function(s){
-        if(s.host!==me){html+='<div class="box other" aria-hidden="true"><span class="bn">'+s.chair+'</span><span class="bi">'+(s.host?esc(D.hostName(s.host)):'Spare')+'</span><span class="bs"></span></div>';return;}
-        var st=D.seatState(s,false),h=s.hh,first=h&&h.chairs[0]===s.code;
-        var label={open:'Invite',sent:'Sent',confirmed:'Confirmed',declined:'Declined',freed:'Not coming'}[st];
-        var main=st==='open'?'+':(first?esc(h.initials):'<small>with '+esc(h.initials)+'</small>');
-        html+='<button type="button" class="box '+st+'" data-code="'+s.code+'" aria-label="Table '+t+', chair '+s.chair+', '+label+(h?', '+esc(h.initials):'')+'">'+
-          '<span class="bn">'+s.chair+'</span><span class="bi">'+main+'</span><span class="bs">'+label+(st==='declined'||st==='freed'?' · replace':'')+'</span>'+
-          (h&&first&&h.size>1&&!D.mismatch(h)?'<span class="hh">×'+h.size+'</span>':'')+
-          (h&&first&&D.mismatch(h)?'<span class="dot" aria-hidden="true"></span>':'')+'</button>';
+        if(s.host===me&&!s.family)html+=box(s,t);
+        else html+=other(s,s.host===me?'You':s.host?D.hostName(s.host):'Spare');
       });
       html+='</div></section>';
     });
@@ -140,12 +162,12 @@
       (size>1?'This invitation is for '+size+'.\n':'')+
       'Sunday 20 December 2026, 4:00 pm\nEvents Rising Sun, Teshie\n\n'+
       'Please open your invitation and confirm your attendance:\n'+D.link(code)+'\n\n'+
-      'At the gate you will give the last four digits of your phone number.';
+      'At the gate, give the last four digits of your phone number and you will be shown to your table.';
   }
   function inviteForm(code,prefill){
     var s=D.byCode[code],run=freeRunFrom(code),max=Math.max(1,run.length);
     var size=prefill?Math.min(prefill.size,max):1;
-    openSheet('<h3 id="sheetTitle">'+(prefill?'Edit invitation':'Invite a guest')+'</h3><div class="meta">Table '+s.table+' · chair '+s.chair+'</div>'+
+    openSheet('<h3 id="sheetTitle">'+(prefill?'Edit invitation':'Invite a guest')+'</h3><div class="meta">'+esc(D.tableLabel(s.table))+' · chair '+s.chair+'</div>'+
       '<div class="field"><label for="fName">Name</label><input id="fName" autocomplete="off" value="'+(prefill?esc(prefill.name):'')+'" placeholder="Their name, for your records"></div>'+
       '<div class="field"><label for="fPhone">WhatsApp number</label><input id="fPhone" type="tel" inputmode="tel" value="'+(prefill?esc(D.fmtPhone(prefill.hostPhone)):'')+'" placeholder="024 123 4567"><p class="err" id="fErr" hidden>Enter a name and a full phone number.</p></div>'+
       '<div class="field"><span class="lab" id="szLab">Chairs for this household</span><div class="stepper" role="group" aria-labelledby="szLab"><button type="button" id="szM" aria-label="One fewer">−</button><output id="szO">'+size+'</output><button type="button" id="szP" aria-label="One more">+</button></div></div>'+
@@ -169,8 +191,8 @@
   function details(code){
     var s=D.byCode[code],h=s.hh,st=D.seatState(s,false);
     var chairs='chair'+(h.chairs.length>1?'s ':' ')+h.chairs.map(function(c){return D.byCode[c].chair;}).join(', ');
-    var head='<h3 id="sheetTitle">'+esc(h.name)+'</h3><div class="meta">Table '+h.table+' · '+chairs+'</div>';
-    var kv='<dl class="kv"><dt>Number you entered</dt><dd>'+esc(D.fmtPhone(h.hostPhone))+'</dd>'+(h.size>1?'<dt>Household</dt><dd>'+h.size+' chairs</dd>':'')+
+    var head='<h3 id="sheetTitle">'+esc(h.name)+'</h3><div class="meta">'+esc(D.tableLabel(h.table))+' · '+chairs+'</div>';
+    var kv='<dl class="kv"><dt>Number you entered</dt><dd>'+esc(D.fmtPhone(h.hostPhone))+'</dd>'+(h.size>1?'<dt>Household</dt><dd>'+h.size+' chairs</dd>':'')+(h.kids?'<dt>Children</dt><dd>'+h.kids+(h.kidsWho?', '+esc(h.kidsWho):'')+', no chair</dd>':'')+
       (h.status==='confirmed'?'<dt>Gate digits</dt><dd>'+D.last4(h)+'</dd>':'')+'</dl>';
     var body='',btns='';
     if(st==='freed'){

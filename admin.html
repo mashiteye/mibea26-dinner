@@ -26,7 +26,7 @@
 .legend .declined{background:#d99a3d;border-color:#d99a3d}
 .legend .arrived{background:#3e7a4f;border-color:#3e7a4f}
 .legend .check{background:#fff;border:2px solid #a3392b;border-radius:50%}
-table.hosts{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;font-variant-numeric:tabular-nums}
+table.hosts{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;font-variant-numeric:lining-nums tabular-nums}
 table.hosts th{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
 table.hosts th:first-child,table.hosts td:first-child{text-align:left}
 table.hosts td{padding:8px 4px;border-bottom:1px solid var(--line);text-align:right;color:var(--choc-deep)}
@@ -91,11 +91,12 @@ table.hosts td a{color:var(--choc);font-weight:600;text-decoration:none}
   /* tables numbered from the entrance up: row 1 (tables 1 to 4) by the door, row 5 (17 to 20) at the front */
   var COLS=[62,154,246,338],ROWS={1:470,2:380,3:290,4:200,5:110};
   function pos(t){var r=Math.ceil(t/4),c=(t-1)%4;return {x:COLS[c],y:ROWS[r]};}
-  function tableLabel(t){
+  function tableLabel(t){   /* who sits at a table: a host, Shared, or Family */
     var hosts=D.seats.filter(function(s){return s.table===t&&s.host;}).map(function(s){return s.host;});
     var u=hosts.filter(function(v,i,a){return a.indexOf(v)===i;});
     var fam=D.seats.some(function(s){return s.table===t&&s.family;});
-    if(fam)return (u[0]==='mike'?'Michael’s':'Beatrice’s')+' family';
+    if(!u.length)return 'Spare';
+    if(fam)return u.length>1?'Family':(u[0]==='mike'?'Michael’s':'Beatrice’s')+' family';
     return u.length>1?'Shared':D.hostName(u[0]);
   }
   function drawMap(){
@@ -137,9 +138,9 @@ table.hosts td a{color:var(--choc);font-weight:600;text-decoration:none}
   }
   function issues(){
     var list=[];
-    D.households.forEach(function(h){if(D.mismatch(h))list.push({cls:'',t:'Numbers differ',m:'Table '+h.table+' · '+esc(h.name)+' ('+esc(D.hostName(h.host))+'). Host entered '+D.fmtPhone(h.hostPhone)+'; the guest confirmed with '+D.fmtPhone(h.guestPhone)+'.'});});
+    D.households.forEach(function(h){if(D.mismatch(h))list.push({cls:'',t:'Numbers differ',m:esc(D.tableLabel(h.table))+' · '+esc(h.name)+' ('+esc(D.hostName(h.host))+'). Host entered '+D.fmtPhone(h.hostPhone)+'; the guest confirmed with '+D.fmtPhone(h.guestPhone)+'.'});});
     var by={};D.households.forEach(function(h){if(h.status==='confirmed'){var k=D.last4(h);(by[k]=by[k]||[]).push(h);}});
-    Object.keys(by).forEach(function(k){if(by[k].length>1)list.push({cls:'',t:'Shared last four digits · '+k,m:by[k].map(function(h){return 'Table '+h.table+' · '+esc(h.name)+' ('+esc(D.hostName(h.host))+')';}).join('; ')+'. The gate will ask their names.'});});
+    Object.keys(by).forEach(function(k){if(by[k].length>1)list.push({cls:'',t:'Shared last four digits · '+k,m:by[k].map(function(h){return esc(D.tableLabel(h.table))+' · '+esc(h.name)+' ('+esc(D.hostName(h.host))+')';}).join('; ')+'. The gate will ask their names.'});});
     var waiting={};D.households.forEach(function(h){if(h.status==='sent')waiting[h.host]=(waiting[h.host]||0)+1;});
     Object.keys(waiting).forEach(function(k){list.push({cls:'warn',t:'Not answered yet',m:esc(D.hostName(k))+' has '+waiting[k]+' invitation'+(waiting[k]>1?'s':'')+' waiting for a reply.'});});
     return list;
@@ -167,7 +168,7 @@ table.hosts td a{color:var(--choc);font-weight:600;text-decoration:none}
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&sheet.classList.contains('show'))closeSheet();});
   function tableSheet(t){
     var row=D.seats.filter(function(s){return s.table===t;});
-    var html='<h3 id="sheetTitle">Table '+t+'</h3><div class="meta">'+esc(tableLabel(t))+'</div><ul class="seatlist">';
+    var html='<h3 id="sheetTitle">'+esc(D.tableLabel(t))+'</h3><div class="meta">'+esc(tableLabel(t))+'</div><ul class="seatlist">';
     row.forEach(function(s){
       var st=D.seatState(s,night),h=s.hh;
       var who=!s.host?'Spare chair':h?esc(h.name)+(h.chairs[0]!==s.code?' <span style="color:var(--soft)">(household)</span>':''):'<span style="color:var(--soft)">Not yet invited</span>';

@@ -16,13 +16,14 @@
 .offline-note[hidden]{display:none}
 .ask{margin:18px 0 0;text-align:center;font-family:var(--serif);font-style:italic;font-size:17px;color:var(--soft)}
 .digits{display:flex;justify-content:center;gap:10px;margin-top:12px}
-.digits span{width:62px;height:76px;display:grid;place-items:center;border:1.5px solid var(--line-strong);border-radius:14px;background:#fff;font-family:var(--serif);font-size:40px;color:var(--choc-deep);font-variant-numeric:tabular-nums}
+.digits span{width:62px;height:76px;display:grid;place-items:center;border:1.5px solid var(--line-strong);border-radius:14px;background:#fff;font-family:var(--serif);font-size:40px;color:var(--choc-deep);font-variant-numeric:lining-nums tabular-nums}
 .digits span.on{border-color:var(--gold-deep);box-shadow:0 0 0 3px rgba(197,154,82,.18)}
 .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:340px;margin:22px auto 0}
 .pad button{min-height:62px;border-radius:16px;border:1px solid var(--line);background:#fff;font-family:var(--serif);font-size:28px;color:var(--choc-deep);cursor:pointer}
 .pad button.fn{font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--choc);background:var(--card)}
 .pad button:active{background:var(--cream)}
-.big-table{margin-top:6px;font-family:var(--serif);font-weight:500;font-size:64px;line-height:1;color:var(--choc-deep);text-align:center}
+.big-table{margin-top:6px;font-family:var(--serif);font-weight:500;font-size:clamp(40px,12vw,60px);line-height:1.05;color:var(--choc-deep);text-align:center;overflow-wrap:anywhere}
+.table-no{margin-top:4px;text-align:center;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-deep)}
 .who{margin-top:6px;text-align:center;font-size:14px;color:var(--soft)}
 .who b{color:var(--choc-deep);font-weight:600}
 .count{margin-top:10px;text-align:center;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--choc)}
@@ -101,14 +102,14 @@
     if(hits.length===1)return guest(hits[0]);
     if(hits.length>1){
       var html='<h3 id="sheetTitle">'+hits.length+' guests share '+code+'</h3><div class="meta">Ask for their name, then choose</div><div style="margin-top:10px">';
-      hits.forEach(function(h,i){html+='<div class="match"><div class="t"><b>Table '+h.table+'</b><span>'+dots(h.initials)+' · '+esc(D.hostName(h.host))+'’s guests · '+h.att+' chair'+(h.att>1?'s':'')+'</span></div><button class="btn" type="button" data-i="'+i+'">This one</button></div>';});
+      hits.forEach(function(h,i){html+='<div class="match"><div class="t"><b>'+esc(D.tableLabel(h.table))+'</b><span>'+dots(h.initials)+' · '+esc(D.hostName(h.host))+'’s guests · '+h.att+' chair'+(h.att>1?'s':'')+'</span></div><button class="btn" type="button" data-i="'+i+'">This one</button></div>';});
       openSheet(html+'</div><div class="stack"><button class="btn wide" id="gBack" type="button">Back</button></div>');
       sheet.querySelectorAll('button[data-i]').forEach(function(b){b.onclick=function(){guest(hits[+b.getAttribute('data-i')]);};});
       document.getElementById('gBack').onclick=closeSheet;return;
     }
     var unconfirmed=D.households.filter(function(h){return h.status==='sent'&&h.hostPhone.slice(-4)===code;});
     var html2='<h3 id="sheetTitle">No confirmed guest with '+code+'</h3><div class="meta">Check the digits, or search by name</div>';
-    if(unconfirmed.length){var u=unconfirmed[0];html2+='<div class="banner warn">An invitation from '+esc(D.hostName(u.host))+' matches, for Table '+u.table+', but it was never confirmed. Call '+esc(D.hostName(u.host))+' before letting them in.</div>';}
+    if(unconfirmed.length){var u=unconfirmed[0];html2+='<div class="banner warn">An invitation from '+esc(D.hostName(u.host))+' matches, for '+esc(D.tableLabel(u.table))+', but it was never confirmed. Call '+esc(D.hostName(u.host))+' before letting them in.</div>';}
     openSheet(html2+'<div class="stack"><button class="btn primary wide" id="gName" type="button">Search by name</button><button class="btn wide" id="gBack" type="button">Try again</button></div>');
     document.getElementById('gName').onclick=function(){nameSearch();};
     document.getElementById('gBack').onclick=closeSheet;
@@ -116,8 +117,8 @@
 
   function guest(h){
     var left=h.att-h.arrived,host=D.hostName(h.host);
-    var html='<div class="meta" id="sheetTitle">Your table is</div><div class="big-table">Table '+h.table+'</div>'+
-      '<div class="who"><b>'+dots(h.initials)+'</b> · '+esc(host)+'’s guests'+(h.family?' · family':'')+'</div>'+
+    var html='<div class="meta" id="sheetTitle">Your table is</div><div class="big-table">'+esc(D.tableName(h.table))+'</div><div class="table-no">Table '+h.table+'</div>'+
+      '<div class="who"><b>'+dots(h.initials)+'</b> · '+esc(host)+'’s guests'+(h.family?' · family':'')+'</div>'+(h.kids?'<div class="who">With '+h.kids+' children, who take no chair</div>':'')+
       '<div class="count">'+h.arrived+' of '+h.att+' in</div>';
     if(left<=0){
       html+='<div class="banner bad">Already admitted'+(h.arrivedAt?' at '+esc(h.arrivedAt):'')+'. Someone has come in on these digits. Ask for the name; if it doesn’t match, call '+esc(host)+'.</div>'+
@@ -136,7 +137,7 @@
       m.onclick=function(){n=Math.max(1,n-1);upd();};p.onclick=function(){n=Math.min(left,n+1);upd();};upd();
       admit.onclick=function(){
         h.arrived+=n;if(!h.arrivedAt)h.arrivedAt='now';counts();
-        sheet.innerHTML='<div class="meta" id="sheetTitle">Admitted</div><div class="big-table">Table '+h.table+'</div><div class="banner ok" style="text-align:center">Show them to Table '+h.table+'</div>';
+        sheet.innerHTML='<div class="meta" id="sheetTitle">Admitted</div><div class="big-table">'+esc(D.tableName(h.table))+'</div><div class="table-no">Table '+h.table+'</div><div class="banner ok" style="text-align:center">Show them to '+esc(D.tableLabel(h.table))+'</div>';
         setTimeout(closeSheet,2200);
       };
     }
@@ -148,7 +149,7 @@
     q.oninput=function(){
       var v=q.value.trim().toLowerCase();if(v.length<2){res.innerHTML='';return;}
       var hits=D.households.filter(function(h){return (h.status==='confirmed'||h.status==='sent')&&h.name.toLowerCase().indexOf(v)>=0;}).slice(0,6);
-      res.innerHTML=hits.length?hits.map(function(h,i){return '<div class="match"><div class="t"><b>'+esc(h.name)+'</b><span>Table '+h.table+' · '+esc(D.hostName(h.host))+'’s guests · '+(h.status==='confirmed'?h.att+' confirmed':'not confirmed')+'</span></div><button class="btn" type="button" data-i="'+i+'">Open</button></div>';}).join(''):'<div class="banner warn">No one by that name</div>';
+      res.innerHTML=hits.length?hits.map(function(h,i){return '<div class="match"><div class="t"><b>'+esc(h.name)+'</b><span>'+esc(D.tableLabel(h.table))+' · '+esc(D.hostName(h.host))+'’s guests · '+(h.status==='confirmed'?h.att+' confirmed':'not confirmed')+'</span></div><button class="btn" type="button" data-i="'+i+'">Open</button></div>';}).join(''):'<div class="banner warn">No one by that name</div>';
       res.querySelectorAll('button[data-i]').forEach(function(b){b.onclick=function(){var h=hits[+b.getAttribute('data-i')];if(h.status==='confirmed')guest(h);else showToast('Not confirmed: call '+D.hostName(h.host));};});
     };
     document.getElementById('gBack').onclick=closeSheet;
