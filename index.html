@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f4ead8">
+<meta name="theme-color" content="#16251d">
 <title>An Evening Reserved · Michael & Beatrice</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -424,6 +424,124 @@ button,a,input{font:inherit}
 @media (prefers-reduced-motion:reduce){
   *,*:before,*:after{animation:none!important;transition-duration:.01s!important}
 }
+/* ---------- refined palette: dark green + ivory + silver + restrained warm accents ---------- */
+:root{
+  --ivory:#fffdf7;
+  --cream:#f4eee4;
+  --champagne:#e7cd98;
+  --gold:#c6a15b;
+  --caramel:#a66f49;
+  --mocha:#714a37;
+  --cocoa:#4c2f25;
+  --ink:#262b27;
+  --soft:#726d65;
+  --forest:#16251d;
+  --forest-2:#22382b;
+}
+body{
+  color:var(--ink);
+  background:var(--forest);
+}
+.scene{
+  background:
+    radial-gradient(70% 34% at 50% 10%,rgba(69,94,76,.48),transparent 72%),
+    linear-gradient(180deg,#132219 0%,#1c3024 32%,#efe7db 32.2%,#f7f1e8 66%,#e8dccb 100%);
+}
+.ambient{
+  background:
+    radial-gradient(38% 28% at 14% 13%,rgba(255,255,255,.08),transparent 72%),
+    radial-gradient(30% 25% at 87% 12%,rgba(227,194,120,.12),transparent 70%),
+    radial-gradient(46% 30% at 50% 78%,rgba(255,255,255,.34),transparent 75%);
+}
+.fabric{opacity:.11;mix-blend-mode:soft-light}
+.kicker{color:rgba(255,253,247,.76)}
+.title{color:#fffdf7;text-shadow:0 2px 18px rgba(0,0,0,.2)}
+.title em{color:#e7cd98}
+.sub{color:rgba(255,253,247,.72)}
+.scene.open .topcopy{opacity:.12}
+
+.leaf{
+  background:linear-gradient(135deg,#395b42,#78906b);
+  opacity:.95;
+}
+.bead{
+  background:radial-gradient(circle at 35% 30%,#fff9df,#e2bd6e 45%,#a57b33 100%);
+}
+.candle{
+  background:linear-gradient(90deg,#e7d5b2,#fff8df 48%,#d8bd8d);
+  box-shadow:0 10px 22px rgba(37,33,24,.18);
+}
+
+.plate{
+  background:
+    radial-gradient(ellipse at 48% 40%,#ffffff 0 42%,#fbfaf6 43% 62%,#d7b96f 63% 64.3%,#fffdf8 65% 75%,#c7a35b 76% 77%,#f8f3eb 78% 100%);
+  box-shadow:0 24px 38px rgba(48,38,28,.18),inset 0 0 0 1px rgba(255,255,255,.98);
+}
+.cutlery{
+  background:linear-gradient(90deg,#846c46,#f7e6b9 27%,#c8a25a 53%,#fff2c8 76%,#80643c);
+}
+.napkin{
+  background:linear-gradient(135deg,#fffdf8,#f2eadc 58%,#fffaf2);
+}
+.napkin:after{
+  background:linear-gradient(90deg,#a98245,#e7cf9e,#9a733a);
+}
+
+.cloche-shadow{background:rgba(20,28,24,.28)}
+.cloche{filter:drop-shadow(0 20px 20px rgba(22,37,29,.24))}
+.bow:before,.bow:after{
+  border-color:rgba(198,161,91,.7);
+  background:linear-gradient(145deg,rgba(255,253,247,.98),rgba(239,224,193,.9));
+}
+.seal{
+  background:radial-gradient(circle at 38% 32%,#a56845,#7c4934 56%,#533126 100%);
+  border-color:rgba(247,224,181,.8);
+}
+
+.hint{color:#fffdf7;text-shadow:0 2px 10px rgba(0,0,0,.28)}
+.hint:before{border-color:rgba(231,205,152,.85)}
+
+.card{
+  background:linear-gradient(180deg,#fffefb,#fffaf2);
+  box-shadow:0 28px 58px rgba(35,43,37,.22),0 0 0 1px rgba(198,161,91,.3);
+}
+.card:before{border-color:rgba(198,161,91,.45)}
+.card .eyebrow{color:#77736b}
+.card h1{color:#29332d}
+.card h1 span{color:#a66f49}
+.card .copy{color:#625d56}
+.date,.venue,.await{color:#29332d}
+.time,.landmark{color:#77736b}
+
+.btn{
+  border-color:rgba(31,58,43,.24);
+  background:rgba(255,253,247,.94);
+  color:#1d3a2a;
+}
+.btn.primary{
+  background:#1c3b2a;
+  color:#fffdf7;
+  border-color:#1c3b2a;
+}
+.locked{color:#4f594f}
+.veil{background:rgba(10,24,17,.46)}
+.sheet{
+  background:rgba(255,253,247,.98);
+  border-color:rgba(198,161,91,.32);
+  box-shadow:0 -20px 60px rgba(22,37,29,.24);
+}
+.sheet h2{color:#243229}
+.sheet p,.close{color:#6e7069}
+.pin input{
+  border-color:rgba(31,58,43,.2);
+  background:#fffdf8;
+  color:#243229;
+}
+.table-reveal{color:#243229}
+.table-reveal small,.table-reveal em{color:#5e685f}
+.table-reveal b{color:#1c3b2a}
+.toast{background:#1c3b2a;color:#fffdf7}
+
 </style>
 </head>
 <body>
@@ -468,14 +586,14 @@ button,a,input{font:inherit}
         <svg viewBox="0 0 320 235">
           <defs>
             <linearGradient id="metal" x1="0" x2="1">
-              <stop offset="0" stop-color="#6f6258"/>
-              <stop offset=".08" stop-color="#d8c29c"/>
-              <stop offset=".2" stop-color="#fff4d8"/>
-              <stop offset=".36" stop-color="#b79667"/>
-              <stop offset=".52" stop-color="#f8e5ba"/>
-              <stop offset=".68" stop-color="#8a704f"/>
-              <stop offset=".84" stop-color="#f3d9a4"/>
-              <stop offset="1" stop-color="#65564c"/>
+              <stop offset="0" stop-color="#343a3d"/>
+              <stop offset=".08" stop-color="#9da4a8"/>
+              <stop offset=".2" stop-color="#f7fafb"/>
+              <stop offset=".36" stop-color="#858d91"/>
+              <stop offset=".52" stop-color="#e5eaec"/>
+              <stop offset=".68" stop-color="#626a6e"/>
+              <stop offset=".84" stop-color="#d8dddf"/>
+              <stop offset="1" stop-color="#2d3235"/>
             </linearGradient>
             <radialGradient id="shine" cx=".34" cy=".24" r=".56">
               <stop offset="0" stop-color="rgba(255,255,255,.96)"/>
@@ -486,7 +604,7 @@ button,a,input{font:inherit}
           <ellipse cx="160" cy="195" rx="151" ry="35" fill="url(#metal)"/>
           <path d="M14 193C22 103 73 49 160 49S298 103 306 193Z" fill="url(#metal)"/>
           <path d="M14 193C22 103 73 49 160 49S298 103 306 193Z" fill="url(#shine)"/>
-          <path d="M13 194Q160 231 307 194" fill="none" stroke="#f9e8bf" stroke-width="6"/>
+          <path d="M13 194Q160 231 307 194" fill="none" stroke="#eef2f3" stroke-width="6"/>
           <rect x="153" y="29" width="14" height="22" rx="5" fill="url(#metal)"/>
           <circle cx="160" cy="24" r="19" fill="url(#metal)"/>
           <ellipse cx="153" cy="17" rx="6" ry="4" fill="rgba(255,255,255,.75)"/>
