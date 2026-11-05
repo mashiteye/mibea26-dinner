@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f5ede4">
-<title>Dinner Night · Ashiteye & Laryea Families</title>
+<meta name="theme-color" content="#16251d">
+<title>An Evening Reserved · Michael & Beatrice</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -711,79 +711,36 @@ body{
 }
 @media(max-height:720px){.opening-invite{min-height:48%;padding-top:24px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}.typed-copy{font-size:15px}.typed-landmark,.typed-note{font-size:12px}.hero-actions{margin-top:8px}}
 
-
-/* Pearl romance: quiet ivory below, independent movement above. */
-.opening-hero{background:#f5ede4}
-.opening-hero::before{display:none}
-.pearl-scene{
-  position:absolute;inset:0;overflow:hidden;pointer-events:none;
-  background:radial-gradient(ellipse at 22% 17%,rgba(237,199,204,.5),transparent 43%),
-    radial-gradient(ellipse at 85% 30%,rgba(235,215,181,.48),transparent 42%),
-    linear-gradient(180deg,#fffdf8 0%,#f8eff0 43%,#f2e5d5 100%);
+.opening-video{
+  position:absolute;inset:0;z-index:2;width:100%;height:100%;
+  object-fit:cover;object-position:center;pointer-events:none;opacity:0;
+  transition:opacity .6s ease;
 }
-.pearl-orbit{
-  position:absolute;left:50%;top:6%;transform:translateX(-50%);
-  width:min(80vw,43vh,410px);width:min(80vw,43svh,410px);
-}
-.pearl-float{position:relative;animation:pearlDrift 12s ease-in-out infinite}
-.pearl-art{display:block;width:100%;height:auto;filter:drop-shadow(0 16px 24px rgba(151,105,105,.08))}
-.pearl-shimmer{
-  position:absolute;inset:7%;border-radius:50%;opacity:.2;
-  background:conic-gradient(from 20deg,transparent 0 16%,rgba(255,251,230,.45) 20%,transparent 25% 66%,rgba(255,255,255,.5) 72%,transparent 79%);
-  animation:pearlGleam 12s ease-in-out infinite;
-}
-.distant-heart{
-  position:absolute;width:24px;height:24px;background:#d9a8ae;border-radius:5px;
-  opacity:.22;filter:blur(2px);animation:heartDrift 12s ease-in-out infinite;
-}
-.distant-heart::before,.distant-heart::after{content:"";position:absolute;width:100%;height:100%;border-radius:50%;background:inherit}
-.distant-heart::before{left:-50%}
-.distant-heart::after{top:-50%}
-.heart-one{left:13%;top:15%;animation-delay:-3s}
-.heart-two{right:12%;top:30%;width:18px;height:18px;animation-delay:-7s;opacity:.16}
-.heart-three{left:20%;top:43%;width:12px;height:12px;animation-delay:-10s;opacity:.16}
-@keyframes pearlDrift{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-12px) rotate(1deg)}}
-@keyframes pearlGleam{0%,100%{transform:rotate(-8deg);opacity:.15}50%{transform:rotate(10deg);opacity:.38}}
-@keyframes heartDrift{0%,100%{transform:translateY(0) rotate(-45deg)}50%{transform:translateY(-18px) rotate(-38deg)}}
-.pearl-scene.motion-paused *{animation-play-state:paused!important}
-.opening-invite{background:linear-gradient(180deg,rgba(246,235,225,0),rgba(246,235,225,.78) 22%,#f6ebe1 52%)}
+.opening-video.playing{opacity:1}
 .motion-toggle{
   position:absolute;z-index:4;top:calc(14px + env(safe-area-inset-top));right:14px;
-  min-height:44px;padding:0 14px;border:1px solid rgba(122,80,61,.22);
-  border-radius:999px;background:rgba(255,253,247,.8);color:#795344;font-size:11px;cursor:pointer;
+  min-height:44px;padding:0 14px;border:1px solid rgba(255,249,238,.45);
+  border-radius:999px;background:rgba(60,39,26,.65);color:#fff9ee;
+  font-size:11px;cursor:pointer;
 }
 .motion-toggle[hidden]{display:none}
-.motion-toggle:focus-visible{outline:2px solid #795344;outline-offset:3px}
-@media(prefers-reduced-motion:reduce){.pearl-scene *{animation:none!important}.motion-toggle{display:none}}
+.motion-toggle:focus-visible{outline:2px solid #fff9ee;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.opening-video,.motion-toggle{display:none}}
 </style>
 </head>
 <body>
 <div class="opening-hero" id="openingHero">
-  <div class="pearl-scene motion-paused" id="pearlScene" aria-hidden="true">
-    <span class="distant-heart heart-one"></span><span class="distant-heart heart-two"></span><span class="distant-heart heart-three"></span>
-    <div class="pearl-orbit"><div class="pearl-float">
-      <img class="pearl-art" src="./pearl-heart.png" alt="" fetchpriority="high" draggable="false">
-      <span class="pearl-shimmer"></span>
-    </div></div>
-  </div>
+  <img class="opening-photo" src="./dinner-background.png" alt="">
+  <video class="opening-video" id="dinnerVideo" data-src="./dinner-candlelight.mp4" poster="./dinner-background.png" autoplay muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
   <button class="motion-toggle" id="motionToggle" type="button" hidden>Pause motion</button>
   <div class="opening-invite">
-    <div class="static-kicker">An evening reserved for you</div>
-    <div class="family-type" id="familyType" data-type="Ashiteye & Laryea Families invite you to Dinner Night"></div>
-    <div class="static-copy">Join us for an intimate evening of dinner and celebration.</div>
-    <div class="static-date">20 · 12 · 26 · Sunday · 4:00 pm</div>
-    <div class="countdown" id="countdown" aria-label="Countdown to Dinner Night">
-      <div class="count-box"><strong id="countDays">00</strong><span>Days</span></div>
-      <div class="count-sep" aria-hidden="true">:</div>
-      <div class="count-box"><strong id="countHours">00</strong><span>Hours</span></div>
-      <div class="count-sep" aria-hidden="true">:</div>
-      <div class="count-box"><strong id="countMinutes">00</strong><span>Minutes</span></div>
-      <div class="count-sep" aria-hidden="true">:</div>
-      <div class="count-box"><strong id="countSeconds">00</strong><span>Seconds</span></div>
-    </div>
-    <div class="static-venue">Events Rising Sun · Teshie</div>
-    <div class="static-landmark">Opposite First Junction EV filling station</div>
-    <div class="static-note">Tap Table to reveal your table number.</div>
+    <div class="typed-line typed-kicker" data-type="An evening reserved for you"></div>
+    <div class="typed-line typed-names" data-type="Michael & Beatrice"></div>
+    <div class="typed-line typed-copy" data-type="invite you to join them for an intimate evening of dinner and celebration."></div>
+    <div class="typed-line typed-date" data-type="20 · 12 · 26 · Sunday · 4:00 pm"></div>
+    <div class="typed-line typed-venue" data-type="Events Rising Sun · Teshie"></div>
+    <div class="typed-line typed-landmark" data-type="Opposite First Junction EV filling station"></div>
+    <div class="typed-line typed-note" data-type="Tap Table to reveal your table number."></div>
     <div class="hero-actions" id="heroActions">
       <button class="hero-btn primary" id="heroRsvpBtn" type="button">RSVP</button>
       <a class="hero-btn" href="https://www.google.com/maps/dir/?api=1&destination=5.600437%2C-0.103578" target="_blank" rel="noopener">Directions</a>
@@ -918,7 +875,7 @@ body{
   'use strict';
   var scene=document.getElementById('scene');
   var openingHero=document.getElementById('openingHero');
-  var familyType=document.getElementById('familyType');
+  var typedLines=[].slice.call(document.querySelectorAll('.typed-line'));
   var heroActions=document.getElementById('heroActions');
   var heroTableBtn=document.getElementById('heroTableBtn');
   var tableDialog=document.getElementById('tableDialog');
@@ -940,54 +897,28 @@ body{
   function isDinnerDay(){return previewDay || Date.now()>=TABLE_OPENS;}
 
   function runOpeningTypewriter(){
-    if(!familyType){
-      if(heroActions)heroActions.classList.add('show');
-      return;
-    }
-    var text=familyType.getAttribute('data-type')||'';
-    var i=0;
-    familyType.textContent='';
-    familyType.classList.add('typing');
-    var timer=setInterval(function(){
-      familyType.textContent=text.slice(0,++i);
-      if(i>=text.length){
-        clearInterval(timer);
-        familyType.classList.remove('typing');
-        setTimeout(function(){
-          if(heroActions)heroActions.classList.add('show');
-        },180);
-      }
-    },24);
-  }
-
-  function startCountdown(){
-    var target=Date.UTC(2026,11,20,16,0,0);
-    var wrap=document.getElementById('countdown');
-    var d=document.getElementById('countDays');
-    var h=document.getElementById('countHours');
-    var m=document.getElementById('countMinutes');
-    var s=document.getElementById('countSeconds');
-    if(!wrap||!d||!h||!m||!s)return;
-    function pad(n){return String(n).padStart(2,'0');}
-    function tick(){
-      var diff=target-Date.now();
-      if(diff<=0){
-        wrap.classList.add('event-live');
+    if(!typedLines.length)return;
+    typedLines.forEach(function(line){line.textContent='';});
+    var lineIndex=0;
+    function typeNext(){
+      if(lineIndex>=typedLines.length){
+        if(heroActions)heroActions.classList.add('show');
         return;
       }
-      var days=Math.floor(diff/86400000);
-      diff%=86400000;
-      var hours=Math.floor(diff/3600000);
-      diff%=3600000;
-      var mins=Math.floor(diff/60000);
-      var secs=Math.floor((diff%60000)/1000);
-      d.textContent=pad(days);
-      h.textContent=pad(hours);
-      m.textContent=pad(mins);
-      s.textContent=pad(secs);
+      var line=typedLines[lineIndex++];
+      var text=line.getAttribute('data-type')||'';
+      var i=0;
+      line.classList.add('typing');
+      var timer=setInterval(function(){
+        line.textContent=text.slice(0,++i);
+        if(i>=text.length){
+          clearInterval(timer);
+          line.classList.remove('typing');
+          setTimeout(typeNext,85);
+        }
+      },text.length>60?10:14);
     }
-    tick();
-    setInterval(tick,1000);
+    typeNext();
   }
 
   function openSheet(el){
@@ -1078,27 +1009,49 @@ body{
     }
   });
 
-  // Decorative motion stays still until preferences have been checked.
-  var pearlScene=document.getElementById('pearlScene');
+  // Keep the still image until playback succeeds; respect motion/data preferences.
+  var dinnerVideo=document.getElementById('dinnerVideo');
   var motionToggle=document.getElementById('motionToggle');
   var motionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
   var connection=navigator.connection;
   var motionPaused=false;
-  function syncPearlMotion(){
-    var prefersStill=motionPreference.matches || (connection&&connection.saveData);
-    var paused=prefersStill || motionPaused || document.hidden;
-    pearlScene.classList.toggle('motion-paused',!!paused);
-    motionToggle.hidden=!!prefersStill;
-    motionToggle.textContent=motionPaused?'Play motion':'Pause motion';
+  function prefersStill(){return motionPreference.matches || (connection&&connection.saveData);}
+  function videoFallback(){
+    dinnerVideo.classList.remove('playing');
+    motionToggle.hidden=true;
   }
+  function syncDinnerVideo(){
+    if(prefersStill()){
+      dinnerVideo.pause();
+      videoFallback();
+      dinnerVideo.removeAttribute('src');
+      dinnerVideo.load();
+      return;
+    }
+    if(document.hidden||motionPaused){dinnerVideo.pause();return;}
+    if(!dinnerVideo.getAttribute('src')){
+      dinnerVideo.muted=true;
+      dinnerVideo.src=dinnerVideo.dataset.src;
+    }
+    var playback=dinnerVideo.play();
+    if(playback)playback.catch(videoFallback);
+  }
+  dinnerVideo.addEventListener('playing',function(){
+    if(prefersStill()){syncDinnerVideo();return;}
+    dinnerVideo.classList.add('playing');
+    motionToggle.hidden=false;
+    motionToggle.textContent='Pause motion';
+  });
+  dinnerVideo.addEventListener('error',videoFallback);
   motionToggle.addEventListener('click',function(){
     motionPaused=!motionPaused;
-    syncPearlMotion();
+    motionToggle.textContent=motionPaused?'Play motion':'Pause motion';
+    syncDinnerVideo();
   });
-  motionPreference.addEventListener('change',syncPearlMotion);
-  if(connection&&connection.addEventListener)connection.addEventListener('change',syncPearlMotion);
-  document.addEventListener('visibilitychange',syncPearlMotion);
-  syncPearlMotion();
+  motionPreference.addEventListener('change',syncDinnerVideo);
+  if(connection&&connection.addEventListener)connection.addEventListener('change',syncDinnerVideo);
+  document.addEventListener('visibilitychange',syncDinnerVideo);
+  syncDinnerVideo();
 
   runOpeningTypewriter();
 })();
