@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#16251d">
-<title>An Evening Reserved · Michael & Beatrice</title>
+<title>Dinner Night · Ashiteye & Laryea Families</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -726,6 +726,147 @@ body{
 .motion-toggle[hidden]{display:none}
 .motion-toggle:focus-visible{outline:2px solid #fff9ee;outline-offset:3px}
 @media(prefers-reduced-motion:reduce){.opening-video,.motion-toggle{display:none}}
+
+/* ---------- refined single-line typing + live countdown ---------- */
+.static-kicker{
+  width:min(92vw,430px);
+  color:#6f432f;
+  font-family:var(--sans);
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.24em;
+  text-transform:uppercase;
+  text-align:center;
+  text-shadow:0 1px 8px rgba(255,248,236,.5);
+}
+.family-type{
+  width:min(92vw,430px);
+  min-height:2.05em;
+  margin:7px auto 2px;
+  color:#6f432f;
+  font-family:var(--serif);
+  font-size:clamp(25px,7vw,36px);
+  line-height:1.02;
+  font-weight:600;
+  text-align:center;
+  text-shadow:0 1px 8px rgba(255,248,236,.5);
+}
+.family-type.typing::after{
+  content:"";
+  display:inline-block;
+  width:1px;
+  height:.92em;
+  margin-left:5px;
+  vertical-align:-.08em;
+  background:currentColor;
+  animation:typeCaret .58s steps(1,end) infinite;
+}
+.static-copy{
+  width:min(88vw,340px);
+  margin-top:6px;
+  color:#6f432f;
+  font-family:var(--serif);
+  font-size:clamp(15px,4vw,18px);
+  line-height:1.15;
+  text-align:center;
+}
+.static-date{
+  margin-top:8px;
+  color:#6f432f;
+  font-family:var(--sans);
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+.countdown{
+  width:min(92vw,390px);
+  margin:10px auto 7px;
+  display:grid;
+  grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;
+  gap:6px;
+  align-items:center;
+  color:#6f432f;
+}
+.count-box{
+  min-width:0;
+  padding:8px 5px 7px;
+  border:1px solid rgba(111,67,47,.24);
+  border-radius:13px;
+  background:rgba(255,249,239,.68);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.58),0 5px 14px rgba(82,50,35,.07);
+  backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px);
+}
+.count-box strong{
+  display:block;
+  font-family:var(--serif);
+  font-size:clamp(20px,5.4vw,27px);
+  line-height:.9;
+  font-weight:600;
+  font-variant-numeric:tabular-nums;
+}
+.count-box span{
+  display:block;
+  margin-top:5px;
+  font-family:var(--sans);
+  font-size:7px;
+  font-weight:600;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+  opacity:.74;
+}
+.count-sep{
+  font-family:var(--serif);
+  font-size:22px;
+  line-height:1;
+  opacity:.55;
+  transform:translateY(-4px);
+}
+.static-venue{
+  margin-top:5px;
+  color:#6f432f;
+  font-family:var(--sans);
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.static-landmark,.static-note{
+  width:min(90vw,390px);
+  color:#6f432f;
+  font-family:var(--serif);
+  font-size:13px;
+  font-style:italic;
+  line-height:1.1;
+}
+.static-note{margin-top:6px}
+.countdown.event-live{
+  grid-template-columns:1fr;
+}
+.countdown.event-live .count-box,
+.countdown.event-live .count-sep{display:none}
+.countdown.event-live::after{
+  content:"Dinner Night is here";
+  display:block;
+  padding:10px 16px;
+  border:1px solid rgba(111,67,47,.28);
+  border-radius:999px;
+  background:rgba(255,249,239,.76);
+  font-family:var(--serif);
+  font-size:18px;
+  font-weight:600;
+}
+@media(max-height:760px){
+  .opening-invite{padding-top:18px}
+  .family-type{font-size:clamp(22px,6.2vw,30px);margin-top:4px}
+  .static-copy{font-size:14px}
+  .countdown{margin:7px auto 5px}
+  .count-box{padding:6px 4px 5px}
+  .count-box span{margin-top:3px}
+  .static-landmark,.static-note{font-size:12px}
+}
+
 </style>
 </head>
 <body>
@@ -734,13 +875,22 @@ body{
   <video class="opening-video" id="dinnerVideo" data-src="./dinner-candlelight.mp4" poster="./dinner-background.png" autoplay muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
   <button class="motion-toggle" id="motionToggle" type="button" hidden>Pause motion</button>
   <div class="opening-invite">
-    <div class="typed-line typed-kicker" data-type="An evening reserved for you"></div>
-    <div class="typed-line typed-names" data-type="Michael & Beatrice"></div>
-    <div class="typed-line typed-copy" data-type="invite you to join them for an intimate evening of dinner and celebration."></div>
-    <div class="typed-line typed-date" data-type="20 · 12 · 26 · Sunday · 4:00 pm"></div>
-    <div class="typed-line typed-venue" data-type="Events Rising Sun · Teshie"></div>
-    <div class="typed-line typed-landmark" data-type="Opposite First Junction EV filling station"></div>
-    <div class="typed-line typed-note" data-type="Tap Table to reveal your table number."></div>
+    <div class="static-kicker">An evening reserved for you</div>
+    <div class="family-type" id="familyType" data-type="Ashiteye & Laryea Families invite you to Dinner Night"></div>
+    <div class="static-copy">Join us for an intimate evening of dinner and celebration.</div>
+    <div class="static-date">20 · 12 · 26 · Sunday · 4:00 pm</div>
+    <div class="countdown" id="countdown" aria-label="Countdown to Dinner Night">
+      <div class="count-box"><strong id="countDays">00</strong><span>Days</span></div>
+      <div class="count-sep" aria-hidden="true">:</div>
+      <div class="count-box"><strong id="countHours">00</strong><span>Hours</span></div>
+      <div class="count-sep" aria-hidden="true">:</div>
+      <div class="count-box"><strong id="countMinutes">00</strong><span>Minutes</span></div>
+      <div class="count-sep" aria-hidden="true">:</div>
+      <div class="count-box"><strong id="countSeconds">00</strong><span>Seconds</span></div>
+    </div>
+    <div class="static-venue">Events Rising Sun · Teshie</div>
+    <div class="static-landmark">Opposite First Junction EV filling station</div>
+    <div class="static-note">Tap Table to reveal your table number.</div>
     <div class="hero-actions" id="heroActions">
       <button class="hero-btn primary" id="heroRsvpBtn" type="button">RSVP</button>
       <a class="hero-btn" href="https://www.google.com/maps/dir/?api=1&destination=5.600437%2C-0.103578" target="_blank" rel="noopener">Directions</a>
@@ -875,7 +1025,7 @@ body{
   'use strict';
   var scene=document.getElementById('scene');
   var openingHero=document.getElementById('openingHero');
-  var typedLines=[].slice.call(document.querySelectorAll('.typed-line'));
+  var familyType=document.getElementById('familyType');
   var heroActions=document.getElementById('heroActions');
   var heroTableBtn=document.getElementById('heroTableBtn');
   var tableDialog=document.getElementById('tableDialog');
@@ -897,28 +1047,54 @@ body{
   function isDinnerDay(){return previewDay || Date.now()>=TABLE_OPENS;}
 
   function runOpeningTypewriter(){
-    if(!typedLines.length)return;
-    typedLines.forEach(function(line){line.textContent='';});
-    var lineIndex=0;
-    function typeNext(){
-      if(lineIndex>=typedLines.length){
-        if(heroActions)heroActions.classList.add('show');
+    if(!familyType){
+      if(heroActions)heroActions.classList.add('show');
+      return;
+    }
+    var text=familyType.getAttribute('data-type')||'';
+    var i=0;
+    familyType.textContent='';
+    familyType.classList.add('typing');
+    var timer=setInterval(function(){
+      familyType.textContent=text.slice(0,++i);
+      if(i>=text.length){
+        clearInterval(timer);
+        familyType.classList.remove('typing');
+        setTimeout(function(){
+          if(heroActions)heroActions.classList.add('show');
+        },180);
+      }
+    },24);
+  }
+
+  function startCountdown(){
+    var target=Date.UTC(2026,11,20,16,0,0);
+    var wrap=document.getElementById('countdown');
+    var d=document.getElementById('countDays');
+    var h=document.getElementById('countHours');
+    var m=document.getElementById('countMinutes');
+    var s=document.getElementById('countSeconds');
+    if(!wrap||!d||!h||!m||!s)return;
+    function pad(n){return String(n).padStart(2,'0');}
+    function tick(){
+      var diff=target-Date.now();
+      if(diff<=0){
+        wrap.classList.add('event-live');
         return;
       }
-      var line=typedLines[lineIndex++];
-      var text=line.getAttribute('data-type')||'';
-      var i=0;
-      line.classList.add('typing');
-      var timer=setInterval(function(){
-        line.textContent=text.slice(0,++i);
-        if(i>=text.length){
-          clearInterval(timer);
-          line.classList.remove('typing');
-          setTimeout(typeNext,85);
-        }
-      },text.length>60?10:14);
+      var days=Math.floor(diff/86400000);
+      diff%=86400000;
+      var hours=Math.floor(diff/3600000);
+      diff%=3600000;
+      var mins=Math.floor(diff/60000);
+      var secs=Math.floor((diff%60000)/1000);
+      d.textContent=pad(days);
+      h.textContent=pad(hours);
+      m.textContent=pad(mins);
+      s.textContent=pad(secs);
     }
-    typeNext();
+    tick();
+    setInterval(tick,1000);
   }
 
   function openSheet(el){
@@ -1053,6 +1229,7 @@ body{
   document.addEventListener('visibilitychange',syncDinnerVideo);
   syncDinnerVideo();
 
+  startCountdown();
   runOpeningTypewriter();
 })();
 </script>
