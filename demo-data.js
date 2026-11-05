@@ -5,36 +5,38 @@
   var R=rng(20261220);
   function pick(a){return a[Math.floor(R()*a.length)];}
 
-  /* the hosts and their guest chairs, 160 in all. Their phone numbers stay out of this public preview */
+  /* the hosts and their chairs, 180 in all. The family hosts' own chairs come out of their 20.
+     Their phone numbers stay out of this public preview */
   var HOSTS={
     mike:{name:'Michael',seats:43},
     bea:{name:'Beatrice',seats:37},
-    parents:{name:'Mum & Dad',seats:20},
+    mum:{name:'Juliana',role:'Mum',seats:20},
+    dad:{name:'Samuel',role:'Dad',seats:20},
+    joshua:{name:'Joshua',seats:20},
     isaac:{name:'Isaac',seats:20},
-    benjamin:{name:'Benjamin',seats:20},
-    joshua:{name:'Joshua',seats:20}
+    benjamin:{name:'Benjamin',seats:20}
   };
-  /* which host owns each chair; a trailing * marks a family chair. 160 guest chairs, 7 family, 13 spare.
-     Outside the 180: Michael, Beatrice, Michael's cousin and the seven children */
-  var PLAN={1:'isaac',2:'benjamin',3:'joshua',4:'joshua',5:'isaac',6:'benjamin',
-    7:['parents','parents','isaac','isaac','benjamin','benjamin','joshua','joshua',null],
-    8:['mike','mike','mike','mike','mike','mike','mike','bea',null],
-    9:'bea',10:'bea',11:'mike',12:'mike',13:'bea',14:'bea',15:'mike',16:'mike',17:'parents',
-    18:['bea*','bea*','bea*','bea*','bea*','bea*','bea*',null,null],
-    19:[null,null,null,null,null,null,null,null,null],
-    20:'parents'};
+  /* which host owns each chair; a trailing * marks the host's own chair, all at the family table (18).
+     Every chair is used. Outside the 180: Michael, Beatrice, Michael's cousin and the seven children */
+  var PLAN={1:'joshua',2:'joshua',3:'isaac',4:'isaac',5:'benjamin',6:'benjamin',
+    7:['benjamin','mike','mike','mike','mike','mike','mike','mike','bea'],
+    8:'bea',9:'bea',10:'mike',11:'mike',12:'bea',13:'bea',14:'mike',15:'mike',
+    16:'dad',17:'mum',
+    18:['mum*','dad*','joshua*','joshua*','isaac*','isaac*','benjamin*','mum','dad'],
+    19:'dad',20:'mum'};
   /* every table has a name and a number; guests are told theirs at the gate, so tables can still move */
   var NAMES=[null,'Rose','Lily','Jasmine','Orchid','Hibiscus','Frangipani','Bougainvillea','Magnolia','Gardenia','Camellia',
     'Lavender','Peony','Tulip','Dahlia','Iris','Daisy','Violet','Sunflower','Azalea','Freesia'];
   function tableName(t){return NAMES[t]||'';}
   function tableLabel(t){return NAMES[t]+' · '+t;}
-  /* the family inside the 180, invited by Beatrice as households with codes like every guest.
-     Children come in with an adult and take no chair: Michael's three sit with Isaac's wife */
+  /* the family hosts' own households, at the family table, with gate codes like every guest.
+     Children come in with an adult and take no chair: Joshua's four with him, Michael's three with Isaac's wife */
   var FAMILY={
-    '18bea':[{label:'Mum & Dad',name:'Mum and Dad',size:2,status:'confirmed'},
-             {label:'Isaac & wife',name:'Isaac and his wife',size:2,kids:3,kidsWho:'Michael’s children',status:'confirmed'},
-             {label:'Benjamin & wife',name:'Benjamin and his wife',size:2,status:'sent'},
-             {label:'Joshua',name:'Joshua',size:1,status:'confirmed'}]
+    '18mum':[{label:'You',name:'Juliana Laryea',size:1,status:'confirmed'}],
+    '18dad':[{label:'You',name:'Samuel Laryea',size:1,status:'confirmed'}],
+    '18joshua':[{label:'You & wife',name:'Joshua Laryea and his wife',size:2,kids:4,kidsWho:'yours',kidsNote:'Your four children come in with you and take no chair.',status:'confirmed'}],
+    '18isaac':[{label:'You & wife',name:'Isaac Laryea and his wife',size:2,kids:3,kidsWho:'Michael’s',kidsNote:'Michael’s three children come in with you and take no chair.',status:'confirmed'}],
+    '18benjamin':[{label:'You',name:'Benjamin Laryea',size:1,status:'confirmed'}]
   };
 
   var FIRST=['Ama','Kofi','Akosua','Kwame','Efua','Yaw','Abena','Kojo','Adwoa','Kwesi','Esi','Kwabena','Afua','Kweku','Akua','Yaa','Selorm','Edem','Dzifa','Naa','Nii','Ayele','Elikem','Dela','Korkor','Aku','Fiifi','Araba','Ekow','Nana'];
@@ -49,7 +51,7 @@
     15001:{name:'Kofi Owusu',size:2,status:'confirmed',att:2,host:'0551234417'},
     3001:{name:'Edem Tetteh',size:2,status:'confirmed',att:2,host:'0207784417'},
     12001:{name:'Esi Quaye',size:2,status:'confirmed',att:2,host:'0246667777',arrived:2,at:'4:12 pm'},
-    16001:{name:'Yaw Boateng',size:3,status:'confirmed',att:3,host:'0245551290',guest:'0245551209'}
+    14001:{name:'Yaw Boateng',size:3,status:'confirmed',att:3,host:'0245551290',guest:'0245551209'}
   };
 
   var seats=[],households=[],byCode={};
@@ -84,7 +86,7 @@
         else{var r2=R();status=r2<.6?'confirmed':r2<.88?'sent':'declined';att=status==='confirmed'?(size>1&&R()<.15?size-1:size):0;}
         var hostPhone=pre?pre.host:phone();
         var guestPhone=status!=='confirmed'?null:pre?(pre.guest||hostPhone):(R()<.03?phone():hostPhone);
-        hh={id:households.length+1,host:start.host,family:start.family,table:tt,chairs:[],name:name,initials:initials(name),label:fam?fam.label:null,kids:fam&&fam.kids?fam.kids:0,kidsWho:fam&&fam.kidsWho?fam.kidsWho:'',
+        hh={id:households.length+1,host:start.host,family:start.family,table:tt,chairs:[],name:name,initials:initials(name),label:fam?fam.label:null,kids:fam&&fam.kids?fam.kids:0,kidsWho:fam&&fam.kidsWho?fam.kidsWho:'',kidsNote:fam&&fam.kidsNote?fam.kidsNote:'',
             hostPhone:hostPhone,guestPhone:guestPhone,size:size,status:status,att:att,
             sentOn:pick(SENT_ON),arrived:pre&&pre.arrived?pre.arrived:0,arrivedAt:pre&&pre.at?pre.at:null};
         for(var k=0;k<size;k++){var st=row[i+j+k];st.hh=hh;hh.chairs.push(st.code);}
