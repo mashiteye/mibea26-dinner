@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#fbf4e8">
+<title>Host board · Dinner Night</title>
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./staff.css">
+<style>
+.intro{margin:4px 2px 0;font-size:13px;color:var(--soft)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.box{position:relative;min-height:78px;padding:8px 8px 7px;border-radius:12px;border:1px solid var(--sent-line);background:var(--sent);color:var(--choc-deep);text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between}
+.box .bn{font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--soft)}
+.box .bi{font-family:var(--serif);font-size:22px;line-height:1.05}
+.box .bi small{display:block;font-family:var(--sans);font-size:11px;color:var(--soft)}
+.box .bs{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--choc)}
+.box .hh{position:absolute;top:7px;right:8px;font-size:10px;font-weight:600;color:var(--gold-deep)}
+.box .dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 2px #fff}
+.box.open{background:transparent;border:1.5px dashed var(--line-strong)}
+.box.open .bi{font-family:var(--sans);font-size:26px;font-weight:400;color:var(--gold-deep)}
+.box.confirmed{background:var(--confirmed);border-color:var(--confirmed);color:var(--ivory)}
+.box.confirmed .bn,.box.confirmed .bs,.box.confirmed .bi small{color:#f1dfc3}
+.box.confirmed .hh{color:#e7cd98}
+.box.declined,.box.freed{background:var(--declined);border-color:var(--declined-line);color:var(--declined-ink)}
+.box.declined .bs,.box.freed .bs{color:var(--declined-ink)}
+.box.other{cursor:default;background:transparent;border:1px dotted var(--line);color:var(--soft);opacity:.75}
+.box.other .bi{font-family:var(--sans);font-size:12px}
+.legend .open{border-style:dashed;background:transparent}
+.legend .sent{background:var(--sent);border-color:var(--sent-line)}
+.legend .confirmed{background:var(--confirmed);border-color:var(--confirmed)}
+.legend .declined{background:var(--declined);border-color:var(--declined-line)}
+.legend .check{background:var(--bad);border-color:var(--bad);border-radius:50%}
+@media(max-width:360px){.box{min-height:72px}.box .bi{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="preview">
+  <b>Design preview</b><span>Sample data</span>
+  <label>Viewing as <select id="who" aria-label="Viewing as"></select></label>
+  <span class="spacer"></span>
+  <a href="./index.html?review">Invitation</a><a href="./host.html" aria-current="page">Host board</a><a href="./gate.html">Gate</a><a href="./admin.html">Overall view</a>
+</div>
+<header class="top"><div class="in">
+  <h1 id="title">Guests</h1>
+  <div class="sub">Dinner Night · Sunday 20 December</div>
+  <div class="chips" id="chips"></div>
+</div></header>
+<main class="wrap">
+  <p class="intro">Each box is a chair. Tap an empty one to invite a guest. A household takes several chairs at one table, so families sit together.</p>
+  <div id="tables"></div>
+  <p class="section-title">Key</p>
+  <div class="legend">
+    <span><i class="open"></i>Open</span><span><i class="sent"></i>Sent</span><span><i class="confirmed"></i>Confirmed</span><span><i class="declined"></i>Declined, replace</span><span><i class="check"></i>Number to check</span>
+  </div>
+</main>
+
+<div class="veil" id="veil"></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" inert></section>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="./demo-data.js"></script>
+<script>
+(function(){
+  'use strict';
+  var D=window.DEMO,Q=new URLSearchParams(location.search);
+  var me=D.HOSTS[Q.get('h')]?Q.get('h'):'mike';
+  var who=document.getElementById('who');
+  Object.keys(D.HOSTS).forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=D.HOSTS[k].name;if(k===me)o.selected=true;who.appendChild(o);});
+  who.addEventListener('change',function(){location.search='?h='+who.value;});
+
+  var sheet=document.getElementById('sheet'),veil=document.getElementById('veil'),toast=document.getElementById('toast');
+  var nextId=D.households.length+1;
+  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function showToast(m){toast.textContent=m;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){toast.classList.remove('show');},2600);}
+
+  function mySeats(){return D.seats.filter(function(s){return s.host===me;});}
+  function render(){
+    var name=D.HOSTS[me].name;
+    document.getElementById('title').textContent=name+'’s guests';
+    var mine=mySeats(),guests=mine.filter(function(s){return !s.family;}),fam=mine.filter(function(s){return s.family;});
+    var n={sent:0,confirmed:0,replace:0,check:0,open:0};
+    var seenHH={};
+    mine.forEach(function(s){
+      var st=D.seatState(s,false);
+      if(st==='open')n.open++;
+      else if(st==='sent')n.sent++;
+      else if(st==='confirmed')n.confirmed++;
+      else if(st==='declined'||st==='freed')n.replace++;
+      if(s.hh&&!seenHH[s.hh.id]&&D.mismatch(s.hh)){seenHH[s.hh.id]=1;n.check++;}
+    });
+    var chips='<span class="chip">'+guests.length+' seats'+(fam.length?' · '+fam.length+' family':'')+'</span>'+
+      '<span class="chip">'+n.sent+' sent</span><span class="chip ok">'+n.confirmed+' confirmed</span>'+
+      (n.replace?'<span class="chip warn">'+n.replace+' to replace</span>':'')+
+      (n.check?'<span class="chip bad">'+n.check+' number'+(n.check>1?'s':'')+' to check</span>':'')+
+      '<span class="chip">'+n.open+' open</span>';
+    document.getElementById('chips').innerHTML=chips;
+
+    var tables={};mine.forEach(function(s){(tables[s.table]=tables[s.table]||[]).push(s);});
+    var html='';
+    Object.keys(tables).map(Number).sort(function(a,b){return a-b;}).forEach(function(t){
+      var row=D.seats.filter(function(s){return s.table===t;});
+      var own=tables[t].length,fam=tables[t][0].family;
+      var others=row.filter(function(s){return s.host&&s.host!==me;}).map(function(s){return D.hostName(s.host);});
+      var shared=others.length?' · shared with '+others.filter(function(v,i,a){return a.indexOf(v)===i;}).join(', '):'';
+      html+='<section class="card"><div class="card-head"><h2>Table '+t+(fam?' · family':'')+'</h2><span>'+own+' of 9 chairs'+shared+'</span></div><div class="grid">';
+      row.forEach(function(s){
+        if(s.host!==me){html+='<div class="box other" aria-hidden="true"><span class="bn">'+s.chair+'</span><span class="bi">'+(s.host?esc(D.hostName(s.host)):'Spare')+'</span><span class="bs"></span></div>';return;}
+        var st=D.seatState(s,false),h=s.hh,first=h&&h.chairs[0]===s.code;
+        var label={open:'Invite',sent:'Sent',confirmed:'Confirmed',declined:'Declined',freed:'Not coming'}[st];
+        var main=st==='open'?'+':(first?esc(h.initials):'<small>with '+esc(h.initials)+'</small>');
+        html+='<button type="button" class="box '+st+'" data-code="'+s.code+'" aria-label="Table '+t+', chair '+s.chair+', '+label+(h?', '+esc(h.initials):'')+'">'+
+          '<span class="bn">'+s.chair+'</span><span class="bi">'+main+'</span><span class="bs">'+label+(st==='declined'||st==='freed'?' · replace':'')+'</span>'+
+          (h&&first&&h.size>1&&!D.mismatch(h)?'<span class="hh">×'+h.size+'</span>':'')+
+          (h&&first&&D.mismatch(h)?'<span class="dot" aria-hidden="true"></span>':'')+'</button>';
+      });
+      html+='</div></section>';
+    });
+    document.getElementById('tables').innerHTML=html;
+  }
+
+  /* ---------- the sheet ---------- */
+  var trigger=null;
+  function openSheet(inner){trigger=document.activeElement;sheet.innerHTML=inner;sheet.inert=false;sheet.classList.add('show');veil.classList.add('show');var f=sheet.querySelector('input,button');if(f)f.focus({preventScroll:true});}
+  function closeSheet(){sheet.classList.remove('show');veil.classList.remove('show');sheet.inert=true;if(trigger&&trigger.focus)trigger.focus();}
+  veil.addEventListener('click',closeSheet);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&sheet.classList.contains('show'))closeSheet();});
+
+  function freeRunFrom(code){
+    var s=D.byCode[code],row=D.seats.filter(function(x){return x.table===s.table;}),out=[];
+    for(var i=row.indexOf(s);i<row.length;i++){var x=row[i];if(x.host!==me||x.family!==s.family)break;var st=D.seatState(x,false);if(x!==s&&st!=='open')break;out.push(x.code);}
+    return out;
+  }
+  function message(size,code){
+    return 'Hello, you are invited to Dinner Night with Michael & Beatrice, hosted by the Ashiteye and Laryea families.\n'+
+      (size>1?'This invitation is for '+size+'.\n':'')+
+      'Sunday 20 December 2026, 4:00 pm\nEvents Rising Sun, Teshie\n\n'+
+      'Please open your invitation and confirm your attendance:\n'+D.link(code)+'\n\n'+
+      'At the gate you will give the last four digits of your phone number.';
+  }
+  function inviteForm(code,prefill){
+    var s=D.byCode[code],run=freeRunFrom(code),max=Math.max(1,run.length);
+    var size=prefill?Math.min(prefill.size,max):1;
+    openSheet('<h3 id="sheetTitle">'+(prefill?'Edit invitation':'Invite a guest')+'</h3><div class="meta">Table '+s.table+' · chair '+s.chair+'</div>'+
+      '<div class="field"><label for="fName">Name</label><input id="fName" autocomplete="off" value="'+(prefill?esc(prefill.name):'')+'" placeholder="Their name, for your records"></div>'+
+      '<div class="field"><label for="fPhone">WhatsApp number</label><input id="fPhone" type="tel" inputmode="tel" value="'+(prefill?esc(D.fmtPhone(prefill.hostPhone)):'')+'" placeholder="024 123 4567"><p class="err" id="fErr" hidden>Enter a name and a full phone number.</p></div>'+
+      '<div class="field"><span class="lab" id="szLab">Chairs for this household</span><div class="stepper" role="group" aria-labelledby="szLab"><button type="button" id="szM" aria-label="One fewer">−</button><output id="szO">'+size+'</output><button type="button" id="szP" aria-label="One more">+</button></div></div>'+
+      '<div class="msg" id="fMsg"><b>The message they will receive</b></div>'+
+      '<div class="stack"><button class="btn primary wide" id="fSend" type="button">Send on WhatsApp</button><button class="btn wide" id="fCancel" type="button">Cancel</button></div>');
+    var o=document.getElementById('szO'),m=document.getElementById('szM'),p=document.getElementById('szP'),msg=document.getElementById('fMsg');
+    function upd(){o.textContent=size;m.disabled=size<=1;p.disabled=size>=max;msg.innerHTML='<b>The message they will receive</b>'+esc(message(size,code));}
+    m.onclick=function(){size=Math.max(1,size-1);upd();};p.onclick=function(){size=Math.min(max,size+1);upd();};upd();
+    document.getElementById('fCancel').onclick=closeSheet;
+    document.getElementById('fSend').onclick=function(){
+      var nm=document.getElementById('fName').value.trim(),ph=document.getElementById('fPhone').value.replace(/\D/g,'');
+      if(!nm||ph.length<9){document.getElementById('fErr').hidden=false;return;}
+      if(prefill)clearHH(prefill);
+      var h={id:nextId++,host:me,family:s.family,table:s.table,chairs:run.slice(0,size),name:nm,initials:D.initials(nm),hostPhone:ph,guestPhone:null,size:size,status:'sent',att:0,sentOn:'today',arrived:0};
+      h.chairs.forEach(function(c){D.byCode[c].hh=h;});D.households.push(h);
+      closeSheet();render();showToast('Preview: WhatsApp would open with this message');
+    };
+  }
+  function clearHH(h){h.chairs.forEach(function(c){if(D.byCode[c].hh===h)D.byCode[c].hh=null;});var i=D.households.indexOf(h);if(i>=0)D.households.splice(i,1);}
+
+  function details(code){
+    var s=D.byCode[code],h=s.hh,st=D.seatState(s,false);
+    var chairs='chair'+(h.chairs.length>1?'s ':' ')+h.chairs.map(function(c){return D.byCode[c].chair;}).join(', ');
+    var head='<h3 id="sheetTitle">'+esc(h.name)+'</h3><div class="meta">Table '+h.table+' · '+chairs+'</div>';
+    var kv='<dl class="kv"><dt>Number you entered</dt><dd>'+esc(D.fmtPhone(h.hostPhone))+'</dd>'+(h.size>1?'<dt>Household</dt><dd>'+h.size+' chairs</dd>':'')+
+      (h.status==='confirmed'?'<dt>Gate digits</dt><dd>'+D.last4(h)+'</dd>':'')+'</dl>';
+    var body='',btns='';
+    if(st==='freed'){
+      body='<div class="banner warn">'+esc(h.name)+'’s household is coming as '+h.att+' of '+h.size+'. This chair is free for someone else.</div>';
+      btns='<button class="btn primary wide" id="aFree" type="button">Invite someone to this chair</button>';
+    }else if(h.status==='sent'){
+      body='<div class="banner warn">Sent on '+esc(h.sentOn)+'. Not answered yet.</div>';
+      btns='<button class="btn primary wide" id="aRemind" type="button">Remind on WhatsApp</button><button class="btn wide" id="aEdit" type="button">Edit</button><button class="btn wide" id="aClear" type="button">Clear '+(h.size>1?'these chairs':'this chair')+'</button>';
+    }else if(h.status==='declined'){
+      body='<div class="banner warn">Declined. These chairs are yours to give to someone else.</div>';
+      btns='<button class="btn primary wide" id="aReplace" type="button">Invite someone else</button>';
+    }else{
+      body='<div class="banner ok">Confirmed · '+h.att+' of '+h.size+' coming</div>';
+      if(D.mismatch(h))body+='<div class="banner bad">The numbers differ. You entered '+esc(D.fmtPhone(h.hostPhone))+'; the guest confirmed with '+esc(D.fmtPhone(h.guestPhone))+'. The gate will use the guest’s.</div>';
+      btns=(D.mismatch(h)?'<button class="btn primary wide" id="aUse" type="button">Use the guest’s number</button>':'')+'<button class="btn wide" id="aMsg" type="button">Message on WhatsApp</button>';
+    }
+    openSheet(head+body+kv+'<div class="stack">'+btns+'<button class="btn wide" id="aClose" type="button">Close</button></div>');
+    function on(id,fn){var el=document.getElementById(id);if(el)el.onclick=fn;}
+    on('aClose',closeSheet);
+    on('aRemind',function(){closeSheet();showToast('Preview: WhatsApp would open with a gentle reminder');});
+    on('aMsg',function(){closeSheet();showToast('Preview: WhatsApp would open');});
+    on('aEdit',function(){var pre={name:h.name,hostPhone:h.hostPhone,size:h.size};var c0=h.chairs[0];clearHH(h);inviteForm(c0,pre);});
+    on('aClear',function(){clearHH(h);closeSheet();render();showToast('Chairs cleared');});
+    on('aReplace',function(){var c0=h.chairs[0];clearHH(h);inviteForm(c0);});
+    on('aFree',function(){h.chairs=h.chairs.filter(function(c){return c!==code;});h.size=h.chairs.length;s.hh=null;inviteForm(code);});
+    on('aUse',function(){h.hostPhone=h.guestPhone;closeSheet();render();showToast('Number updated');});
+  }
+
+  document.getElementById('tables').addEventListener('click',function(e){
+    var b=e.target.closest('button.box');if(!b)return;
+    var code=+b.getAttribute('data-code'),st=D.seatState(D.byCode[code],false);
+    if(st==='open')inviteForm(code);else details(code);
+  });
+  render();
+})();
+</script>
+</body>
+</html>

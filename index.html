@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>document.documentElement.classList.add('js');</script>
 <meta name="theme-color" content="#6f432f">
 <title>Dinner Night · Michael &amp; Beatrice</title>
 <meta name="description" content="Sunday 20 December 2026 · 4:00 pm · Events Rising Sun, Teshie. Open your invitation.">
@@ -10,7 +11,7 @@
 <meta property="og:title" content="Michael &amp; Beatrice · Dinner Night">
 <meta property="og:description" content="Sunday 20 December 2026 · 4:00 pm · Events Rising Sun, Teshie. Open your invitation.">
 <meta property="og:url" content="https://mashiteye.github.io/mibea26-dinner/">
-<meta property="og:image" content="https://mashiteye.github.io/mibea26-dinner/og-dinner.jpg">
+<meta property="og:image" content="https://mashiteye.github.io/mibea26-dinner/og-dinner.jpg?v=2">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -68,28 +69,29 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   transition:opacity 2.2s ease;
 }
 .hero.flooded .invite::before{opacity:.42}   /* the champagne pool shows through under the text */
-/* lines are visible without JS; with JS they fade up in sequence */
-.js .line{opacity:0;transform:translateY(12px);transition:opacity .7s ease,transform .8s var(--ease)}
-.js .line.in{opacity:1;transform:none}
+/* the details are there from the first moment, so the guest is reading while the glass fills; one quick fade, no sequence */
+.js .invite{animation:inviteIn .6s ease both}
+@keyframes inviteIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
-.eyebrow{font-size:10px;font-weight:600;letter-spacing:.3em;padding-left:.3em;text-transform:uppercase;color:var(--choc)}
-.names{margin:10px 0 0;font-family:var(--serif);font-weight:500;font-size:clamp(34px,9.2vw,44px);line-height:1;letter-spacing:.01em;color:var(--choc-deep)}
+.names{margin:0;font-family:var(--serif);font-weight:500;font-size:clamp(30px,9.2vw,42px);line-height:1;letter-spacing:.01em;color:var(--choc-deep)}
 .names i{font-style:italic;font-weight:400;color:var(--choc)}
 /* once the champagne reaches the text, a sheen runs through the names as if they were poured too */
 .names.sheen{background:linear-gradient(105deg,var(--choc-deep) 0 42%,#f3dca3 48%,#c89a4c 52%,var(--choc-deep) 58% 100%);background-size:260% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;color:transparent;animation:sheen 1.9s ease-in-out 1 forwards}
 .names.sheen i{color:inherit}
 @keyframes sheen{from{background-position:100% 0}to{background-position:0% 0}}
 .copy{margin:12px auto 0;max-width:330px;font-family:var(--serif);font-style:italic;font-size:clamp(15px,4.2vw,17px);line-height:1.35;color:var(--ink)}
-.date,.time,.venue{font-family:var(--serif);font-weight:500;font-size:clamp(25px,7.4vw,31px);line-height:1.12;color:var(--choc-deep)}
+/* as big as the phone allows while "Sunday, 20 December 2026" stays on one line (its width is about 12.2 times the font size) */
+.date,.time,.venue{font-family:var(--serif);font-weight:500;font-size:min(31px,calc((100vw - 44px) / 12.5));line-height:1.12;color:var(--choc-deep)}
+.date,.time{font-variant-numeric:lining-nums}
 .date{margin-top:16px}
 .time{margin-top:2px}
 .venue{margin-top:2px}
-.landmark{margin-top:5px;font-size:12px;letter-spacing:.03em;color:var(--soft)}
+.landmark{margin-top:6px;font-size:clamp(13px,3.8vw,15px);font-weight:600;line-height:1.3;letter-spacing:.01em;color:var(--choc);text-wrap:balance}
 .countdown{margin-top:10px;min-height:1em;font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--soft);font-variant-numeric:tabular-nums}
 .countdown[hidden]{display:none}
 
-.actions{display:flex;gap:10px;justify-content:center;margin-top:18px;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .5s ease,transform .5s ease}
-.actions.show{opacity:1;transform:none;pointer-events:auto}
+.actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
+html:not(.js) .needs-js{display:none}
 .btn{
   min-height:44px;padding:0 20px;border-radius:999px;
   border:1px solid rgba(111,67,47,.4);background:rgba(255,249,239,.92);color:var(--choc);
@@ -134,6 +136,7 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   text-align:center;transition:transform .5s var(--ease),opacity .4s ease;
 }
 .sheet.show{transform:translate(-50%,0)}
+.sheet:not(.show){box-shadow:none}
 .sheet h2{margin:0;font-family:var(--serif);font-size:30px;font-weight:500;color:var(--choc-deep)}
 .sheet p{margin:8px 0 0;font-family:var(--serif);font-style:italic;font-size:16px;line-height:1.35;color:var(--soft)}
 .sheet .stack{display:grid;gap:10px;margin-top:20px}
@@ -166,10 +169,10 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
 .place-ornament::before,.place-ornament::after{content:"";width:28px;height:1px;background:linear-gradient(90deg,transparent,#c3a367)}
 .place-ornament::after{background:linear-gradient(90deg,#c3a367,transparent)}
 .place-label{margin:14px 0 10px;font-size:10px;font-weight:600;letter-spacing:.32em;padding-left:.32em;text-transform:uppercase;color:var(--choc)}
-.place-card h2{margin:0;font-family:var(--serif);font-size:clamp(38px,10vw,58px);font-weight:500;line-height:1.05;color:var(--choc-deep)}
+.place-card h2{margin:0;font-family:var(--serif);font-size:clamp(38px,10vw,58px);font-weight:500;line-height:1.05;color:var(--choc-deep);font-variant-numeric:lining-nums}
 .place-guest{margin:12px 0 0;font-family:var(--serif);font-style:italic;font-size:clamp(18px,5vw,22px);color:var(--choc)}
 .place-rule{width:58px;height:1px;margin:18px auto;background:linear-gradient(90deg,transparent,#bc9855,transparent)}
-.place-welcome{margin:0 auto;max-width:230px;font-family:var(--serif);font-style:italic;font-size:17px;line-height:1.35;color:#795644}
+.place-welcome{margin:0 auto;max-width:270px;font-family:var(--serif);font-style:italic;font-size:17px;line-height:1.35;color:#795644}
 .table-close{
   display:block;margin:22px auto 0;min-height:44px;padding:0 22px;
   border:1px solid rgba(111,67,47,.35);border-radius:999px;
@@ -185,6 +188,7 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   padding:10px 16px;border-radius:999px;background:var(--choc);color:var(--ivory);font-size:13px;transition:.3s;
 }
 .toast.show{opacity:1;transform:translate(-50%,0)}
+.sheet.show~.toast{bottom:auto;top:calc(18px + env(safe-area-inset-top))}
 
 /* ---------- small and short phones ---------- */
 @media(max-width:380px){
@@ -228,12 +232,73 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   .sheet.show{opacity:1;transform:translate(-50%,-50%)}
 }
 
+/* ---------- confirm attendance: actions, form, gate digits ---------- */
+.actions .btn{padding:0 18px;letter-spacing:.1em}
+.sheet .for{margin-top:12px;font-family:var(--sans);font-style:normal;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--choc)}
+.field{margin:18px auto 0;max-width:340px;text-align:left}
+.field label,.field .lab{display:block;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--choc)}
+.field input{display:block;width:100%;margin-top:8px;min-height:52px;padding:0 16px;border:1px solid rgba(111,67,47,.35);border-radius:14px;background:#fffdf8;font-family:var(--serif);font-size:22px;letter-spacing:.04em;color:var(--choc-deep);font-variant-numeric:lining-nums;outline:none}
+.field input:focus{border-color:var(--gold-deep);box-shadow:0 0 0 3px rgba(197,154,82,.18)}
+.sheet .field .hint{margin:7px 0 0;font-size:14px}
+.sheet .field .err{margin:7px 0 0;font-family:var(--sans);font-style:normal;font-size:13px;color:#a3392b}
+.count-field[hidden]{display:none}
+.stepper{display:flex;align-items:center;justify-content:space-between;margin-top:8px;border:1px solid rgba(111,67,47,.35);border-radius:14px;background:#fffdf8;padding:4px}
+.stepper button{width:48px;height:46px;border:0;border-radius:11px;background:rgba(111,67,47,.08);font-size:22px;line-height:1;color:var(--choc);cursor:pointer}
+.stepper button:disabled{opacity:.35;cursor:default}
+.stepper output{font-family:var(--serif);font-size:26px;color:var(--choc-deep);font-variant-numeric:lining-nums tabular-nums}
+.place-gate{margin:2px 0 0;font-size:10px;font-weight:600;letter-spacing:.24em;padding-left:.24em;text-transform:uppercase;color:var(--choc)}
+.gate-digits{display:flex;justify-content:center;gap:8px;margin-top:10px}
+.gate-digits span{width:44px;height:54px;display:grid;place-items:center;border:1px solid #d7be8e;border-radius:8px;background:#fffdf7;font-family:var(--serif);font-size:30px;color:var(--choc-deep);font-variant-numeric:lining-nums tabular-nums}
+.gate-digits[hidden]{display:none}
+.place-welcome{margin-top:16px!important}
+/* ---------- help: two people guests can call, each number with Call and Copy ---------- */
+.people{margin-top:6px;text-align:left}
+.person{margin-top:16px}
+.person h3{margin:0 0 2px;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--choc)}
+.num{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(111,67,47,.14)}
+.num .digits{flex:1;font-family:var(--serif);font-size:22px;letter-spacing:.03em;color:var(--choc-deep);font-variant-numeric:lining-nums tabular-nums;-webkit-user-select:all;user-select:all}
+.mini{flex:none;min-height:40px;min-width:64px;padding:0 14px;border-radius:999px;border:1px solid rgba(111,67,47,.35);background:#fffdf8;color:var(--choc);font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.mini.call{background:var(--choc);border-color:var(--choc);color:var(--ivory)}
+.mini.done{background:#edf3ea;border-color:#9bbf98;color:#3e6b45}
+.mini:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px}
+/* ---------- the bottle label, close up ---------- */
+.bottle.tappable{pointer-events:auto;cursor:pointer}
+.bottle.tappable:focus-visible{outline:2px solid var(--ivory);outline-offset:4px}
+.wine-label{position:relative;margin:0 auto;max-width:330px;padding:44px 26px 38px;text-align:center;border-radius:6px;background:linear-gradient(160deg,#f6e7cb,#e9d1a7);color:#4a2a1c;box-shadow:0 22px 50px rgba(35,22,15,.38)}
+.wine-label::before{content:"";position:absolute;inset:8px;border:1.5px solid #b98c45;border-radius:3px;pointer-events:none}
+.wine-label::after{content:"";position:absolute;inset:13px;border:1px solid rgba(185,140,69,.55);border-radius:2px;pointer-events:none}
+.wine-orn{display:flex;align-items:center;justify-content:center;gap:10px}
+.wine-orn::before,.wine-orn::after{content:"";width:46px;height:1.5px;background:#b98c45}
+.wine-orn i{width:9px;height:9px;background:#b98c45;transform:rotate(45deg)}
+.wine-mono{margin-top:14px;font-family:var(--serif);font-weight:500;font-size:64px;line-height:1}
+.wine-rule{width:120px;height:1.5px;margin:16px auto;background:#b98c45}
+.wine-names{font-family:var(--sans);font-weight:600;font-size:12px;letter-spacing:.2em;padding-left:.2em;text-transform:uppercase}
+.wine-cuvee{margin-top:12px;font-family:var(--serif);font-style:italic;font-size:26px;color:#9a7232}
+.wine-date{margin-top:10px;font-family:var(--serif);font-size:20px;letter-spacing:.18em;padding-left:.18em}
+.table-dialog[open] .wine-label{animation:settle .65s var(--ease) .12s both;transform-origin:50% 100%}
+.label-dialog .table-close{margin-top:22px}
+/* ---------- review panel (only with ?review) ---------- */
+.review-tab{position:fixed;z-index:60;top:calc(14px + env(safe-area-inset-top));right:14px;min-height:36px;padding:0 14px;border-radius:999px;border:1px solid rgba(214,182,118,.6);background:#2c1c14;color:#fff3df;font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;cursor:pointer}
+.review{position:fixed;z-index:61;left:50%;top:calc(58px + env(safe-area-inset-top));transform:translateX(-50%);width:min(94vw,460px);max-height:min(74vh,660px);overflow:auto;padding:16px 14px 12px;border-radius:18px;background:rgba(255,250,242,.98);border:1px solid rgba(214,182,118,.5);box-shadow:0 24px 60px rgba(35,22,15,.35);font-family:var(--sans);color:var(--choc-deep);text-align:left}
+.review[hidden]{display:none}
+.review h2{margin:0 4px 4px;font-family:var(--serif);font-weight:500;font-size:22px}
+.review .note{margin:0 4px 10px;font-size:12px;line-height:1.45;color:var(--soft)}
+.review .links{display:flex;flex-wrap:wrap;gap:6px;margin:0 4px 10px}
+.review .links a{font-size:11px;font-weight:600;color:var(--choc);text-decoration:none;border:1px solid rgba(111,67,47,.3);border-radius:999px;padding:5px 10px}
+.review ol{list-style:none;margin:0;padding:0}
+.review li{display:flex;align-items:center;gap:10px;padding:8px 4px;border-top:1px solid rgba(197,154,82,.22)}
+.review .n{flex:none;width:24px;font-size:12px;font-weight:600;color:#a8823f;font-variant-numeric:tabular-nums}
+.review .t{flex:1;font-size:13px;line-height:1.3}
+.review .t small{display:block;margin-top:2px;font-size:11px;color:var(--soft)}
+.review li button{flex:none;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid rgba(111,67,47,.35);background:#fff;color:var(--choc);font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+@media(max-width:380px){.actions .btn{padding:0 13px;letter-spacing:.06em}}
+
 @media(prefers-reduced-motion:reduce){
-  .js .line,.actions,.sheet,.veil,.toast{transition-duration:.01s!important}
+  .sheet,.veil,.toast{transition-duration:.01s!important}
   .bubbles{display:none}
   .music .eq i{animation:none!important}
   .hero-photo-full{clip-path:none!important}
-  .stage,.btn.pulse,.names.sheen{animation:none}
+  .stage,.btn.pulse,.names.sheen,.js .invite{animation:none}
   .table-dialog[open],.table-dialog[open]::backdrop,.table-dialog[open] .place-card{animation:none}
 }
 </style>
@@ -254,18 +319,17 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   </button>
 
   <div class="invite" id="invite">
-    <div class="line eyebrow">An evening reserved for you</div>
     <h1 class="line names">Michael <i>&amp;</i> Beatrice</h1>
-    <p class="line copy">The Ashiteye and Laryea families invite you to Dinner Night.</p>
+    <p class="line copy">The Ashiteye and Laryea families invite you to Dinner&nbsp;Night.</p>
     <div class="line date">Sunday, 20 December 2026</div>
     <div class="line time">4:00 pm</div>
     <div class="line venue">Events Rising Sun, Teshie</div>
     <div class="line landmark">Opposite First Junction EV filling station</div>
     <div class="line countdown" id="countdown"></div>
     <div class="actions" id="actions">
-      <button class="btn primary" id="rsvpBtn" type="button">RSVP</button>
+      <button class="btn primary needs-js" id="rsvpBtn" type="button" aria-haspopup="dialog" aria-label="Confirm attendance">Confirm</button>
+      <button class="btn needs-js" id="helpBtn" type="button" aria-haspopup="dialog">Help</button>
       <a class="btn" href="https://www.google.com/maps/dir/?api=1&amp;destination=5.600437%2C-0.103578" target="_blank" rel="noopener">Directions</a>
-      <button class="btn" id="tableBtn" type="button" aria-haspopup="dialog">Table</button>
     </div>
   </div>
 </div>
@@ -278,10 +342,24 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
       <h2 id="placeTitle">Table 1</h2>
       <p class="place-guest" id="placeGuest">A seat is kept for you</p>
       <div class="place-rule" aria-hidden="true"></div>
+      <p class="place-gate" id="placeGateLabel">At the gate, say</p>
+      <div class="gate-digits" id="gateDigits" role="img"></div>
       <p class="place-welcome" id="placeWelcome">We look forward to welcoming you.</p>
     </div>
     <button class="table-close" id="tableClose" type="button" autofocus>Close</button>
   </div>
+</dialog>
+
+<dialog class="table-dialog label-dialog" id="labelDialog" aria-label="The bottle label">
+  <div class="wine-label">
+    <div class="wine-orn" aria-hidden="true"><i></i></div>
+    <div class="wine-mono">M &amp; B</div>
+    <div class="wine-rule" aria-hidden="true"></div>
+    <div class="wine-names">Michael &amp; Beatrice</div>
+    <div class="wine-cuvee">Cuvée 2026</div>
+    <div class="wine-date">20 · 12 · 26</div>
+  </div>
+  <button class="table-close" id="labelClose" type="button">Close</button>
 </dialog>
 
 <div class="veil" id="veil"></div>
@@ -289,14 +367,47 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
 
 
 <section class="sheet" id="rsvpSheet" inert role="dialog" aria-modal="true" aria-labelledby="rsvpTitle">
-  <h2 id="rsvpTitle">Will you join us?</h2>
+  <h2 id="rsvpTitle" tabindex="-1">Confirm attendance</h2>
   <p>Sunday, 20 December · 4:00 pm</p>
+  <p class="for" id="forLine" hidden></p>
+  <div class="field count-field" id="countField" hidden>
+    <span class="lab" id="countLabel">How many of you will attend?</span>
+    <div class="stepper" role="group" aria-labelledby="countLabel">
+      <button type="button" id="countMinus" aria-label="One fewer">−</button>
+      <output id="countOut" aria-live="polite">1</output>
+      <button type="button" id="countPlus" aria-label="One more">+</button>
+    </div>
+  </div>
+  <div class="field">
+    <label for="phone">Your phone number</label>
+    <input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="024 123 4567">
+    <p class="hint">At the gate you will give its last four digits.</p>
+    <p class="err" id="phoneErr" hidden>Enter your full phone number.</p>
+  </div>
   <div class="stack">
-    <button class="btn primary" id="yesBtn" type="button">Yes, I’ll be there</button>
+    <button class="btn primary" id="yesBtn" type="button">Confirm</button>
     <button class="btn" id="noBtn" type="button">Sorry, I can’t make it</button>
   </div>
-  <p id="rsvpMessage">Kindly let us know whether you will be joining us.</p>
+  <p id="rsvpMessage" hidden></p>
   <button class="close" id="rsvpClose" type="button">Close</button>
+</section>
+
+<section class="sheet" id="helpSheet" inert role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <h2 id="helpTitle" tabindex="-1">Need help?</h2>
+  <p>Call either of them about your invitation.</p>
+  <div class="people">
+    <div class="person">
+      <h3>Isaac Laryea</h3>
+      <div class="num"><span class="digits">054 570 9232</span><a class="mini call" href="tel:+233545709232" aria-label="Call Isaac Laryea on 054 570 9232">Call</a><button class="mini" type="button" data-copy="0545709232" data-show="054 570 9232" aria-label="Copy 054 570 9232">Copy</button></div>
+      <div class="num"><span class="digits">020 580 5444</span><a class="mini call" href="tel:+233205805444" aria-label="Call Isaac Laryea on 020 580 5444">Call</a><button class="mini" type="button" data-copy="0205805444" data-show="020 580 5444" aria-label="Copy 020 580 5444">Copy</button></div>
+    </div>
+    <div class="person">
+      <h3>Evans Borketey</h3>
+      <div class="num"><span class="digits">024 282 2364</span><a class="mini call" href="tel:+233242822364" aria-label="Call Evans Borketey on 024 282 2364">Call</a><button class="mini" type="button" data-copy="0242822364" data-show="024 282 2364" aria-label="Copy 024 282 2364">Copy</button></div>
+      <div class="num"><span class="digits">026 212 2106</span><a class="mini call" href="tel:+233262122106" aria-label="Call Evans Borketey on 026 212 2106">Call</a><button class="mini" type="button" data-copy="0262122106" data-show="026 212 2106" aria-label="Copy 026 212 2106">Copy</button></div>
+    </div>
+  </div>
+  <button class="close" id="helpClose" type="button">Close</button>
 </section>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -307,45 +418,40 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   document.documentElement.classList.add('js');
 
   var hero=document.getElementById('hero');
-  var lines=[].slice.call(document.querySelectorAll('.line'));
-  var actions=document.getElementById('actions');
   var veil=document.getElementById('veil');
   var sheet=document.getElementById('rsvpSheet');
   var toast=document.getElementById('toast');
   var dialog=document.getElementById('tableDialog');
-  var tableBtn=document.getElementById('tableBtn');
   var sheetTrigger=null;
 
-  var GUEST={table:1};
+  /* the seat this link belongs to; until the host system issues links, ?t= (table) and ?n= (seats in the household) preview it */
+  var Q=new URLSearchParams(location.search);
+  var WORDS=['','one','two','three','four','five','six','seven','eight','nine'];
+  var GUEST={table:Math.max(1,Math.min(20,parseInt(Q.get('t'),10)||(Q.has('review')?11:1))),seats:Math.max(1,Math.min(9,parseInt(Q.get('n'),10)||1))};
+  var STORE='mibea26-dinner-rsvp';
+  var state=(function(){var v=null;try{v=localStorage.getItem(STORE);}catch(e){}if(!v)return {};if(v==='yes'||v==='no')return {s:v};try{return JSON.parse(v)||{};}catch(e){return {};}})();
+  function saveState(){try{localStorage.setItem(STORE,JSON.stringify(state));}catch(e){}}
   (function(){var h=new Date().getHours();if(h>=18||h<6)hero.classList.add('evening');else if(h<11)hero.classList.add('morning');})();
   var DINNER_AT=Date.UTC(2026,11,20,16,0,0); /* Sunday 20 Dec 2026, 4:00 pm GMT (Accra) */
 
-  /* ---------- opening: staggered fade-up, any tap skips to the end ---------- */
-  var revealed=false,timers=[];
-  function finishReveal(){
-    if(revealed)return;
-    revealed=true;
-    timers.forEach(clearTimeout);
-    lines.forEach(function(l){l.classList.add('in');});
-    actions.classList.add('show');
-    hero.removeEventListener('click',finishReveal);
-    finishPour();
-    setTimeout(toastGlint,250);   /* the crystal glass rings once as the invitation settles */
-  }
-  hero.addEventListener('click',finishReveal);   /* a tap during the pour skips straight to the full invitation */
-  function reveal(){
-    lines.forEach(function(l,i){
-      timers.push(setTimeout(function(){l.classList.add('in');},160+i*170));
-    });
-    timers.push(setTimeout(finishReveal,160+lines.length*170+260));
-    hero.addEventListener('click',finishReveal);
+  /* ---------- opening: the details are already showing; nothing waits on the pour and no tap cuts it short.
+     When the glass has filled and run over, the crystal rings once and the bottle opens its label to a tap ---------- */
+  var settled=false;
+  function settle(){
+    if(settled)return;
+    settled=true;
+    setTimeout(toastGlint,250);
+    if(pour.started&&bottle.style.display!=='none'){      /* only a bottle the guest can see is tappable */
+      bottle.classList.add('tappable');bottle.setAttribute('role','button');bottle.setAttribute('tabindex','0');bottle.setAttribute('aria-label','See the bottle label');
+    }
   }
 
   /* ---------- countdown: one quiet line inside the date block ---------- */
   var countdown=document.getElementById('countdown');
   function pad(n){return (n<10?'0':'')+n;}
+  var forceTonight=false;
   function tick(){
-    var diff=DINNER_AT-Date.now();
+    var diff=forceTonight?0:DINNER_AT-Date.now();
     if(diff<=0){
       if(diff>-6*36e5){countdown.textContent='Tonight';}
       else{countdown.hidden=true;}
@@ -357,51 +463,105 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   tick();
   setTimeout(function(){tick();setInterval(tick,1000);},1000-Date.now()%1000);   /* ticks on the second, every second */
 
-  /* ---------- RSVP sheet ---------- */
-  function openSheet(){
+  /* ---------- confirm attendance: phone number, how many of the household, then the table ---------- */
+  var rsvpBtn=document.getElementById('rsvpBtn');
+  var forLine=document.getElementById('forLine'),countField=document.getElementById('countField'),countOut=document.getElementById('countOut');
+  var countMinus=document.getElementById('countMinus'),countPlus=document.getElementById('countPlus');
+  var phone=document.getElementById('phone'),phoneErr=document.getElementById('phoneErr'),rsvpMessage=document.getElementById('rsvpMessage');
+  var count=GUEST.seats;
+  function setCount(n){count=Math.max(1,Math.min(GUEST.seats,n));countOut.textContent=count;countMinus.disabled=count<=1;countPlus.disabled=count>=GUEST.seats;}
+  countMinus.addEventListener('click',function(){setCount(count-1);});
+  countPlus.addEventListener('click',function(){setCount(count+1);});
+  function prepareSheet(){
+    var many=GUEST.seats>1;
+    forLine.hidden=!many;forLine.textContent='This invitation is for '+GUEST.seats;
+    countField.hidden=!many;
+    setCount(state.c||GUEST.seats);
+    phoneErr.hidden=true;
+    if(state.s==='no'){rsvpMessage.hidden=false;rsvpMessage.textContent='You told us you can’t make it. You can still change your answer.';}
+    else rsvpMessage.hidden=true;
+  }
+  function updateActions(){
+    var yes=state.s==='yes';
+    rsvpBtn.textContent=yes?'Table '+GUEST.table:'Confirm';              /* one button: it asks first, then it is the guest's table */
+    rsvpBtn.setAttribute('aria-label',yes?'Table '+GUEST.table+', see your table card':'Confirm attendance');
+    rsvpBtn.classList.toggle('pulse',!state.s);   /* pulses until this phone has answered */
+  }
+  /* two bottom sheets share the veil: confirm attendance, and help */
+  var helpSheet=document.getElementById('helpSheet'),openEl=null;
+  function showSheet(el,titleId){
+    if(openEl)closeSheet();
     sheetTrigger=document.activeElement;
     veil.classList.add('show');
-    sheet.inert=false;
-    sheet.classList.add('show');
+    el.inert=false;
+    el.classList.add('show');
     hero.inert=true;
-    sheet.querySelector('button').focus();
+    openEl=el;
+    document.getElementById(titleId).focus();
   }
+  function openSheet(){prepareSheet();showSheet(sheet,'rsvpTitle');}
+  function openHelp(){showSheet(helpSheet,'helpTitle');}
   function closeSheet(){
+    if(!openEl)return;
     veil.classList.remove('show');
-    sheet.classList.remove('show');
-    sheet.inert=true;
+    openEl.classList.remove('show');
+    openEl.inert=true;
+    openEl=null;
     hero.inert=false;
     if(sheetTrigger&&sheetTrigger.focus)sheetTrigger.focus();
   }
   veil.addEventListener('click',closeSheet);
   document.getElementById('rsvpClose').addEventListener('click',closeSheet);
-  var rsvpBtn=document.getElementById('rsvpBtn');
-  rsvpBtn.addEventListener('click',openSheet);
-  /* the RSVP pill pulses until this phone has answered */
-  var answered=null;
-  try{answered=localStorage.getItem('mibea26-dinner-rsvp');}catch(e){}
-  if(!answered)rsvpBtn.classList.add('pulse');
-  function saveRsvp(value){
-    try{localStorage.setItem('mibea26-dinner-rsvp',value);}catch(e){}
-    rsvpBtn.classList.remove('pulse');
+  document.getElementById('helpClose').addEventListener('click',closeSheet);
+  rsvpBtn.addEventListener('click',function(){if(state.s==='yes')revealTable();else openSheet();});
+  document.getElementById('helpBtn').addEventListener('click',openHelp);
+  /* copy a number: the clipboard where the browser allows it, a hidden field where it doesn't, and long-press as the last resort */
+  function copyText(text){
+    function fallback(){
+      var ta=document.createElement('textarea');
+      ta.value=text;ta.setAttribute('readonly','');
+      ta.style.cssText='position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px';
+      document.body.appendChild(ta);ta.focus();ta.select();ta.setSelectionRange(0,text.length);
+      var ok=false;try{ok=document.execCommand('copy');}catch(e){}
+      document.body.removeChild(ta);
+      return ok;
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText&&window.isSecureContext){
+      return navigator.clipboard.writeText(text).then(function(){return true;},function(){return fallback();});
+    }
+    return Promise.resolve(fallback());
   }
+  helpSheet.addEventListener('click',function(e){
+    var b=e.target.closest('[data-copy]');if(!b)return;
+    copyText(b.getAttribute('data-copy')).then(function(ok){
+      if(!ok){showToast('Press and hold the number to copy it');return;}
+      b.textContent='Copied';b.classList.add('done');
+      showToast('Copied '+b.getAttribute('data-show'));
+      clearTimeout(b._t);b._t=setTimeout(function(){b.textContent='Copy';b.classList.remove('done');},1800);
+    });
+  });
+  updateActions();
+  function digitsOf(v){return String(v||'').replace(/\D/g,'');}
+  phone.addEventListener('input',function(){phoneErr.hidden=true;});
   document.getElementById('yesBtn').addEventListener('click',function(){
-    saveRsvp('yes');
-    document.getElementById('rsvpMessage').textContent='Thank you. Your place is reserved.';
-    showToast('RSVP saved');
-    setTimeout(function(){closeSheet();celebrate();},900);   /* a yes pops the cork */
+    var d=digitsOf(phone.value);
+    if(d.length<9||d.length>15){phoneErr.hidden=false;phone.focus();return;}
+    state={s:'yes',d:d.slice(-4),c:GUEST.seats>1?count:1};   /* only the last four digits stay on the phone */
+    saveState();updateActions();
+    closeSheet();celebrate();showToast('Attendance confirmed');
+    setTimeout(revealTable,2400);                              /* the cork pops, then the table card */
   });
   document.getElementById('noBtn').addEventListener('click',function(){
-    saveRsvp('no');
-    document.getElementById('rsvpMessage').textContent='Thank you for letting us know. We’ll miss you.';
+    state={s:'no'};saveState();updateActions();
+    rsvpMessage.hidden=false;rsvpMessage.textContent='Thank you for letting us know. We’ll miss you.';
     showToast('Response saved');
   });
   document.addEventListener('keydown',function(e){
-    var active=sheet.classList.contains('show')?sheet:null;
+    var active=openEl;
     if(!active)return;
     if(e.key==='Escape'){e.preventDefault();closeSheet();}
     if(e.key==='Tab'){
-      var focusable=active.querySelectorAll('button');
+      var focusable=[].slice.call(active.querySelectorAll('button,input,a[href]')).filter(function(el){return !el.disabled&&el.offsetParent!==null;});
       var first=focusable[0],last=focusable[focusable.length-1];
       if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
       else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
@@ -417,13 +577,28 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
 
   /* ---------- table dialog ---------- */
   function revealTable(){
+    if(dialog.open)return;
     document.getElementById('placeTitle').textContent='Table '+GUEST.table;
+    var c=state.s==='yes'&&state.c?state.c:GUEST.seats;
+    document.getElementById('placeGuest').textContent=c>1?'Seats for '+WORDS[c]:'A seat is kept for you';
+    var dg=document.getElementById('gateDigits'),gl=document.getElementById('placeGateLabel');
+    dg.innerHTML='';
+    if(state.d){
+      state.d.split('').forEach(function(ch){var sp=document.createElement('span');sp.textContent=ch;dg.appendChild(sp);});
+      dg.setAttribute('aria-label','Last four digits: '+state.d.split('').join(' '));
+      dg.hidden=false;gl.textContent='At the gate, say';
+    }else{dg.hidden=true;gl.textContent='At the gate, give the last four digits of your phone';}
     dialog.showModal();
   }
-  tableBtn.addEventListener('click',revealTable);
   document.getElementById('tableClose').addEventListener('click',function(){dialog.close();});
   dialog.addEventListener('click',function(e){if(e.target===dialog)dialog.close();});
-  dialog.addEventListener('close',function(){tableBtn.focus();});
+  dialog.addEventListener('close',function(){rsvpBtn.focus();});
+
+  /* ---------- the bottle label, close up ---------- */
+  var labelDialog=document.getElementById('labelDialog');
+  function openLabel(){if(!labelDialog.open)labelDialog.showModal();}
+  document.getElementById('labelClose').addEventListener('click',function(){labelDialog.close();});
+  labelDialog.addEventListener('click',function(e){if(e.target===labelDialog)labelDialog.close();});
 
   /* ---------- motion preferences ---------- */
   var motionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -500,6 +675,8 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   var MOUTH_X=723,MOUTH_Y=152;                                  /* image px: the bottle's mouth when at rest */
   var BOTTLE={x:718,y:2,w:304,h:200};                           /* image px: the bottle layer's box, the neck tag included */
   var bottle=document.getElementById('bottle');
+  bottle.addEventListener('click',function(e){if(!bottle.classList.contains('tappable'))return;e.stopPropagation();openLabel();});
+  bottle.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&bottle.classList.contains('tappable')){e.preventDefault();openLabel();}});
   var drops=[];
   function liquidTop(){return pour.done?SURFACE:Math.max(SURFACE,pour.line);}
   function setClip(){photoFull.style.clipPath='inset('+Math.max(0,map.oy+pour.line*map.s).toFixed(1)+'px 0 0 0)';}
@@ -616,26 +793,28 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
     bottle.style.opacity=op.toFixed(3);
     bottle.style.transform='translate('+(tx*100).toFixed(2)+'%,'+(ty*100).toFixed(2)+'%) rotate('+rot.toFixed(2)+'deg)';
   }
-  function finishPour(){
-    /* the glass is full: the pour carries on for the night, but the text, the pool and the sound settle */
+  function finishPour(skip){
+    /* the glass is full: the pour carries on for the night, and the pool keeps spreading at its own pace */
     if(pour.done)return;
     pour.done=true;pour.line=SURFACE;
     photoFull.style.clipPath='none';
     if(pour.started){
-      if(pour.t<STREAM_END+600)pour.t=STREAM_END+600;      /* a skip lands on the settled scene, still pouring */
-      pool.on=true;pool.t=POOL_MS;pool.k=1;hero.classList.add('flooded');
+      if(skip){                                              /* only reduced motion jumps ahead: straight to the settled scene, still pouring */
+        if(pour.t<STREAM_END+600)pour.t=STREAM_END+600;
+        pool.on=true;pool.t=POOL_MS;pool.k=1;hero.classList.add('flooded');
+      }
       bottle.style.opacity='1';bottle.style.transform='translate(0%,0%) rotate(0deg)';
     }else{pour.active=false;pour.stream=0;pour.foam=0;}
+    settle();
   }
   function beginPour(){
     if(!map)fitCanvas();
     var inFrame=(map.oy+FLOOR*map.s)>0&&(map.oy+SURFACE*map.s)<map.h;
-    if(prefersStill()||!inFrame){finishPour();reveal();return;}
+    if(prefersStill()||!inFrame){finishPour(true);return;}
     pour.active=true;pour.line=FLOOR;setClip();placeBottle();
     var go=function(){
       if(pour.started)return;
       pour.started=true;
-      setTimeout(reveal,1900-BOTTLE_IN);  /* the names rise as the glass passes two thirds */
     };
     var photoEmpty=document.getElementById('photoEmpty');
     function loaded(img){return img.complete&&img.naturalWidth>0;}
@@ -916,7 +1095,7 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   function syncMotion(){
     var still=prefersStill()||document.hidden;
     hero.classList.toggle('still',still);
-    if(prefersStill())finishPour();
+    if(prefersStill())finishPour(true);
     if(still){stopBubbles();if(prefersStill())ctx.clearRect(0,0,canvas.width,canvas.height);}
     else startBubbles();
   }
@@ -1077,6 +1256,58 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
     g.cancelScheduledValues(t);g.setValueAtTime(g.value,t);
     g.linearRampToValueAtTime(MUSIC_VOL*1.45,t+.25);g.setValueAtTime(MUSIC_VOL*1.45,t+2.2);g.linearRampToValueAtTime(MUSIC_VOL,t+3.4);
   }
+
+  /* ---------- review mode (?review): every feature, numbered, with a way to see the ones that wait for a time or a tap ---------- */
+  function setLight(mode){hero.classList.remove('evening','morning');if(mode)hero.classList.add(mode);evening=mode==='evening';}
+  function setHousehold(n){GUEST.seats=n;if(state.c&&state.c>n)state.c=n;}
+  function asConfirmed(){if(state.s!=='yes'||!state.d){state={s:'yes',d:'4417',c:GUEST.seats};saveState();}updateActions();}
+  if(Q.has('review'))(function(){
+    var items=[
+      ['Champagne pour opening','The details show at once; the bottle tips in and the glass fills above them',function(){location.reload();},'Replay'],
+      ['M&B tag on the bottle neck','Always on'],
+      ['Bottle label close-up','Guests tap the bottle',openLabel,'Show'],
+      ['Overflow and champagne pool','Runs down the glass and under the text'],
+      ['Bubbles in the flute','Always on'],
+      ['Gold dust in the air','Always on'],
+      ['Gold leaf on the pool','Once the pool settles'],
+      ['Ripples on the pool','Always on'],
+      ['Lantern flames','Always on'],
+      ['Slow drift of the scene','Always on'],
+      ['Names in liquid gold','Once, as the pool reaches the text',runSheen,'Show'],
+      ['Crystal glint and clink','Once, when the pour settles',toastGlint,'Show'],
+      ['Music bar and jazz loop','Starts on the first tap'],
+      ['Pour sound','Starts with the music'],
+      ['Countdown to the second','Always on'],
+      ['“Tonight” on the day','From 4 pm on 20 December',function(){forceTonight=!forceTonight;tick();},'Toggle'],
+      ['Evening light','After 6 pm on the guest’s phone',function(){setLight('evening');},'Show'],
+      ['Morning light','Before 11 am',function(){setLight('morning');},'Show'],
+      ['Daylight','11 am to 6 pm',function(){setLight('');},'Show'],
+      ['Confirm, with phone number','The main button',function(){closePanel();openSheet();},'Open'],
+      ['Household invitation','The form asks how many of the four will attend',function(){setHousehold(4);closePanel();openSheet();},'Show'],
+      ['Help: Isaac and Evans','Call or copy their numbers',function(){closePanel();openHelp();},'Open'],
+      ['Cork pop and gold-leaf shower','On confirming',function(){closePanel();celebrate();},'Show'],
+      ['Button becomes “Table '+GUEST.table+'”','After confirming',function(){asConfirmed();closePanel();},'Show'],
+      ['Table card with gate digits','The table button after confirming',function(){asConfirmed();closePanel();revealTable();},'Show'],
+      ['Pulse on Confirm','Until the guest answers',function(){state={};saveState();updateActions();closePanel();},'Reset'],
+      ['Desktop frame','Seen on a computer']
+    ];
+    var tab=document.createElement('button');tab.className='review-tab';tab.type='button';tab.textContent='Review';
+    var panel=document.createElement('section');panel.className='review';panel.hidden=true;panel.setAttribute('aria-label','Review every feature');
+    var html='<h2>Every feature</h2><p class="note">Reply with the numbers you want removed. Buttons show the parts that wait for a time of day or a tap.</p>'+
+      '<div class="links"><a href="./host.html">Host board</a><a href="./gate.html">Gate</a><a href="./admin.html">Overall view</a></div><ol>';
+    items.forEach(function(it,i){html+='<li><span class="n">'+(i+1)+'</span><span class="t">'+it[0]+'<small>'+it[1]+'</small></span>'+(it[2]?'<button type="button" data-i="'+i+'">'+it[3]+'</button>':'')+'</li>';});
+    panel.innerHTML=html+'</ol>';
+    function closePanel(){panel.hidden=true;tab.textContent='Review';}
+    tab.addEventListener('click',function(e){e.stopPropagation();panel.hidden=!panel.hidden;tab.textContent=panel.hidden?'Review':'Close';});
+    panel.addEventListener('click',function(e){
+      e.stopPropagation();
+      var b=e.target.closest('button[data-i]');if(!b)return;
+      items[+b.getAttribute('data-i')][2]();
+    });
+    document.body.appendChild(tab);document.body.appendChild(panel);
+    window.__closePanel=closePanel;
+  })();
+  function closePanel(){if(window.__closePanel)window.__closePanel();}
 
   beginPour();
 })();
