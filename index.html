@@ -234,7 +234,7 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
     <img class="bottle" id="bottle" src="./bottle.png" alt="" width="304" height="161" decoding="async">
     <canvas class="bubbles" id="bubbles" aria-hidden="true"></canvas>
   </div>
-  <audio id="music" src="./dinner-music.mp3" loop preload="metadata"></audio>
+  <audio id="music" src="./dinner-music.mp3" loop preload="none"></audio>
   <button class="music" id="musicBar" type="button" aria-pressed="false" aria-label="Play music">
     <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
     <span class="music-label" id="musicLabel">Tap for music</span>
@@ -674,29 +674,86 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   document.addEventListener('visibilitychange',syncMotion);
   syncMotion();
 
-  /* ---------- music: plays on its own where the phone allows, otherwise from the guest's first tap; the bar toggles it ---------- */
+  /* ---------- music: the first 12.6 s of the track (before the vocal), looped without a gap through Web Audio;
+     plays on its own where the phone allows, otherwise from the guest's first tap; the bar toggles it; the <audio> element is the fallback ---------- */
   var music=document.getElementById('music'),musicBar=document.getElementById('musicBar'),musicLabel=document.getElementById('musicLabel');
-  var musicWanted=true,musicOk=true;
+  var LOOP_START=0.095,LOOP_END=12.655,XFADE=0.25,MUSIC_VOL=.55;   /* seconds into the file: first beat, and the beat before the vocal comes in */
+  var AC=window.AudioContext||window.webkitAudioContext;
+  var musicWanted=true,musicOk=true,useElement=!AC,actx=null,master=null,buffer=null,loading=false,scheduled=false,loopTimer=null;
+  function musicRunning(){return useElement?(!music.paused&&!music.ended):(scheduled&&actx&&actx.state==='running');}
   function setMusicUI(){
-    var on=!music.paused&&!music.ended;
+    var on=musicRunning();
     musicBar.classList.toggle('on',on);
     musicBar.setAttribute('aria-pressed',on?'true':'false');
     musicBar.setAttribute('aria-label',on?'Pause music':'Play music');
     musicLabel.textContent=on?(musicBar.getAttribute('data-title')||'Music'):'Tap for music';
   }
-  function playMusic(){
-    if(!musicOk||!musicWanted)return;
+  function ensureContext(){
+    if(actx||useElement)return;
+    try{actx=new AC();}catch(e){useElement=true;return;}
+    master=actx.createGain();master.gain.value=0;master.connect(actx.destination);
+    actx.onstatechange=setMusicUI;
+  }
+  function scheduleLoop(when){
+    /* each pass of the loop is its own source; the next one starts XFADE early under an equal fade, so the seam is inaudible */
+    var dur=LOOP_END-LOOP_START,src=actx.createBufferSource(),g=actx.createGain();
+    src.buffer=buffer;src.connect(g);g.connect(master);
+    g.gain.setValueAtTime(0,when);g.gain.linearRampToValueAtTime(1,when+XFADE);
+    g.gain.setValueAtTime(1,when+dur-XFADE);g.gain.linearRampToValueAtTime(0,when+dur);
+    src.start(when,LOOP_START,dur);
+    var next=when+dur-XFADE;
+    clearTimeout(loopTimer);
+    loopTimer=setTimeout(function(){scheduleLoop(next);},Math.max(0,(next-actx.currentTime-.6)*1000));
+  }
+  function startSchedule(){
+    if(scheduled||loading)return;
+    if(buffer){
+      scheduled=true;
+      var t0=actx.currentTime+.05;
+      master.gain.setValueAtTime(0,t0);master.gain.linearRampToValueAtTime(MUSIC_VOL,t0+1.2);
+      scheduleLoop(t0);setMusicUI();
+      return;
+    }
+    loading=true;
+    fetch(music.getAttribute('src')).then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.arrayBuffer();})
+      .then(function(ab){return new Promise(function(res,rej){actx.decodeAudioData(ab,res,rej);});})
+      .then(function(b){buffer=b;loading=false;musicBar.classList.add('show');startSchedule();})
+      .catch(function(err){
+        loading=false;
+        if(/http/.test(String(err&&err.message))){musicOk=false;musicBar.hidden=true;}   /* no track in the repo: the bar stays out of sight */
+        else{useElement=true;playMusic();}                                               /* could not decode: fall back to the element */
+      });
+  }
+  function playElement(){
+    if(!music.getAttribute('preload')||music.preload==='none')music.preload='auto';
     var p=music.play();
     if(p&&p.catch)p.catch(function(){setMusicUI();});
   }
+  function playMusic(){
+    if(!musicOk||!musicWanted)return;
+    if(useElement){playElement();return;}
+    ensureContext();
+    if(useElement){playElement();return;}
+    if(actx.state==='suspended'){var r=actx.resume();if(r&&r.catch)r.catch(function(){});}   /* only takes effect inside a tap until the phone allows sound */
+    startSchedule();
+    setMusicUI();
+  }
+  function pauseMusic(){
+    if(useElement){music.pause();return;}
+    if(actx&&actx.state==='running'){var r=actx.suspend();if(r&&r.catch)r.catch(function(){});}
+    setMusicUI();
+  }
+  var gestureEvents=['touchend','click','keydown'];      /* the events phones count as a real tap for sound */
   function firstGesture(e){
     if(e&&e.target&&musicBar.contains(e.target))return;   /* a tap on the bar is handled by the bar itself */
-    document.removeEventListener('pointerdown',firstGesture,true);
-    document.removeEventListener('keydown',firstGesture,true);
     playMusic();
+    setTimeout(function(){                                  /* keep listening until sound is actually allowed, or the guest has said no */
+      if(musicRunning()||!musicWanted||!musicOk)gestureEvents.forEach(function(ev){document.removeEventListener(ev,firstGesture,true);});
+    },400);
   }
   function musicState(){
-    if(music.error||music.networkState===3){musicOk=false;musicBar.hidden=true;}      /* no track in the repo: the bar stays out of sight */
+    if(!useElement)return;
+    if(music.error||music.networkState===3){musicOk=false;musicBar.hidden=true;}
     else if(music.readyState>=1)musicBar.classList.add('show');
   }
   music.addEventListener('error',musicState);
@@ -704,16 +761,14 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   music.addEventListener('canplay',musicState);
   music.addEventListener('play',function(){musicBar.classList.add('show');setMusicUI();});
   music.addEventListener('pause',setMusicUI);
-  musicState();
   musicBar.addEventListener('click',function(e){
     e.stopPropagation();
-    if(music.paused){musicWanted=true;playMusic();}
-    else{musicWanted=false;music.pause();}
+    if(musicRunning()){musicWanted=false;pauseMusic();}
+    else{musicWanted=true;playMusic();}
   });
-  document.addEventListener('pointerdown',firstGesture,true);
-  document.addEventListener('keydown',firstGesture,true);
+  gestureEvents.forEach(function(ev){document.addEventListener(ev,firstGesture,true);});
   document.addEventListener('visibilitychange',function(){
-    if(document.hidden)music.pause();
+    if(document.hidden)pauseMusic();
     else if(musicWanted)playMusic();
   });
   setMusicUI();
