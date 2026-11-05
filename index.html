@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Guest view locked on 5 November 2026 at Michael's request. Change it only when he asks. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -6,15 +7,16 @@
 <script>document.documentElement.classList.add('js');</script>
 <meta name="theme-color" content="#6f432f">
 <title>Dinner Night · Michael &amp; Beatrice</title>
-<meta name="description" content="Sunday 20 December 2026 · 4:00 pm · Events Rising Sun, Teshie. Open your invitation.">
+<meta name="description" content="Sunday 20 December 2026 · 4:00 pm · Events Rising Sun, Teshie. Tap to open.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Michael &amp; Beatrice · Dinner Night">
-<meta property="og:description" content="Sunday 20 December 2026 · 4:00 pm · Events Rising Sun, Teshie. Open your invitation.">
+<meta property="og:description" content="Sunday 20 December 2026 · 4:00 pm · Events Rising Sun, Teshie. Tap to open.">
 <meta property="og:url" content="https://mashiteye.github.io/mibea26-dinner/">
-<meta property="og:image" content="https://mashiteye.github.io/mibea26-dinner/og-dinner.jpg?v=2">
+<meta property="og:image" content="https://mashiteye.github.io/mibea26-dinner/og-dinner.jpg?v=3">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Champagne poured into a flute beside glass lanterns, with a play button and the names Michael &amp; Beatrice">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
@@ -328,8 +330,8 @@ html:not(.js) .needs-js{display:none}
     <div class="line countdown" id="countdown"></div>
     <div class="actions" id="actions">
       <button class="btn primary needs-js" id="rsvpBtn" type="button" aria-haspopup="dialog" aria-label="Confirm attendance">Confirm</button>
-      <button class="btn needs-js" id="helpBtn" type="button" aria-haspopup="dialog">Help</button>
       <a class="btn" href="https://www.google.com/maps/dir/?api=1&amp;destination=5.600437%2C-0.103578" target="_blank" rel="noopener">Directions</a>
+      <button class="btn needs-js" id="helpBtn" type="button" aria-haspopup="dialog">Help</button>
     </div>
   </div>
 </div>
@@ -1293,7 +1295,7 @@ html:not(.js) .needs-js{display:none}
     ];
     var tab=document.createElement('button');tab.className='review-tab';tab.type='button';tab.textContent='Review';
     var panel=document.createElement('section');panel.className='review';panel.hidden=true;panel.setAttribute('aria-label','Review every feature');
-    var html='<h2>Every feature</h2><p class="note">Reply with the numbers you want removed. Buttons show the parts that wait for a time of day or a tap.</p>'+
+    var html='<h2>Every feature</h2><p class="note">Guest view locked on 5 November 2026. Buttons show the parts that wait for a time of day or a tap.</p>'+
       '<div class="links"><a href="./host.html">Host board</a><a href="./gate.html">Gate</a><a href="./admin.html">Overall view</a></div><ol>';
     items.forEach(function(it,i){html+='<li><span class="n">'+(i+1)+'</span><span class="t">'+it[0]+'<small>'+it[1]+'</small></span>'+(it[2]?'<button type="button" data-i="'+i+'">'+it[3]+'</button>':'')+'</li>';});
     panel.innerHTML=html+'</ol>';
