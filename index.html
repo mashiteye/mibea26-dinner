@@ -50,6 +50,8 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
 .hero-video{z-index:1;opacity:0;pointer-events:none;transition:opacity .6s ease}
 .hero-video.playing{opacity:1}
 .bubbles{position:absolute;inset:0;z-index:2;width:100%;height:100%;pointer-events:none}
+/* the bottle: its own layer, placed in photo coordinates, tipped in from the top right by script */
+.bottle{position:absolute;z-index:1;opacity:0;pointer-events:none;transform-origin:88% 40%;will-change:transform,opacity}
 .hero.still .stage,.hero.still .btn.pulse{animation-play-state:paused}
 .btn.pulse{animation:ring 2.6s ease-out infinite}
 @keyframes ring{0%{box-shadow:0 0 0 0 rgba(214,182,118,.65)}70%{box-shadow:0 0 0 14px rgba(214,182,118,0)}100%{box-shadow:0 0 0 14px rgba(214,182,118,0)}}
@@ -229,6 +231,7 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
     <img class="hero-photo" id="photoEmpty" src="./dinner-background-empty.jpg" alt="" width="1024" height="1536" fetchpriority="high">
     <img class="hero-photo hero-photo-full" id="photoFull" src="./dinner-background.jpg" alt="" width="1024" height="1536" fetchpriority="high" style="clip-path:inset(100% 0 0 0)">
     <video class="hero-video" id="dinnerVideo" data-src="./dinner-candlelight.mp4" poster="./dinner-background.jpg" autoplay muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+    <img class="bottle" id="bottle" src="./bottle.png" alt="" width="304" height="161" decoding="async">
     <canvas class="bubbles" id="bubbles" aria-hidden="true"></canvas>
   </div>
   <audio id="music" src="./dinner-music.mp3" loop preload="metadata"></audio>
@@ -488,32 +491,57 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   }
   /* ---------- the pour: the flute starts empty and fills as the opening ---------- */
   var photoFull=document.getElementById('photoFull');
-  var pour={active:false,done:false,t:-450,line:FLOOR,stream:0,foam:0,started:false};
+  var pour={active:false,done:false,t:-1350,line:FLOOR,stream:0,foam:0,started:false};
   var POUR_MS=2300,STREAM_IN=350,STREAM_OUT=520,FOAM_MS=1400;
-  var IMPACT_X=717,SOURCE_X=802;            /* image px: where the stream lands, and where it leaves the top of the frame */
+  var BOTTLE_IN=-1350,BOTTLE_IN_MS=850,BOTTLE_OUT=POUR_MS-260,BOTTLE_OUT_MS=900;   /* the bottle tips in before the stream and lifts away as it ends */
+  var IMPACT_X=713;                                             /* image px: where the stream lands */
+  var MOUTH_X=723,MOUTH_Y=152;                                  /* image px: the bottle's mouth when at rest */
+  var BOTTLE={x:718,y:2,w:304,h:161};                           /* image px: the bottle layer's box */
+  var bottle=document.getElementById('bottle');
   var drops=[];
   function liquidTop(){return pour.done?SURFACE:Math.max(SURFACE,pour.line);}
   function setClip(){photoFull.style.clipPath='inset('+Math.max(0,map.oy+pour.line*map.s).toFixed(1)+'px 0 0 0)';}
+  function placeBottle(){
+    bottle.style.left=(map.ox+BOTTLE.x*map.s).toFixed(1)+'px';
+    bottle.style.top=(map.oy+BOTTLE.y*map.s).toFixed(1)+'px';
+    bottle.style.width=(BOTTLE.w*map.s).toFixed(1)+'px';
+    bottle.style.height=(BOTTLE.h*map.s).toFixed(1)+'px';
+  }
+  function easeOut(k){return 1-Math.pow(1-k,3);}
+  function easeIn(k){return k*k*k;}
+  function moveBottle(now){
+    var t=pour.t,k,tx,ty,rot,op;
+    if(t<BOTTLE_IN){op=0;tx=.5;ty=-.9;rot=-16;}
+    else if(t<BOTTLE_IN+BOTTLE_IN_MS){k=easeOut((t-BOTTLE_IN)/BOTTLE_IN_MS);op=Math.min(1,k*3);tx=.5*(1-k);ty=-.9*(1-k);rot=-16*(1-k);}
+    else if(t<BOTTLE_OUT){op=1;tx=0;ty=0;rot=Math.sin(now/900)*.35;}                    /* held, with a hand's slight unsteadiness */
+    else if(t<BOTTLE_OUT+BOTTLE_OUT_MS){k=easeIn((t-BOTTLE_OUT)/BOTTLE_OUT_MS);op=1-Math.max(0,(k-.6)/.4);tx=.5*k;ty=-.9*k;rot=-16*k;}
+    else{op=0;tx=.5;ty=-.9;rot=-16;}
+    bottle.style.opacity=op.toFixed(3);
+    bottle.style.transform='translate('+(tx*100).toFixed(2)+'%,'+(ty*100).toFixed(2)+'%) rotate('+rot.toFixed(2)+'deg)';
+  }
   function finishPour(){
     if(pour.done)return;
     pour.done=true;pour.active=false;pour.stream=0;pour.foam=0;pour.line=SURFACE;drops.length=0;
     photoFull.style.clipPath='none';
+    bottle.style.transition='opacity .35s ease';bottle.style.opacity='0';
     if(videoReady&&!prefersStill())video.classList.add('playing');
   }
   function beginPour(){
     if(!map)fitCanvas();
     var inFrame=(map.oy+FLOOR*map.s)>0&&(map.oy+SURFACE*map.s)<map.h;
     if(prefersStill()||!inFrame){finishPour();reveal();return;}
-    pour.active=true;pour.line=FLOOR;setClip();
+    pour.active=true;pour.line=FLOOR;setClip();placeBottle();
     var go=function(){
       if(pour.started)return;
       pour.started=true;
-      setTimeout(reveal,1900);           /* the names rise as the glass passes two thirds */
+      setTimeout(reveal,1900-BOTTLE_IN);  /* the names rise as the glass passes two thirds */
     };
     var photoEmpty=document.getElementById('photoEmpty');
     function loaded(img){return img.complete&&img.naturalWidth>0;}
-    function check(){if(loaded(photoEmpty)&&loaded(photoFull))go();}
-    photoEmpty.addEventListener('load',check);photoFull.addEventListener('load',check);
+    var bottleOk=true;
+    function check(){if(loaded(photoEmpty)&&loaded(photoFull)&&(loaded(bottle)||!bottleOk))go();}
+    photoEmpty.addEventListener('load',check);photoFull.addEventListener('load',check);bottle.addEventListener('load',check);
+    bottle.addEventListener('error',function(){bottleOk=false;bottle.style.display='none';check();});   /* no bottle file: pour without it */
     check();setTimeout(go,2500);              /* on a slow connection the pour starts anyway */
   }
   function updatePour(dt){
@@ -529,14 +557,15 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
     else pour.stream=Math.max(0,1-(t-(POUR_MS-220))/STREAM_OUT);
     pour.foam=fill<1?1:Math.max(0,1-(t-POUR_MS)/FOAM_MS);
     if(t>POUR_MS+FOAM_MS)finishPour();
+    else moveBottle(performance.now());
   }
   function drawPour(now,dt){
     if(!pour.active||pour.t<0)return;
     var s=map.s,lineY=map.oy+pour.line*s,g=halfWidth(pour.line);
     var ix=map.ox+IMPACT_X*s;
     if(pour.stream>0){
-      /* a falling stream from just above the frame into the glass, arcing slightly, with ripples along its length */
-      var sx=map.ox+SOURCE_X*s,sy=-4,cx=sx-26*s,cy=sy+(lineY-sy)*.42;
+      /* a falling stream from the bottle's mouth into the glass, bending slightly with the pour, with ripples along its length */
+      var sx=map.ox+MOUTH_X*s,sy=map.oy+MOUTH_Y*s,cx=sx-7*s,cy=sy+(lineY-sy)*.4;
       var from=pour.t<STREAM_IN?0:1-pour.stream,to=pour.t<STREAM_IN?pour.stream:1;
       var pts=[];
       for(var k=0;k<=14;k++){
@@ -597,7 +626,7 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
   }
   function frame(now){
     raf=null;
-    if(!map)fitCanvas();
+    if(!map){fitCanvas();if(pour.active)placeBottle();}
     var dt=Math.min((now-(last||now))/1000,.05);last=now;
     ctx.clearRect(0,0,map.w,map.h);
     drawDust(now,dt);
