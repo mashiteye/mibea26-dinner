@@ -604,6 +604,18 @@ body{
   text-shadow:0 2px 10px rgba(73,45,30,.35);
   white-space:nowrap;
 }
+.opening-replace span.typing::after{
+  content:"";
+  display:inline-block;
+  width:1px;
+  height:1em;
+  margin-left:5px;
+  vertical-align:-.12em;
+  background:currentColor;
+  opacity:.9;
+  animation:typeCaret .58s steps(1,end) infinite;
+}
+@keyframes typeCaret{50%{opacity:0}}
 @media (min-aspect-ratio:4/5){
   .opening-photo{object-fit:contain}
   .opening-replace{
@@ -617,7 +629,7 @@ body{
 <body>
 <div class="opening-hero" id="openingHero" aria-hidden="true">
   <img class="opening-photo" src="./image.png" alt="">
-  <div class="opening-replace"><span>An evening reserved for you</span></div>
+  <div class="opening-replace"><span id="openingType" data-text="An evening reserved for you"></span></div>
 </div>
 <main class="scene" id="scene" aria-label="Private dinner invitation">
   <div class="ambient"></div>
@@ -744,6 +756,7 @@ body{
   'use strict';
   var scene=document.getElementById('scene');
   var openingHero=document.getElementById('openingHero');
+  var openingType=document.getElementById('openingType');
   var clocheBtn=document.getElementById('clocheBtn');
   var hint=document.getElementById('hint');
   var veil=document.getElementById('veil');
@@ -761,6 +774,21 @@ body{
   var TABLE_OPENS=Date.UTC(2026,11,20,14,0,0);
   var previewDay=new URLSearchParams(location.search).get('day')==='1';
   function isDinnerDay(){return previewDay || Date.now()>=TABLE_OPENS;}
+
+  function runOpeningTypewriter(){
+    if(!openingType)return;
+    var text=openingType.getAttribute('data-text')||'';
+    var i=0;
+    openingType.textContent='';
+    openingType.classList.add('typing');
+    var timer=setInterval(function(){
+      openingType.textContent=text.slice(0,++i);
+      if(i>=text.length){
+        clearInterval(timer);
+        setTimeout(function(){openingType.classList.remove('typing');},90);
+      }
+    },18);
+  }
 
   function openSheet(el){veil.classList.add('show');el.classList.add('show');}
   function closeSheets(){
@@ -855,9 +883,10 @@ body{
   });
 
   if(!isDinnerDay()){
+    runOpeningTypewriter();
     setTimeout(function(){
       if(!opened)openInvite();
-    },600);
+    },650);
   }
 })();
 </script>
