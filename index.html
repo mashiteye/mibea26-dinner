@@ -624,12 +624,46 @@ body{
   }
 }
 
+/* ---------- single-screen invitation ---------- */
+.opening-invite{
+  position:absolute;z-index:3;left:0;right:0;bottom:0;min-height:44%;
+  padding:36px 22px calc(20px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center;
+  background:linear-gradient(180deg,rgba(225,208,187,0) 0%,rgba(225,208,187,.62) 18%,rgba(225,208,187,.94) 38%,rgba(225,208,187,1) 100%);
+}
+.typed-line{width:min(92vw,430px);min-height:1.05em;margin:2px auto;color:#6f432f;text-shadow:0 1px 8px rgba(255,248,236,.5)}
+.typed-line.typing::after{content:"";display:inline-block;width:1px;height:.95em;margin-left:4px;vertical-align:-.08em;background:currentColor;animation:typeCaret .58s steps(1,end) infinite}
+.typed-kicker{font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.22em;text-transform:uppercase}
+.typed-names{margin-top:6px;font-family:var(--serif);font-size:clamp(29px,8vw,40px);line-height:1;font-weight:600}
+.typed-copy{margin-top:7px;max-width:340px;font-family:var(--serif);font-size:clamp(15px,4.2vw,19px);line-height:1.15}
+.typed-date{margin-top:8px;font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.typed-venue{margin-top:7px;font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.typed-landmark,.typed-note{font-family:var(--serif);font-size:14px;font-style:italic;line-height:1.1}
+.typed-note{margin-top:7px}
+.hero-actions{display:flex;gap:10px;justify-content:center;margin-top:13px;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .4s ease,transform .4s ease}
+.hero-actions.show{opacity:1;transform:none;pointer-events:auto}
+.hero-btn{min-height:42px;padding:0 18px;border-radius:999px;border:1px solid rgba(111,67,47,.36);background:rgba(255,249,239,.9);color:#6f432f;font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.hero-btn.primary{background:#6f432f;color:#fff8ec;border-color:#6f432f}
+@media(max-height:720px){.opening-invite{min-height:48%;padding-top:24px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}.typed-copy{font-size:15px}.typed-landmark,.typed-note{font-size:12px}.hero-actions{margin-top:8px}}
+
 </style>
 </head>
 <body>
-<div class="opening-hero" id="openingHero" aria-hidden="true">
+<div class="opening-hero" id="openingHero">
   <img class="opening-photo" src="./image.png" alt="">
-  <div class="opening-replace"><span id="openingType" data-text="An evening reserved for you"></span></div>
+  <div class="opening-invite">
+    <div class="typed-line typed-kicker" data-type="An evening reserved for you"></div>
+    <div class="typed-line typed-names" data-type="Michael & Beatrice"></div>
+    <div class="typed-line typed-copy" data-type="invite you to join them for an intimate evening of dinner and celebration."></div>
+    <div class="typed-line typed-date" data-type="20 · 12 · 26 · Sunday · 4:00 pm"></div>
+    <div class="typed-line typed-venue" data-type="Events Rising Sun · Teshie"></div>
+    <div class="typed-line typed-landmark" data-type="Opposite First Junction EV filling station"></div>
+    <div class="typed-line typed-note" data-type="Your table will be revealed from 2:00 pm on 20 December."></div>
+    <div class="hero-actions" id="heroActions">
+      <button class="hero-btn primary" id="heroRsvpBtn" type="button">RSVP</button>
+      <a class="hero-btn" href="https://www.google.com/maps/dir/?api=1&destination=5.600437%2C-0.103578" target="_blank" rel="noopener">Directions</a>
+    </div>
+  </div>
 </div>
 <main class="scene" id="scene" aria-label="Private dinner invitation">
   <div class="ambient"></div>
