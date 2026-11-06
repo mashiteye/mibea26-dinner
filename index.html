@@ -2,7 +2,7 @@
 <!-- Guest view locked on 5 November 2026 at Michael's request. Change it only when he asks.
      6 November 2026, with his approval: honoured-guest numbers replace the phone digits.
      Later on 6 November, at his request: the invitation leads, the couple follows, and there is only Confirm.
-     Each invitation is one person: no household seats on the guest's side. -->
+     Later still, at his request: one invitation per household again, with its seats; the form asks how many will attend. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -248,6 +248,14 @@ html:not(.js) .needs-js{display:none}
 
 /* ---------- confirm attendance: actions, form, the honoured-guest card ---------- */
 .actions .btn{padding:0 18px;letter-spacing:.1em}
+.sheet .for{margin-top:12px;font-family:var(--sans);font-style:normal;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--choc)}
+.field{margin:18px auto 0;max-width:340px;text-align:left}
+.field .lab{display:block;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--choc)}
+.count-field[hidden]{display:none}
+.stepper{display:flex;align-items:center;justify-content:space-between;margin-top:8px;border:1px solid rgba(111,67,47,.35);border-radius:14px;background:#fffdf8;padding:4px}
+.stepper button{width:48px;height:46px;border:0;border-radius:11px;background:rgba(111,67,47,.08);font-size:22px;line-height:1;color:var(--choc);cursor:pointer}
+.stepper button:disabled{opacity:.35;cursor:default}
+.stepper output{font-family:var(--serif);font-size:26px;color:var(--choc-deep);font-variant-numeric:lining-nums tabular-nums}
 .place-card h2.place-num{font-size:clamp(56px,17vw,78px);line-height:1;letter-spacing:.03em;font-variant-numeric:lining-nums tabular-nums}
 .place-gate{margin:2px 0 0;font-size:10px;font-weight:600;letter-spacing:.24em;padding-left:.24em;text-transform:uppercase;color:var(--choc)}
 .place-welcome{margin-top:12px!important}
@@ -376,6 +384,15 @@ html:not(.js) .needs-js{display:none}
 <section class="sheet" id="rsvpSheet" inert role="dialog" aria-modal="true" aria-labelledby="rsvpTitle">
   <h2 id="rsvpTitle" tabindex="-1">Confirm attendance</h2>
   <p>Sunday, 20 December · 4:00 pm</p>
+  <p class="for" id="forLine" hidden></p>
+  <div class="field count-field" id="countField" hidden>
+    <span class="lab" id="countLabel">How many of you will attend?</span>
+    <div class="stepper" role="group" aria-labelledby="countLabel">
+      <button type="button" id="countMinus" aria-label="One fewer">−</button>
+      <output id="countOut" aria-live="polite">1</output>
+      <button type="button" id="countPlus" aria-label="One more">+</button>
+    </div>
+  </div>
   <div class="stack">
     <button class="btn primary" id="yesBtn" type="button">Confirm</button>
   </div>
@@ -417,16 +434,17 @@ html:not(.js) .needs-js{display:none}
   var dialog=document.getElementById('tableDialog');
   var sheetTrigger=null;
 
-  /* the invitation this link belongs to: one person and their honoured-guest number.
-     A real link carries ?i= (the invitation's private code), checked with the database. ?g= (a number) or ?review
-     previews it with nothing saved anywhere. A bare link is the invitation alone, with no Confirm */
+  /* the invitation this link belongs to: its honoured-guest number and its seats (a person, a couple, a family).
+     A real link carries ?i= (the invitation's private code), checked with the database. ?g= (a number) and ?n= (seats)
+     or ?review preview it with nothing saved anywhere. A bare link is the invitation alone, with no Confirm */
   var Q=new URLSearchParams(location.search);
+  var WORDS=['','one','two','three','four','five','six','seven','eight','nine'];
   var TOKEN=Q.get('i'),LIVE=!!(TOKEN&&window.API&&API.ready);
   var G=parseInt(Q.get('g'),10),PREVIEW=!LIVE&&(G>=100&&G<=999||Q.has('review'));
-  var GUEST={num:G>=100&&G<=999?G:418,closed:false,by:'10 December'};
+  var GUEST={num:G>=100&&G<=999?G:418,seats:Math.max(1,Math.min(4,parseInt(Q.get('n'),10)||1)),closed:false,by:'10 December'};
   var STORE=LIVE?'mibea26-i-'+TOKEN:'mibea26-dinner-'+GUEST.num;   /* one answer per invitation, so two invitations opened on one phone stay apart */
   var state=(function(){var v=null;try{v=localStorage.getItem(STORE);}catch(e){}if(!v)return {};try{v=JSON.parse(v)||{};}catch(e){return {};}return v.s==='yes'?v:{};})();   /* only a confirmation is kept: there is no declining */
-  if(LIVE)GUEST.num=state.num||0;   /* the real number comes from the database in a moment */
+  if(LIVE){GUEST.num=state.num||0;GUEST.seats=state.seats||1;GUEST.known=false;}   /* the real number and seats come from the database in a moment */
   function saveState(){try{localStorage.setItem(STORE,JSON.stringify(state));}catch(e){}}
   (function(){var h=new Date().getHours();if(h>=18||h<6)hero.classList.add('evening');else if(h<11)hero.classList.add('morning');})();
   var DINNER_AT=Date.UTC(2026,11,20,16,0,0); /* Sunday 20 Dec 2026, 4:00 pm GMT (Accra) */
@@ -460,11 +478,23 @@ html:not(.js) .needs-js{display:none}
   tick();
   setTimeout(function(){tick();setInterval(tick,1000);},1000-Date.now()%1000);   /* ticks on the second, every second */
 
-  /* ---------- confirm attendance: one tap, then the honoured-guest card.
-     Only Confirm: a guest who can't come simply doesn't, and their seat goes back to the host on 10 December.
+  /* ---------- confirm attendance: one tap (and how many, for a household), then the honoured-guest card.
+     Only Confirm: a guest who can't come simply doesn't, and their seats go back to the host on 10 December.
      A confirmation is final here; a change goes through the host ---------- */
   var rsvpBtn=document.getElementById('rsvpBtn');
+  var forLine=document.getElementById('forLine'),countField=document.getElementById('countField'),countOut=document.getElementById('countOut');
+  var countMinus=document.getElementById('countMinus'),countPlus=document.getElementById('countPlus');
   var yesBtn=document.getElementById('yesBtn');
+  var count=GUEST.seats;
+  function setCount(n){count=Math.max(1,Math.min(GUEST.seats,n));countOut.textContent=count;countMinus.disabled=count<=1;countPlus.disabled=count>=GUEST.seats;}
+  countMinus.addEventListener('click',function(){setCount(count-1);});
+  countPlus.addEventListener('click',function(){setCount(count+1);});
+  function prepareSheet(){
+    var many=GUEST.seats>1;
+    forLine.hidden=!many;forLine.textContent='This invitation is for '+GUEST.seats;
+    countField.hidden=!many||GUEST.closed;
+    setCount(GUEST.seats);
+  }
   function updateActions(){
     var yes=state.s==='yes';
     rsvpBtn.hidden=!LIVE&&!PREVIEW||!!GUEST.invalid;   /* no invitation behind this link: Directions and Help only */
@@ -484,7 +514,7 @@ html:not(.js) .needs-js{display:none}
     openEl=el;
     document.getElementById(titleId).focus();
   }
-  function openSheet(){showSheet(sheet,'rsvpTitle');}
+  function openSheet(){prepareSheet();showSheet(sheet,'rsvpTitle');}
   function openHelp(){showSheet(helpSheet,'helpTitle');}
   function closeSheet(){
     if(!openEl)return;
@@ -526,35 +556,38 @@ html:not(.js) .needs-js{display:none}
     });
   });
   updateActions();
-  function confirmed(){
-    state={s:'yes',num:GUEST.num};
+  function confirmed(c){
+    state={s:'yes',num:GUEST.num,seats:GUEST.seats,c:c};
     saveState();updateActions();
     closeSheet();celebrate();showToast('Attendance confirmed');
     setTimeout(revealTable,2400);                              /* the cork pops, then the honoured-guest card */
   }
   /* past the date on the invitation, the place has gone back to the host */
   function closedNow(){
-    GUEST.closed=true;yesBtn.hidden=true;
+    GUEST.closed=true;yesBtn.hidden=true;countField.hidden=true;
     var n=document.getElementById('closedNote');n.hidden=false;
     n.textContent='Confirmations closed on '+GUEST.by+'. Please speak to the person who invited you.';
   }
   function day(iso){var d=new Date(iso);return d.getUTCDate()+' '+['January','February','March','April','May','June','July','August','September','October','November','December'][d.getUTCMonth()];}
   yesBtn.addEventListener('click',function(){
-    if(!LIVE){confirmed();return;}
+    var c=GUEST.seats>1?count:1;
+    if(!LIVE){confirmed(c);return;}
     yesBtn.disabled=true;yesBtn.textContent='Confirming…';
-    API.rpc('guest_confirm',{p_token:TOKEN}).then(function(r){
+    /* tapped before the seats arrived: no count is sent, and the database confirms all of them, as the form would have */
+    API.rpc('guest_confirm',{p_token:TOKEN,p_count:GUEST.known?c:null}).then(function(r){
       yesBtn.disabled=false;yesBtn.textContent='Confirm';
-      if(r&&r.status==='confirmed'){GUEST.num=r.num;confirmed();}
+      if(r&&r.status==='confirmed'){GUEST.num=r.num;GUEST.seats=r.seats||GUEST.seats;confirmed(r.att||c);}
       else if(r&&r.status==='expired')closedNow();
       else showToast('This invitation isn’t valid any more');
     }).catch(function(){yesBtn.disabled=false;yesBtn.textContent='Confirm';showToast('No connection. Please try again.');});
   });
-  /* a real link: the number and the answer come from the database; the answer saved on this phone shows at once meanwhile */
+  /* a real link: the number, the seats and the answer come from the database; the answer saved on this phone shows at once meanwhile */
   if(LIVE)API.rpc('guest_get',{p_token:TOKEN}).then(function(r){
     if(!r){GUEST.invalid=true;state={};updateActions();return;}
-    GUEST.num=r.num;if(r.confirm_by)GUEST.by=day(r.confirm_by);
-    if(r.status==='confirmed'){state={s:'yes',num:r.num};saveState();}
+    GUEST.num=r.num;GUEST.seats=r.seats||1;GUEST.known=true;if(r.confirm_by)GUEST.by=day(r.confirm_by);
+    if(r.status==='confirmed'){state={s:'yes',num:r.num,seats:GUEST.seats,c:r.att||GUEST.seats};saveState();}
     else if(r.status==='expired'){state={};closedNow();}
+    else if(openEl===sheet&&!yesBtn.disabled)prepareSheet();   /* the form was already open: it now asks how many */
     updateActions();
   }).catch(function(){});
   document.addEventListener('keydown',function(e){
@@ -580,6 +613,8 @@ html:not(.js) .needs-js{display:none}
   function revealTable(){
     if(dialog.open)return;
     document.getElementById('placeTitle').textContent=GUEST.num;
+    var c=state.s==='yes'&&state.c?state.c:GUEST.seats;
+    document.getElementById('placeGuest').textContent=c>1?'Seats for '+WORDS[c]:'A seat is kept for you';
     dialog.showModal();
   }
   document.getElementById('tableClose').addEventListener('click',function(){dialog.close();});
@@ -1237,8 +1272,10 @@ html:not(.js) .needs-js{display:none}
 
   /* ---------- review mode (?review): every feature, numbered, with a way to see the ones that wait for a time or a tap ---------- */
   function setLight(mode){hero.classList.remove('evening','morning');if(mode)hero.classList.add(mode);evening=mode==='evening';}
+  var SEATS=GUEST.seats;   /* the seats this preview opened with */
+  function setHousehold(n){GUEST.seats=n;}
   function unanswered(){if(state.s){state={};saveState();updateActions();}}
-  function asConfirmed(){if(state.s!=='yes'){state={s:'yes'};saveState();}updateActions();}
+  function asConfirmed(){if(state.s!=='yes'){state={s:'yes',num:GUEST.num,seats:GUEST.seats,c:GUEST.seats};saveState();}updateActions();}
   if(Q.has('review'))(function(){
     var items=[
       ['Champagne pour opening','The details show at once; the bottle tips in and the glass fills above them',function(){location.reload();},'Replay'],
@@ -1259,7 +1296,8 @@ html:not(.js) .needs-js{display:none}
       ['Evening light','After 6 pm on the guest’s phone',function(){setLight('evening');},'Show'],
       ['Morning light','Before 11 am',function(){setLight('morning');},'Show'],
       ['Daylight','11 am to 6 pm',function(){setLight('');},'Show'],
-      ['Confirm, nothing to type','The main button; there is no declining',function(){unanswered();closePanel();openSheet();},'Open'],
+      ['Confirm, nothing to type','The main button; there is no declining',function(){unanswered();setHousehold(SEATS);closePanel();openSheet();},'Open'],
+      ['Household invitation','The form asks how many of the four will attend',function(){unanswered();setHousehold(4);closePanel();openSheet();},'Show'],
       ['Help: Isaac and Evans','Call or copy their numbers',function(){closePanel();openHelp();},'Open'],
       ['Cork pop and gold-leaf shower','On confirming',function(){closePanel();celebrate();},'Show'],
       ['Button becomes “Guest '+GUEST.num+'”','After confirming',function(){asConfirmed();closePanel();},'Show'],

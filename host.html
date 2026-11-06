@@ -118,8 +118,8 @@
       <p class="undo">Didn’t send it? <button type="button" id="undo">Undo</button></p>
     </div>
     <div class="banner warn" id="full" hidden>Everyone you can invite has an invitation. Places not confirmed by 10 December come back here.</div>
-    <p class="note">Each person gets their own invitation and number. For a couple or family, choose 2 to 4: their invitations come in one message, and they sit together.</p>
-    <p class="note">A forwarded invitation still lets in only one person.</p>
+    <p class="note">One invitation for a person, a couple or a family: choose how many it is for. They share one number and sit together.</p>
+    <p class="note">The gate lets in only as many people as the invitation is for, even if it is forwarded.</p>
     <p class="note" id="returns">Places not confirmed by 10 December come back to you.</p>
     <p class="note" id="helper" hidden></p>
   </section>
@@ -179,7 +179,6 @@
   var me=D.HOSTS[Q.get('h')]?Q.get('h'):'mike',H=L.on?{name:'',role:null}:D.HOSTS[me];
   function $(id){return document.getElementById(id);}
   function showToast(m){var t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){t.classList.remove('show');},2600);}
-  function list(nums){return nums.length<2?String(nums[0]):nums.slice(0,-1).join(', ')+' and '+nums[nums.length-1];}
   var WORDS=['','one','two','three','four','five','six','seven','eight','nine'];
   function day(iso){var d=new Date(iso);return d.getUTCDate()+' '+['January','February','March','April','May','June','July','August','September','October','November','December'][d.getUTCMonth()];}
   if(!L.on){
@@ -190,24 +189,23 @@
 
   /* T: the host's counts. In the preview they come from the sample, and invitations made here are added on top;
      on a real page they come from the database after every change */
-  var T={alloc:0,invited:0,confirmed:0,waiting:0,own:[],guestAlloc:0},made=[],seats=1,last=null;
+  var T={alloc:0,invited:0,confirmed:0,waiting:0,own:[],ownSeats:0,guestAlloc:0},made=[],seats=1,last=null;
   function fromServer(r){
     H={name:r.name,role:r.role};
-    T={alloc:r.seats,confirmed:+r.confirmed,waiting:+r.waiting,invited:+r.confirmed+(+r.waiting),
-      own:(r.own||[]).map(function(o){return {num:o.num,token:o.token,own:o.own,kids:o.kids,
-        kidsNote:o.kids?(WORDS[o.kids].charAt(0).toUpperCase()+WORDS[o.kids].slice(1))+' children come in with '+(o.own==='wife'?'your wife':'you')+' and take no chair.':''};})};
-    T.guestAlloc=T.alloc-T.own.length;
+    T={alloc:r.seats,confirmed:+r.confirmed,waiting:+r.waiting,invited:+r.confirmed+(+r.waiting),ownSeats:0,
+      own:(r.own||[]).map(function(o){return {num:o.num,token:o.token,own:o.own,kids:o.kids,seats:o.seats||1,
+        kidsNote:o.kids?(WORDS[o.kids].charAt(0).toUpperCase()+WORDS[o.kids].slice(1))+' children come in on your number and take no chair.':''};})};
+    T.own.forEach(function(o){T.ownSeats+=o.seats;});
+    T.guestAlloc=T.alloc-T.ownSeats;
   }
+  /* a family host's own invitation: one number, for them (and their wife) at the family table */
   function ownCard(){
     if(!T.own.length)return;
-    var you=T.own[0],wife=T.own[1];
-    function link(o){return L.on?L.guestLink(o.token):'./index.html?g='+o.num;}
-    $('own').hidden=false;if(wife)$('ownLab').textContent='Your own invitations';
-    $('ownNum').innerHTML=wife?'Honoured guests '+you.num+' and '+wife.num+'<small>You ('+you.num+') and your wife ('+wife.num+') at the family table, out of your '+T.alloc+'</small>':
-      'Honoured guest '+you.num+'<small>For you at the family table, out of your '+T.alloc+'</small>';
-    var note=T.own.map(function(o){return o.kidsNote;}).filter(function(v,i,a){return v&&a.indexOf(v)===i;}).join(' ');
-    $('ownNote').textContent=(wife?'At the gate each of you gives your own number, like every guest.':'At the gate you give your number like every guest.')+(note?' '+note:'');
-    $('ownLinks').innerHTML=wife?'<a href="'+link(you)+'">Open yours</a><a href="'+link(wife)+'">Open your wife’s</a>':'<a href="'+link(you)+'">Open your invitation</a>';
+    var o=T.own[0],two=o.seats>1;
+    $('own').hidden=false;
+    $('ownNum').innerHTML='Honoured guest '+o.num+'<small>For you'+(two?' and your wife':'')+' at the family table, out of your '+T.alloc+'</small>';
+    $('ownNote').textContent=(two?'At the gate either of you gives the number, like every guest.':'At the gate you give your number like every guest.')+(o.kidsNote?' '+o.kidsNote:'');
+    $('ownLinks').innerHTML='<a href="'+(L.on?L.guestLink(o.token):'./index.html?g='+o.num+'&n='+o.seats)+'">Open your invitation</a>';
   }
   function start(){
     $('tMine').textContent=H.name;   /* the first view carries the host's name */
@@ -218,12 +216,13 @@
     render();
   }
 
-  function invited(){return T.invited+made.reduce(function(a,m){return a+m.nums.length;},0);}
+  function madeSeats(){return made.reduce(function(a,m){return a+m.seats;},0);}
+  function invited(){return T.invited+madeSeats();}
   function left(){return Math.max(0,T.guestAlloc-invited());}
   function render(){
-    var inv=invited(),waiting=T.waiting+made.reduce(function(a,m){return a+m.nums.length;},0),L2=left();
+    var inv=invited(),waiting=T.waiting+madeSeats(),L2=left();
     $('invited').textContent=inv;
-    $('of').textContent='of '+T.guestAlloc+' people invited'+(T.own.length?(T.own.length>1?', besides you and your wife':', besides you'):'');
+    $('of').textContent='of '+T.guestAlloc+' people invited'+(T.own.length?(T.ownSeats>1?', besides you and your wife':', besides you'):'');
     $('barC').style.width=(T.guestAlloc?100*T.confirmed/T.guestAlloc:0)+'%';
     $('barW').style.width=(T.guestAlloc?100*(inv-T.confirmed)/T.guestAlloc:0)+'%';
     $('chips').innerHTML='<span class="chip ok">'+T.confirmed+' confirmed</span>'+
@@ -237,20 +236,14 @@
   }
   $('seg').addEventListener('click',function(e){var b=e.target.closest('button[data-n]');if(!b||b.disabled)return;seats=+b.getAttribute('data-n');render();});
 
-  /* one tap: an invitation per person, each with its own number and link, kept together as one group */
+  /* one tap: one invitation, one number and one link, for a person, a couple or a family */
   function freshNumber(){var n;do{n=101+Math.floor(Math.random()*799);}while(n===950||D.byNum[n]||made.some(function(m){return m.nums.indexOf(n)>=0;}));return n;}
   function message(m){
     var by=m.confirmBy?day(m.confirmBy):'10 December';
-    var head='Hello, you are cordially invited to Dinner Night, hosted by the Ashiteye and Laryea families.\nThe couple: Michael & Beatrice\n'+
-      'Sunday 20 December 2026, 4:00 pm\nEvents Rising Sun, Teshie\n\n';
-    if(m.nums.length===1)return head+
-      'Your honoured-guest number is '+m.nums[0]+'.\n\n'+
-      'Please open your invitation and confirm by '+by+':\n'+m.links[0]+'\n\n'+
-      'At the gate, give your number and you will be shown to your table.';
-    return head+
-      'This message has '+m.nums.length+' invitations, one for each guest. Please forward one to '+(m.nums.length===2?'the person':'each person')+' coming with you.\n\n'+
-      m.nums.map(function(n,i){return 'Honoured guest '+n+':\n'+m.links[i];}).join('\n\n')+'\n\n'+
-      'Each guest opens their own invitation and confirms by '+by+'. At the gate, each gives their number and you will be shown to your table.';
+    return 'Hello, you are cordially invited to Dinner Night, hosted by the Ashiteye and Laryea families.\nThe couple: Michael & Beatrice\n'+
+      'Sunday 20 December 2026, 4:00 pm\nEvents Rising Sun, Teshie\n\n'+
+      'Your honoured-guest number: '+m.nums[0]+(m.seats>1?' ('+m.seats+' seats)':'')+'\n'+
+      'Please confirm by '+by+':\n'+m.links[0];
   }
   var sheet=$('sheet'),veil=$('veil'),trigger=null;
   function openSheet(){trigger=document.activeElement;sheet.inert=false;sheet.classList.add('show');veil.classList.add('show');($('send').hidden?$('done'):$('send')).focus({preventScroll:true});}
@@ -260,10 +253,10 @@
   $('send').addEventListener('click',function(){setTimeout(closeSheet,600);});
 
   function show(m){
-    var text=message(m),n=m.nums.length;
+    var text=message(m),x=m.nums[0];
     $('msg').innerHTML='<b>The message they’ll receive</b>';$('msg').appendChild(document.createTextNode(text));
-    $('see').innerHTML='See the invitation'+(n>1?'s':'')+' they open:'+m.nums.map(function(x,i){return ' <a href="'+(L.on?m.links[i]:'./index.html?g='+x)+'" target="_blank" rel="noopener">'+x+'</a>';}).join('');
-    $('afterMsg').textContent=(n>1?n+' invitations ready, to sit together · numbers ':'Invitation ready · number ')+list(m.nums);
+    $('see').innerHTML='See the invitation they open: <a href="'+(L.on?m.links[0]:'./index.html?g='+x+'&n='+m.seats)+'" target="_blank" rel="noopener">'+x+'</a>';
+    $('afterMsg').textContent='Invitation ready · number '+x+(m.seats>1?' for '+m.seats:'');
     $('after').hidden=false;
     if(L.on){
       $('sheetTitle').textContent='Ready to send';
@@ -277,20 +270,20 @@
     if(left()<=0)return;
     var n=Math.min(seats,left());
     if(!L.on){
-      var m={nums:[],links:[]};
-      while(m.nums.length<n){var x=freshNumber();m.nums.push(x);m.links.push(D.link(x));}
+      var x=freshNumber(),m={nums:[x],links:[D.link(x)],seats:n};
       made.push(m);last=m;show(m);return;
     }
-    var btn=$('invite');btn.disabled=true;btn.textContent='Making the invitation'+(n>1?'s':'')+'…';
+    var btn=$('invite');btn.disabled=true;btn.textContent='Making the invitation…';
     API.rpc('host_invite',{p_token:L.token,p_count:n}).then(function(r){
-      if(!r||r.error){showToast(r&&r.error==='full'?'All your places are taken':r&&r.error==='closed'?'Invitations have closed':'Something went wrong. Try again.');return refresh();}
-      last={grp:r.grp,confirmBy:r.confirm_by,nums:r.invitations.map(function(i){return i.num;}),links:r.invitations.map(function(i){return L.guestLink(i.token);})};
+      if(!r||r.error){showToast(r&&r.error==='full'?(r.left?'Only '+plural(r.left,'place')+' left':'All your places are taken'):r&&r.error==='closed'?'Invitations have closed':'Something went wrong. Try again.');return refresh();}
+      var i=r.invitations[0];
+      last={grp:r.grp,confirmBy:r.confirm_by,nums:[i.num],links:[L.guestLink(i.token)],seats:i.seats||n};
       return refresh().then(function(){show(last);});
     }).catch(function(){showToast('No connection. Try again.');render();});
   });
   $('undo').addEventListener('click',function(){
     var m=L.on?last:made.pop();if(!m)return;
-    var done=function(){$('after').hidden=true;last=null;showToast((m.nums.length>1?'Invitations ':'Invitation ')+list(m.nums)+' cancelled');};
+    var done=function(){$('after').hidden=true;last=null;showToast('Invitation '+m.nums[0]+' cancelled');};
     if(!L.on){done();render();return;}
     API.rpc('host_undo',{p_token:L.token,p_grp:m.grp}).then(function(r){
       if(r&&r.error==='confirmed'){showToast('Already confirmed, so it stays');return;}
@@ -329,7 +322,7 @@
     }).catch(function(){showToast('No connection. Try again.');return cache||{me:me,D:null,hosts:[]};});
   }
   function fromSample(){
-    return {t:Date.now(),me:me,D:D,hosts:Object.keys(D.HOSTS).map(function(k){var T2=D.tally(k);return {key:k,name:D.HOSTS[k].name,role:D.HOSTS[k].role,seats:T2.alloc,confirmed:T2.confirmed+T2.own.length,waiting:T2.waiting};}),
+    return {t:Date.now(),me:me,D:D,hosts:Object.keys(D.HOSTS).map(function(k){var T2=D.tally(k);return {key:k,name:D.HOSTS[k].name,role:D.HOSTS[k].role,seats:T2.alloc,confirmed:T2.confirmed+T2.ownSeats,waiting:T2.waiting};}),
       deadline:'2026-12-10T23:59:59Z',now:new Date().toISOString(),today:5,last:new Date(Date.now()-12*60000).toISOString()};
   }
   function chairsAt(B,t){return B.seats.filter(function(s){return s.table===t;});}
@@ -349,25 +342,29 @@
         if(v.host===O.me)return v.status==='confirmed'?{fill:'#6f432f',stroke:'#6f432f'}:{fill:'#e9d7b5',stroke:'#a8823f',width:1.4};
         return {fill:'#d8cbbb',stroke:'#c4b39e'};}});
     /* where this host's guests sit, table by table */
-    var mine=B.invites.filter(function(v){return v.host===O.me&&v.status!=='expired';}),by={},order=[];
-    mine.forEach(function(v){var k=v.table||0;if(!by[k]){by[k]=[];order.push(k);}by[k].push(v);});
+    var mine=B.invites.filter(function(v){return v.host===O.me&&B.held(v);}),by={},order=[],people=0;
+    mine.forEach(function(v){var k=v.table||0;if(!by[k]){by[k]=[];order.push(k);}by[k].push(v);people+=B.held(v);});
     order.sort(function(a,b){return (a||99)-(b||99);});
-    $('whereCount').textContent=mine.length?plural(mine.length,'person','people'):'';
-    $('where').innerHTML=mine.length?order.map(function(k){var l=by[k],c=l.filter(function(v){return v.status==='confirmed';}).length;
-      return '<li>'+(k?esc(B.tableLabel(k)):'Not seated yet')+'<span>'+l.length+(c<l.length?' · '+c+' confirmed':'')+'</span></li>';}).join(''):'<li>None yet<span>Invite from your page</span></li>';
+    $('whereCount').textContent=people?plural(people,'person','people'):'';
+    $('where').innerHTML=mine.length?order.map(function(k){var l=by[k],n=0,c=0;
+      l.forEach(function(v){n+=B.held(v);if(v.status==='confirmed')c+=v.att;});
+      return '<li>'+(k?esc(B.tableLabel(k)):'Not seated yet')+'<span>'+n+(c<n?' · '+c+' confirmed':'')+'</span></li>';}).join(''):'<li>None yet<span>Invite from your page</span></li>';
   }
   /* a table, without moving anything: this host's guests by number, the others as counts */
   var ts=$('tsheet'),tsTrigger=null;
   function tableSheet(t){
     overview().then(function(O){
       var B=O.D;if(!B)return;
-      var c=chairsAt(B,t),taken=c.filter(function(s){return s.inv;}),groups=[],others={};
+      var c=chairsAt(B,t),taken=c.filter(function(s){return s.inv;}),mine=[],others={};
       taken.forEach(function(s){var v=s.inv;
-        if(v.host===O.me){if(!groups.some(function(g){return g[0].group===v.group;}))groups.push(B.group(v).filter(function(x){return x.table===t;}));}
+        if(v.host===O.me){if(mine.indexOf(v)<0)mine.push(v);}
         else{var k=v.family?'Family':B.hostName(v.host)+'’s guests';others[k]=(others[k]||0)+1;}});
       var html='<h3 id="tsTitle">'+esc(B.tableLabel(t))+'</h3><div class="meta">'+esc(whoAt(B,t))+' · '+taken.length+' of '+c.length+' chairs taken</div><ul class="tlist">';
-      groups.forEach(function(g){var conf=g.filter(function(v){return v.status==='confirmed';}).length;
-        html+='<li><b>'+g.map(function(v){return v.num;}).join(' and ')+'</b>'+(g[0].family?(g.length>1?'You and your wife':'You'):g.length>1?'Your guests':'Your guest')+'<small>'+(conf===g.length?(g.length>1?'All confirmed':'Confirmed'):!conf?'Not confirmed yet':conf+' confirmed, '+(g.length-conf)+' not yet')+'</small></li>';});
+      /* each of this host's invitations here: its number, who it is for, and its answer */
+      mine.forEach(function(v){
+        var who=v.family?(v.seats>1?'You and your wife':'You'):v.seats>1?'Your guests · '+v.seats+' seats':'Your guest';
+        var st=v.status!=='confirmed'?'Not confirmed yet':v.att<v.seats?'Confirmed '+v.att+' of '+v.seats+'; the other '+plural(v.seats-v.att,'seat')+' came back to you':'Confirmed';
+        html+='<li><b>'+v.num+'</b>'+who+'<small>'+st+'</small></li>';});
       Object.keys(others).forEach(function(k){html+='<li>'+esc(k)+'<small>'+plural(others[k],'seat')+'</small></li>';});
       if(c.length>taken.length)html+='<li>'+plural(c.length-taken.length,'chair')+' free</li>';
       ts.innerHTML=html+'</ul><div class="stack"><button class="btn wide" id="tsClose" type="button">Close</button></div>';
@@ -395,7 +392,7 @@
     $('totLine').textContent=wait+' not confirmed yet · '+Math.max(0,seats-conf-wait)+' left to invite';
     var days=Math.ceil((new Date(O.deadline)-new Date(O.now))/86400000);
     $('when').textContent=days>1?days+' days left to confirm · 10 December':days===1?'Last day to confirm · 10 December':'Confirmations closed on 10 December';
-    $('pulse').textContent=O.today?plural(O.today,'confirmation')+' today'+(O.last?' · latest '+ago(O.last,O.now):''):O.last?'Latest confirmation '+ago(O.last,O.now):'No confirmations yet';
+    $('pulse').textContent=O.today?plural(O.today,'person','people')+' confirmed today'+(O.last?' · latest '+ago(O.last,O.now):''):O.last?'Latest confirmation '+ago(O.last,O.now):'No confirmations yet';
     $('rows').innerHTML=O.hosts.map(function(x){
       var left=Math.max(0,x.seats-x.confirmed-x.waiting);
       return '<li><div class="top2"><span><b>'+esc(x.name)+'</b>'+(x.key===O.me?'<span class="you">You</span>':'')+'</span><span class="num">'+x.confirmed+' <span>of '+x.seats+' confirmed</span></span></div>'+

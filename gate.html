@@ -31,9 +31,8 @@
 .match .t{flex:1}
 .match .t b{display:block;font-family:var(--serif);font-weight:500;font-size:22px;color:var(--choc-deep)}
 .match .t span{font-size:12px;color:var(--soft)}
-.mates{list-style:none;margin:12px auto 0;padding:0;max-width:320px;font-size:13px;color:var(--soft);text-align:center}
-.mates li{padding:3px 0}
-.mates b{font-family:var(--serif);font-weight:500;font-size:18px;color:var(--choc-deep);margin-right:4px;font-variant-numeric:lining-nums}
+.sheet .field{max-width:300px;margin:16px auto 0}
+.sheet .field .lab{text-align:center}
 .sheet h3{text-align:center}
 .sheet .meta{text-align:center}
 </style>
@@ -81,15 +80,18 @@
   function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function clock(){var d=new Date(),hr=d.getHours(),mi=d.getMinutes();return (hr%12||12)+':'+(mi<10?'0':'')+mi+(hr<12?' am':' pm');}
   function showToast(m){toast.textContent=m;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){toast.classList.remove('show');},2400);}
+  function plural(n,one,many){return n+' '+(n===1?one:(many||one+'s'));}
+  /* people, not numbers: a household of four that confirmed three counts three */
+  function att(v){return v.att||v.seats||1;}
   function counts(){
-    var conf=0,inn=0;D.invites.forEach(function(v){if(v.status==='confirmed'){conf++;if(v.arrived)inn++;}});
+    var conf=0,inn=0;D.invites.forEach(function(v){if(v.status==='confirmed'){conf+=att(v);inn+=Math.min(att(v),v.arrived||0);}});
     document.getElementById('inCount').textContent=inn+' of '+conf+' in';
   }
   var CACHE='mibea26-gate-list',QUEUE='mibea26-gate-queue',savedAt=null,online=true;
   function load(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch(e){return d;}}
   function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
   function netChip(){
-    var net=document.getElementById('net'),note=document.getElementById('offlineNote'),q=load(QUEUE,[]).length;
+    var net=document.getElementById('net'),note=document.getElementById('offlineNote'),q=queue().length;
     var at=savedAt?LIVE.clock(savedAt):'';
     net.textContent=online?'Online'+(at?' · list saved '+at:''):'No signal'+(at?' · list from '+at:'');
     net.className='chip '+(online?'ok':'warn');note.hidden=online;
@@ -98,9 +100,11 @@
   /* a fresh list from the database; anyone let in on this phone but not sent yet stays in */
   function apply(json){
     D=LIVE.build(json);savedAt=json.at||new Date().toISOString();
-    load(QUEUE,[]).forEach(function(a){a.nums.forEach(function(n){var v=D.byNum[n];if(v&&!v.arrived){v.arrived=true;v.arrivedAt=LIVE.clock(a.at);}});});
+    queue().forEach(function(a){var v=D.byNum[a.num];if(v){v.arrived=Math.min(att(v),(v.arrived||0)+a.n);v.arrivedAt=LIVE.clock(a.at);}});
     counts();netChip();
   }
+  /* admissions waiting to be sent: one number, how many came in, when, and an id so a resend is never counted twice */
+  function queue(){return load(QUEUE,[]).filter(function(a){return a&&a.num&&a.n;});}
   function pull(){
     return API.rpc('gate_list',{p_token:L.token}).then(function(r){
       if(!r||r.error){document.querySelector('.ask').textContent='This gate link isn’t working. Ask Michael for it again.';return;}
@@ -108,10 +112,10 @@
     }).catch(function(){online=false;netChip();});
   }
   function flush(){
-    var q=load(QUEUE,[]);if(!q.length)return Promise.resolve();
+    var q=queue();if(!q.length)return Promise.resolve();
     var a=q[0];
-    return API.rpc('gate_admit',{p_token:L.token,p_nums:a.nums,p_at:a.at}).then(function(){
-      save(QUEUE,load(QUEUE,[]).slice(1));online=true;netChip();return flush();
+    return API.rpc('gate_admit',{p_token:L.token,p_num:a.num,p_n:a.n,p_at:a.at,p_id:a.id}).then(function(){
+      save(QUEUE,queue().filter(function(x){return x.id!==a.id;}));online=true;netChip();return flush();
     }).catch(function(){online=false;netChip();});
   }
   function draw(){digits.forEach(function(d,i){d.textContent=entry.charAt(i);d.classList.toggle('on',i===entry.length);});}
@@ -130,11 +134,11 @@
   });
 
   var trigger=null;
-  function openSheet(inner){trigger=document.activeElement;sheet.innerHTML=inner;sheet.inert=false;sheet.classList.add('show');veil.classList.add('show');var f=sheet.querySelector('input,button');if(f)f.focus({preventScroll:true});}
+  function openSheet(inner){trigger=document.activeElement;sheet.innerHTML=inner;sheet.inert=false;sheet.classList.add('show');veil.classList.add('show');var f=sheet.querySelector('#gAdmit')||sheet.querySelector('input,button');if(f)f.focus({preventScroll:true});}
   function closeSheet(){sheet.classList.remove('show');veil.classList.remove('show');sheet.inert=true;entry='';draw();if(trigger&&trigger.focus)trigger.focus();}
   veil.addEventListener('click',closeSheet);
 
-  /* a number is one person: confirmed, never confirmed, or not one of ours */
+  /* a number is one invitation, for one to four people: confirmed, never confirmed, or not one of ours */
   function lookup(code){
     var v=D.byNum[+code];
     if(!v){
@@ -144,7 +148,7 @@
     }
     var host=D.hostName(v.host);
     if(v.status==='confirmed')return guest(v);
-    openSheet('<h3 id="sheetTitle">Honoured guest '+v.num+'</h3><div class="meta">'+esc(host)+'’s guest</div>'+
+    openSheet('<h3 id="sheetTitle">Honoured guest '+v.num+'</h3><div class="meta">'+esc(host)+'’s '+(v.seats>1?'guests · '+v.seats+' seats':'guest')+'</div>'+
       '<div class="banner warn">Invited, but they never confirmed. Call '+esc(host)+' before letting them in.</div>'+
       '<div class="stack"><button class="btn primary wide" id="gCall" type="button">Call '+esc(host)+'</button><button class="btn wide" id="gNext" type="button">Next guest</button></div>');
     document.getElementById('gCall').onclick=function(){callHost(v.host);};
@@ -156,37 +160,43 @@
     if(L.on&&p){location.href='tel:'+(p.charAt(0)==='0'?'+233'+p.slice(1):'+'+p);return;}
     showToast(L.on?'No number saved for '+(h.name||'this host'):'Preview: this would call '+(h.name||''));
   }
-  function list(nums){return nums.length<2?String(nums[0]):nums.slice(0,-1).join(', ')+' and '+nums[nums.length-1];}
+  function rid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+  function where(v){return v.table?'<div class="big-table">'+esc(D.tableName(v.table))+'</div><div class="table-no">Table '+v.table+'</div>':
+    '<div class="big-table">No table yet</div><div class="table-no">Call the host</div>';}
 
-  /* a confirmed number: the table, who invited them, and anyone invited with them (a couple, a family),
-     so people who arrive together can come in together */
+  /* a confirmed number: the table, who invited them, and how many of its people are in. A household may come in
+     together or one by one, never more than it confirmed */
   function guest(v){
-    var host=D.hostName(v.host),mates=D.group(v).filter(function(x){return x!==v;});
-    var html='<div class="meta" id="sheetTitle">Honoured guest '+v.num+' · your table is</div><div class="big-table">'+esc(D.tableName(v.table))+'</div><div class="table-no">Table '+v.table+'</div>'+
-      '<div class="who">'+(v.family?esc(host)+(v.own==='wife'?'’s wife':'')+' · family table':'Check who invited them: <b>'+esc(host)+'</b>')+'</div>'+
-      (v.kids?'<div class="who">With '+v.kids+' children, who take no chair</div>':'');
-    if(v.arrived){
-      html+='<div class="banner bad">Already in at '+esc(v.arrivedAt)+'. Nobody else comes in on '+v.num+'. If something looks wrong, call '+esc(host)+'.</div>'+
+    var host=D.hostName(v.host),n=att(v),left=n-Math.min(n,v.arrived||0);
+    var html='<div class="meta" id="sheetTitle">Honoured guest '+v.num+' · your table is</div>'+where(v)+
+      '<div class="who">'+(v.family?esc(host)+(v.seats>1?' and wife':'')+' · family table':'Check who invited them: <b>'+esc(host)+'</b>')+'</div>'+
+      (v.kids?'<div class="who">With '+v.kids+' children, who take no chair</div>':'')+
+      (n>1?'<div class="count">'+(n-left)+' of '+n+' in</div>':'');
+    if(left<=0){
+      html+='<div class="banner bad">'+(n>1?'All '+n+' already in':'Already in')+(v.arrivedAt?(n>1?', the last at ':' at ')+esc(v.arrivedAt):'')+'. Nobody else comes in on '+v.num+'. If something looks wrong, call '+esc(host)+'.</div>'+
         '<div class="stack"><button class="btn primary wide" id="gCall" type="button">Call '+esc(host)+'</button><button class="btn wide" id="gNext" type="button">Next guest</button></div>';
     }else{
-      var ready=mates.filter(function(x){return x.status==='confirmed'&&!x.arrived;});
-      if(mates.length)html+='<ul class="mates">'+mates.map(function(x){return '<li><b>'+x.num+'</b> '+(x.arrived?'in at '+esc(x.arrivedAt):x.status==='confirmed'?'confirmed, not in yet':'not confirmed')+'</li>';}).join('')+'</ul>';
-      html+='<div class="stack"><button class="btn green wide" id="gAdmit" type="button">Let in '+v.num+'</button>'+
-        (ready.length?'<button class="btn green wide" id="gAll" type="button">Let in '+list([v.num].concat(ready.map(function(x){return x.num;})))+'</button>':'')+
-        '<button class="btn wide" id="gNext" type="button">Cancel</button></div>';
+      if(left>1)html+='<div class="field"><span class="lab" id="nLab">How many are here now?</span><div class="stepper" role="group" aria-labelledby="nLab"><button type="button" id="nM" aria-label="One fewer">−</button><output id="nO">'+left+'</output><button type="button" id="nP" aria-label="One more">+</button></div></div>';
+      html+='<div class="stack"><button class="btn green wide" id="gAdmit" type="button">Let in '+(left>1?plural(left,'person','people'):v.num)+'</button><button class="btn wide" id="gNext" type="button">Cancel</button></div>';
     }
     openSheet(html);
     document.getElementById('gNext').onclick=closeSheet;
     var call=document.getElementById('gCall');if(call)call.onclick=function(){callHost(v.host);};
-    function admit(people){
-      var at=clock();people.forEach(function(x){x.arrived=true;x.arrivedAt=at;});counts();
-      if(L.on){var q=load(QUEUE,[]);q.push({nums:people.map(function(x){return x.num;}),at:new Date().toISOString()});save(QUEUE,q);netChip();flush();}
-      sheet.innerHTML='<div class="meta" id="sheetTitle">Let in · '+list(people.map(function(x){return x.num;}))+'</div><div class="big-table">'+esc(D.tableName(v.table))+'</div><div class="table-no">Table '+v.table+'</div>'+
-        '<div class="banner ok" style="text-align:center">Show them to '+esc(D.tableLabel(v.table))+'.</div>';
-      setTimeout(closeSheet,2400);
+    var btn=document.getElementById('gAdmit');if(!btn)return;
+    var k=left;
+    if(left>1){
+      var o=document.getElementById('nO'),m=document.getElementById('nM'),p=document.getElementById('nP');
+      var upd=function(){o.textContent=k;m.disabled=k<=1;p.disabled=k>=left;btn.textContent='Let in '+plural(k,'person','people');};
+      m.onclick=function(){k=Math.max(1,k-1);upd();};p.onclick=function(){k=Math.min(left,k+1);upd();};upd();
     }
-    var one=document.getElementById('gAdmit');if(one)one.onclick=function(){admit([v]);};
-    var all=document.getElementById('gAll');if(all)all.onclick=function(){admit([v].concat(mates.filter(function(x){return x.status==='confirmed'&&!x.arrived;})));};
+    btn.onclick=function(){
+      v.arrived=Math.min(n,(v.arrived||0)+k);v.arrivedAt=clock();counts();
+      if(L.on){var q=queue();q.push({id:rid(),num:v.num,n:k,at:new Date().toISOString()});save(QUEUE,q);netChip();flush();}
+      var rest=n-v.arrived;
+      sheet.innerHTML='<div class="meta" id="sheetTitle">Let in · honoured guest '+v.num+'</div>'+where(v)+
+        '<div class="banner ok" style="text-align:center">'+(v.table?'Show them to '+esc(D.tableLabel(v.table))+'.':'Ask '+esc(host)+' where they sit.')+(rest>0?' '+rest+' more can still come in on '+v.num+'.':'')+'</div>';
+      setTimeout(closeSheet,rest>0?3200:2400);
+    };
   }
 
   /* a guest with no number: it is in their host's WhatsApp message, or the host can say */
@@ -208,7 +218,7 @@
   });
   draw();
   if(L.on){
-    var cached=load(CACHE,null);if(cached)apply(cached);else{D={invites:[],byNum:{},groups:{},group:function(v){return [v];},HOSTS:{},hostName:function(){return '';},tableName:function(){return '';},tableLabel:function(){return '';}};counts();}
+    var cached=load(CACHE,null);if(cached)apply(cached);else{D={invites:[],byNum:{},groups:{},group:function(v){return [v];},held:function(){return 0;},HOSTS:{},hostName:function(){return '';},tableName:function(){return '';},tableLabel:function(){return '';}};counts();}
     pull().then(flush);
     setInterval(function(){flush().then(pull);},30000);
     window.addEventListener('online',function(){flush().then(pull);});
