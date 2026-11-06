@@ -363,12 +363,12 @@ declare h hosts; s settings; i invitations; v_phone text; u invitations; n int; 
 begin
   select * into h from hosts where token=p_token for update;
   if not found then return json_build_object('error','not_found'); end if;
-  select * into i from invitations where num=p_num and host=h.key and not family for update;
-  if not found or not _holds(i) then return json_build_object('error','gone'); end if;
   if nullif(btrim(coalesce(p_name,'')),'') is null then return json_build_object('error','name'); end if;
   v_phone := _phone(p_phone);
   if v_phone is null then return json_build_object('error','phone'); end if;
-  perform pg_advisory_xact_lock(hashtext(v_phone));
+  perform pg_advisory_xact_lock(hashtext(v_phone));   -- the number before the invitation: the same order as admin_move
+  select * into i from invitations where num=p_num and host=h.key and not family for update;
+  if not found or not _holds(i) then return json_build_object('error','gone'); end if;
   u := _used(v_phone,i.num,i.table_num);
   if u.num is not null then return json_build_object('error','used','used',_usedjson(u,h)); end if;
   if p_chairs is not null then p_chairs := array(select unnest(p_chairs)); end if;
@@ -400,12 +400,12 @@ begin
   if not found then return json_build_object('error','not_found'); end if;
   select * into s from settings;
   if now()>s.late_deadline then return json_build_object('error','closed'); end if;
-  select * into i from invitations where num=p_num and host=h.key and not family for update;
-  if not found or not _holds(i) then return json_build_object('error','gone'); end if;
   if nullif(btrim(coalesce(p_name,'')),'') is null then return json_build_object('error','name'); end if;
   v_phone := _phone(p_phone);
   if v_phone is null then return json_build_object('error','phone'); end if;
-  perform pg_advisory_xact_lock(hashtext(v_phone));
+  perform pg_advisory_xact_lock(hashtext(v_phone));   -- the number before the invitation: the same order as admin_move
+  select * into i from invitations where num=p_num and host=h.key and not family for update;
+  if not found or not _holds(i) then return json_build_object('error','gone'); end if;
   u := _used(v_phone,i.num,i.table_num);
   if u.num is not null then return json_build_object('error','used','used',_usedjson(u,h)); end if;
   if i.table_num is null then return json_build_object('error','table'); end if;
@@ -505,33 +505,44 @@ begin
 end $$;
 
 -- ---------- the overall view: everything, the hosts' links, and moving an invitation ----------
+-- Michael's page is a host page for every host: it has each host's code (so it acts as that host, within that host's
+-- seats and tables) and each invitation's link code (so it can send the invitation again)
 create or replace function admin_get(p_token text) returns json language plpgsql stable security definer set search_path=public as $$
 declare s settings;
 begin
   select * into s from settings;
   if s.admin_token is distinct from p_token then return json_build_object('error','not_found'); end if;
   return json_build_object(
-    'deadline',s.deadline,'gate_token',s.gate_token,
+    'deadline',s.deadline,'late_deadline',s.late_deadline,'at',now(),'gate_token',s.gate_token,
     'hosts',(select json_agg(json_build_object('key',key,'name',name,'role',role,'seats',seats,'token',token,'phone',phone) order by array_position(array['mike','bea','mum','dad','joshua','isaac','benjamin'],key)) from hosts),
     'tables',(select json_agg(json_build_object('num',num,'name',name,'chairs',chairs) order by num) from dinner_tables),
     'plan',(select json_agg(json_build_object('table',table_num,'host',host,'chairs',chairs) order by table_num, host) from plan),
-    'invitations',(select coalesce(json_agg(json_build_object('num',i.num,'host',i.host,'grp',i.grp,'family',i.family,'own',i.own,'kids',i.kids,
+    'invitations',(select coalesce(json_agg(json_build_object('num',i.num,'token',i.token,'host',i.host,'grp',i.grp,'family',i.family,'own',i.own,'kids',i.kids,
         'name',i.name,'phone',i.phone,'status',_state(i),'table',i.table_num,'chairs',i.chairs[1:_held(i)],'seats',i.seats,'att',i.att,'arrived',i.arrived,
-        'created_at',i.created_at,'confirmed_at',i.confirmed_at,'arrived_at',i.arrived_at)
+        'created_at',i.created_at,'confirmed_at',i.confirmed_at,'arrived_at',i.arrived_at,'confirm_by',i.expires_at)
         order by i.table_num, i.created_at),'[]'::json)
       from invitations i where i.status<>'cancelled'));
 end $$;
 
--- move an invitation to another table: the seats it holds, side by side where the table allows
+-- move an invitation to another table: the seats it holds, side by side where the table allows. Its family moves
+-- with it: the invitations sent to the same number at the same table (one number, one table), in the order they were made
 drop function if exists admin_move(text,uuid,int);
 create or replace function admin_move(p_token text, p_grp uuid, p_table int, p_chairs int[] default null) returns json language plpgsql security definer set search_path=public as $$
-declare n int; ch int[]; e text;
+declare i invitations; x invitations; gs uuid[]; n int; ch int[]; e text; k int := 0; v_phone text; v_table int;
 begin
   if not exists (select 1 from settings where admin_token=p_token) then return json_build_object('error','not_found'); end if;
-  select coalesce(sum(_held(i)),0) into n from invitations i where grp=p_grp and _holds(i);
-  if n=0 then return json_build_object('error','not_found'); end if;
+  select * into i from invitations y where y.grp=p_grp and _holds(y) order by y.created_at limit 1;
+  if not found then return json_build_object('error','not_found'); end if;
   if not exists (select 1 from dinner_tables where num=p_table) then return json_build_object('error','table'); end if;
+  v_phone := i.phone; v_table := i.table_num;
+  if v_phone is not null then perform pg_advisory_xact_lock(hashtext(v_phone)); end if;   -- the number, the table, then the rows: the order every function keeps
   perform pg_advisory_xact_lock(4242,p_table);
+  -- the invitation and its family, locked, then looked at again: a change that was in progress is done by now
+  perform 1 from invitations y where _holds(y) and (y.grp=p_grp or (v_phone is not null and y.phone=v_phone and y.table_num is not distinct from v_table and p_table is distinct from v_table)) for update;
+  select * into i from invitations y where y.grp=p_grp and _holds(y) order by y.created_at limit 1;
+  if not found or i.phone is distinct from v_phone or i.table_num is distinct from v_table then return json_build_object('error','gone'); end if;
+  select array_agg(y.grp order by y.created_at, y.num), sum(_held(y)) into gs, n from invitations y
+  where _holds(y) and (y.grp=p_grp or (v_phone is not null and y.phone=v_phone and y.table_num is not distinct from v_table and p_table is distinct from v_table));
   if p_chairs is not null then p_chairs := array(select unnest(p_chairs)); end if;
   if p_chairs is null then
     ch := _pick(p_table,n,p_grp);
@@ -541,8 +552,11 @@ begin
     if e is not null then return json_build_object('error',e); end if;
     ch := p_chairs;
   end if;
-  update invitations set table_num=p_table, chairs=ch where grp=p_grp and status<>'cancelled';
-  return json_build_object('moved',n,'table',p_table,'chairs',ch);
+  for x in select y.* from invitations y where y.grp=any(gs) and _holds(y) order by array_position(gs,y.grp), y.num loop
+    update invitations set table_num=p_table, chairs=ch[k+1:k+_held(x)] where num=x.num;
+    k := k+_held(x);
+  end loop;
+  return json_build_object('moved',n,'table',p_table,'chairs',ch,'nums',(select json_agg(num order by num) from invitations where grp=any(gs) and status<>'cancelled'));
 end $$;
 
 -- the web may call these, and only these. They run as the database owner (security definer) on purpose: the tables
