@@ -325,9 +325,11 @@ begin
   end if;
   if p_table is null then
     t := _seat(h.key,n);
+    if t is not null then perform pg_advisory_xact_lock(4242,t); end if;
     ch := case when t is null then null else _pick(t,n) end;
   else
     t := p_table;
+    perform pg_advisory_xact_lock(4242,t);   -- one change at a time per table: two hosts at a shared table can't take the same chair
     if _room(h.key,t,null)<n then return json_build_object('error','table','room',greatest(0,_room(h.key,t,null))); end if;
     if p_chairs is null then
       ch := _pick(t,n);
@@ -362,6 +364,7 @@ begin
     n := cardinality(p_chairs);
     if n<1 or n>4 then return json_build_object('error','count'); end if;
     if i.table_num is null then return json_build_object('error','table'); end if;
+    perform pg_advisory_xact_lock(4242,i.table_num);
     if _left(h,i.grp)<n then return json_build_object('error','full'); end if;
     if _room(h.key,i.table_num,i.grp)<n then return json_build_object('error','table'); end if;
     e := _bad_chairs(i.table_num,p_chairs,i.grp);
@@ -389,6 +392,7 @@ begin
   u := _used(v_phone,i.num);
   if u.num is not null then return json_build_object('error','used','used',_usedjson(u,h)); end if;
   if i.table_num is null then return json_build_object('error','table'); end if;
+  perform pg_advisory_xact_lock(4242,i.table_num);
   ch := coalesce(p_chairs,i.chairs[1:_held(i)]);
   n := cardinality(ch);
   if n is null or n<1 or n>4 then return json_build_object('error','count'); end if;
@@ -508,6 +512,7 @@ begin
   select coalesce(sum(_held(i)),0) into n from invitations i where grp=p_grp and _holds(i);
   if n=0 then return json_build_object('error','not_found'); end if;
   if not exists (select 1 from dinner_tables where num=p_table) then return json_build_object('error','table'); end if;
+  perform pg_advisory_xact_lock(4242,p_table);
   if p_chairs is null then
     ch := _pick(p_table,n,p_grp);
     if ch is null then return json_build_object('error','full','free',(select d.chairs from dinner_tables d where d.num=p_table)-cardinality(_taken(p_table,p_grp))); end if;
