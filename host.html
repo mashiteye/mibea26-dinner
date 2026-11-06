@@ -71,10 +71,10 @@
       <div class="banner ok" id="afterMsg"></div>
       <p class="undo">Didn’t send it? <button type="button" id="undo">Undo</button></p>
     </div>
-    <div class="banner warn" id="full" hidden>Everyone you can invite has an invitation. If someone can’t come, or hasn’t answered by 10 December, their place comes back here.</div>
+    <div class="banner warn" id="full" hidden>Everyone you can invite has an invitation. Places not confirmed by 10 December come back here.</div>
     <p class="note">One invitation is for one person. Choose 2 to 4 only for a couple or family coming together on one number.</p>
     <p class="note">Each invitation has its own number. If someone forwards theirs, it still lets in only the people it was made for.</p>
-    <p class="note" id="returns">When a guest says they can’t come, confirms for fewer people, or hasn’t answered by 10 December, those places come back to you.</p>
+    <p class="note" id="returns">Places not confirmed by 10 December come back to you, and so do any left over when a guest confirms for fewer people.</p>
     <p class="note" id="helper" hidden></p>
   </section>
 </main>
@@ -123,8 +123,8 @@
     $('barC').style.width=(100*T.confirmed/T.guestAlloc)+'%';
     $('barW').style.width=(100*(inv-T.confirmed)/T.guestAlloc)+'%';
     $('chips').innerHTML='<span class="chip ok">'+T.confirmed+' confirmed</span>'+
-      (waiting?'<span class="chip">'+waiting+' waiting for an answer</span>':'')+
-      (T.back?'<span class="chip">'+T.back+' can’t come, back to you</span>':'')+
+      (waiting?'<span class="chip">'+waiting+' not confirmed yet</span>':'')+
+      (T.back?'<span class="chip">'+T.back+' not coming, back to you</span>':'')+
       '<span class="chip">'+L+' left to invite</span>';
     if(seats>L)seats=Math.max(1,L);
     $('seg').innerHTML=[1,2,3,4].map(function(n){return '<button type="button" data-n="'+n+'" aria-pressed="'+(n===seats&&L>0)+'"'+(n>L?' disabled':'')+'>'+n+'</button>';}).join('');

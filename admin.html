@@ -95,10 +95,10 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
   var FILL={open:'#fff',sent:'#e9d7b5',confirmed:'#6f432f',arrived:'#3e7a4f'};
   var STROKE={open:'#b7a58c',sent:'#cdb68d',confirmed:'#6f432f',arrived:'#3e7a4f'};
 
-  /* who holds a chair: an invitation waiting for an answer, or a confirmed one for as many as are coming.
-     A chair is free once its guest can't come, or when fewer are coming than were invited */
+  /* who holds a chair: an invitation not confirmed yet, or a confirmed one for as many as are coming.
+     A chair is free when fewer are coming than were invited */
   function holder(s){
-    var h=s.hh;if(!h||h.status==='declined')return null;
+    var h=s.hh;if(!h)return null;
     if(h.status==='confirmed'&&h.chairs.indexOf(s.code)>=h.att)return null;
     return h;
   }
@@ -137,7 +137,7 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     }
     svg+='<text x="200" y="545" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="2" fill="#7c6a5f">ENTRANCE</text>';
     document.getElementById('map').innerHTML=svg;
-    var keys=night?[['open','Free'],['sent','Waiting'],['confirmed','Confirmed, not in yet'],['arrived','In the room']]:[['open','Free'],['sent','Waiting for an answer'],['confirmed','Confirmed']];
+    var keys=night?[['open','Free'],['sent','Waiting'],['confirmed','Confirmed, not in yet'],['arrived','In the room']]:[['open','Free'],['sent','Not confirmed yet'],['confirmed','Confirmed']];
     document.getElementById('legend').innerHTML=keys.map(function(k){return '<span><i class="'+k[0]+'"></i>'+k[1]+'</span>';}).join('');
   }
 
@@ -164,8 +164,8 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     /* one line each, host by host, so it reads as a list of who to nudge */
     function byHost(f){return Object.keys(D.HOSTS).filter(function(k){return S.per[k][f];}).map(function(k){return esc(D.HOSTS[k].name)+' '+S.per[k][f];}).join(', ');}
     var a=S.all,asked=Object.keys(D.HOSTS).reduce(function(n,k){return n+S.per[k].asked;},0);
-    if(a.waiting)list.push({cls:'warn',t:'Waiting for an answer · '+plural(a.waiting,'seat'),m:plural(asked,'invitation')+' not answered: '+byHost('waiting')+'. Whatever is still unanswered on 10 December goes back to its host.'});
-    if(a.back)list.push({cls:'',t:'Back with the hosts · '+plural(a.back,'seat'),m:'From guests who can’t come, or fewer coming than invited: '+byHost('back')+'. Each host can invite again.'});
+    if(a.waiting)list.push({cls:'warn',t:'Not confirmed yet · '+plural(a.waiting,'seat'),m:plural(asked,'invitation')+': '+byHost('waiting')+'. Whatever isn’t confirmed by 10 December goes back to its host.'});
+    if(a.back)list.push({cls:'',t:'Back with the hosts · '+plural(a.back,'seat'),m:'From guests confirming for fewer people than invited: '+byHost('back')+'. Each host can invite again.'});
     if(a.left)list.push({cls:'',t:'Left to invite · '+plural(a.left,'seat'),m:byHost('left')+'.'});
     return list;
   }
@@ -198,7 +198,7 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     var list=placed(t),free=freeAt(t);
     var html='<h3 id="sheetTitle">'+esc(D.tableLabel(t))+'</h3><div class="meta">'+esc(tableWho(t))+' · '+(9-free)+' of 9 chairs taken</div><ul class="hh">';
     list.forEach(function(h){
-      var st=h.status==='sent'?'Waiting for an answer':night?h.arrived+' of '+h.att+' in':h.att<h.size?'Confirmed '+h.att+' of '+h.size:'Confirmed';
+      var st=h.status==='sent'?'Not confirmed yet':night?h.arrived+' of '+h.att+' in':h.att<h.size?'Confirmed '+h.att+' of '+h.size:'Confirmed';
       html+='<li><span class="no">'+h.num+'</span><span class="d">'+plural(need(h),'seat')+' · '+esc(whose(h))+(h.kids?' · '+h.kids+' children, no chair':'')+'<small>'+st+'</small></span>'+
         '<button class="btn" type="button" data-move="'+h.num+'" aria-label="Move '+h.num+'">Move</button></li>';
     });
@@ -212,7 +212,7 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     for(var t=1;t<=20;t++)if(t!==h.table&&freeAt(t)>=n)opts.push(t);
     var html='<h3 id="sheetTitle">Move '+h.num+'</h3><div class="meta">'+plural(n,'seat')+' · now at '+esc(D.tableLabel(h.table))+'</div>'+
       (opts.length?'<ul class="pick">'+opts.map(function(t){return '<li><button type="button" data-to="'+t+'"><b>'+esc(D.tableLabel(t))+'</b><span>'+freeAt(t)+' free · '+esc(tableWho(t))+'</span></button></li>';}).join('')+'</ul>':
-        '<div class="banner warn">No other table has '+n+' chairs free together. Move someone else first.</div>')+
+        '<div class="banner warn">No other table has '+plural(n,'free chair')+'. Move someone else first.</div>')+
       '<div class="stack"><button class="btn wide" id="mBack" type="button">Back</button></div>';
     openSheet(html);
     sheet.querySelectorAll('[data-to]').forEach(function(b){b.onclick=function(){moveTo(h,+b.getAttribute('data-to'));};});

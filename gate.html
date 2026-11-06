@@ -37,7 +37,7 @@
 </head>
 <body>
 <div class="preview">
-  <b>Design preview</b><span>Sample data · try 418, 350, 777, 263, 512 or 950</span>
+  <b>Design preview</b><span>Sample data · try 418, 350, 777, 263 or 950</span>
   <label><input type="checkbox" id="offline"> Offline</label>
   <span class="spacer"></span>
   <a href="./index.html?review">Invitation</a><a href="./host.html">Host page</a><a href="./gate.html" aria-current="page">Gate</a><a href="./admin.html">Overall view</a>
@@ -97,7 +97,7 @@
   function closeSheet(){sheet.classList.remove('show');veil.classList.remove('show');sheet.inert=true;entry='';draw();if(trigger&&trigger.focus)trigger.focus();}
   veil.addEventListener('click',closeSheet);
 
-  /* a number is one invitation: confirmed, still waiting for an answer, declined, or not one of ours */
+  /* a number is one invitation: confirmed, never confirmed, or not one of ours */
   function lookup(code){
     var h=D.byNum[+code];
     if(!h){
@@ -108,9 +108,7 @@
     var host=D.hostName(h.host);
     if(h.status==='confirmed')return guest(h);
     var head='<h3 id="sheetTitle">Honoured guest '+h.num+'</h3><div class="meta">'+esc(host)+'’s guests · '+h.size+(h.size>1?' seats':' seat')+'</div>';
-    var why=h.status==='sent'?
-      '<div class="banner warn">Invited, but they never confirmed. Call '+esc(host)+' before letting them in.</div>':
-      '<div class="banner bad">They said they can’t come, and the seats went back to '+esc(host)+'. Call '+esc(host)+' before letting anyone in on this number.</div>';
+    var why='<div class="banner warn">Invited, but they never confirmed. Call '+esc(host)+' before letting them in.</div>';
     openSheet(head+why+'<div class="stack"><button class="btn primary wide" id="gCall" type="button">Call '+esc(host)+'</button><button class="btn wide" id="gNext" type="button">Next guest</button></div>');
     document.getElementById('gCall').onclick=function(){showToast('Preview: this would call '+host);};
     document.getElementById('gNext').onclick=closeSheet;

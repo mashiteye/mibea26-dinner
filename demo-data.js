@@ -39,13 +39,13 @@
     '18benjamin':{label:'You',size:1}
   };
   /* invitations the gate preview points at, by number:
-     418 nobody in yet, 350 one of three in, 777 both in, 263 not answered, 512 can't come (950 matches nothing) */
+     418 nobody in yet, 350 one of three in, 777 both in, 263 never confirmed (950 matches nothing).
+     There is no declining: an invitation is confirmed, or still waiting until 10 December */
   var PRESET={
     11001:{num:418,size:4,status:'confirmed',att:4},
     14001:{num:350,size:3,status:'confirmed',att:3,arrived:1,at:'4:05 pm'},
     12001:{num:777,size:2,status:'confirmed',att:2,arrived:2,at:'4:12 pm'},
-    15001:{num:263,size:2,status:'sent',att:0},
-    3001:{num:512,size:2,status:'declined',att:0}
+    15001:{num:263,size:2,status:'sent',att:0}
   };
 
   var seats=[],households=[];
@@ -74,7 +74,7 @@
         else{var r=R();size=Math.min(run-j,r<.42?1:r<.77?2:r<.92?3:4);}
         if(fam){status='confirmed';att=size;}
         else if(pre){status=pre.status;att=pre.att;}
-        else{var r2=R();status=r2<.6?'confirmed':r2<.88?'sent':'declined';att=status==='confirmed'?(size>1&&R()<.15?size-1:size):0;}
+        else{var r2=R();status=r2<.68?'confirmed':'sent';att=status==='confirmed'?(size>1&&R()<.15?size-1:size):0;}
         var hh={host:start.host,family:start.family,table:tt,chairs:[],label:fam?fam.label:null,kids:fam&&fam.kids||0,kidsNote:fam&&fam.kidsNote||'',
           num:pre?pre.num:0,size:size,status:status,att:att,arrived:pre&&pre.arrived||0,arrivedAt:pre&&pre.at||null};
         for(var k=0;k<size;k++){var st=row[i+j+k];st.hh=hh;hh.chairs.push(st.code);}
@@ -99,8 +99,8 @@
   /* each invitation's link carries a random-looking code that says nothing about the number or the table (sample only) */
   function token(num){var A='ABCDEFGHJKMNPQRSTUVWXYZ23456789',x=(num*2654435761)>>>0,s='';for(var i=0;i<6;i++){s+=A[x%A.length];x=Math.floor(x/A.length)^(num*40503+i*7919);x>>>=0;}return s;}
 
-  /* a host's seats: invited (confirmed or waiting for an answer), confirmed, waiting, back with them
-     (a guest can't come, or fewer are coming than invited), left to invite, and their own invitation if family */
+  /* a host's seats: invited (confirmed or not yet), confirmed, waiting, back with them (a guest confirmed
+     for fewer people than invited), left to invite, and their own invitation if family */
   function tally(k){
     var t={alloc:HOSTS[k].seats,invited:0,confirmed:0,waiting:0,back:0,own:null};
     households.forEach(function(h){
@@ -108,7 +108,6 @@
       if(h.family){t.own=h;return;}
       if(h.status==='sent'){t.invited+=h.size;t.waiting+=h.size;}
       else if(h.status==='confirmed'){t.invited+=h.att;t.confirmed+=h.att;t.back+=h.size-h.att;}
-      else t.back+=h.size;
     });
     t.guestAlloc=t.alloc-(t.own?t.own.size:0);
     t.left=Math.max(0,t.guestAlloc-t.invited);
