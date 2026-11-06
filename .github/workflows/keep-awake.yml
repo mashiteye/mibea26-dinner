@@ -1,0 +1,18 @@
+# Supabase pauses a free project after about a week with little database activity, which would stop the
+# invitations, the host pages and the gate. This asks the database one harmless question four times a day.
+name: Keep the dinner database awake
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+permissions: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the database one question
+        run: |
+          curl -fsS -X POST 'https://goldkijuosgmjiivzazg.supabase.co/rest/v1/rpc/guest_get' \
+            -H 'apikey: sb_publishable_e9M_3OLiIgUnt2Gb6UN1xA_Ot6WY99c' \
+            -H 'Content-Type: application/json' \
+            -d '{"p_token":"keep-awake"}'

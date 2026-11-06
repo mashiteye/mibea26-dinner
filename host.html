@@ -5,41 +5,37 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#fbf4e8">
-<title>Host board · Dinner Night</title>
+<title>Your invitations · Dinner Night</title>
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./staff.css">
 <style>
-.intro{margin:4px 2px 0;font-size:13px;color:var(--soft)}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-.box{position:relative;min-height:78px;padding:8px 8px 7px;border-radius:12px;border:1px solid var(--sent-line);background:var(--sent);color:var(--choc-deep);text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between}
-.box .bn{font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--soft)}
-.box .bi{font-family:var(--serif);font-size:22px;line-height:1.05}
-.box .bi small{display:block;font-family:var(--sans);font-size:11px;color:var(--soft)}
-.box .bi .lbl{display:block;font-size:16px;line-height:1.1}
-.box.confirmed .bi small{color:#f1dfc3}
-.note{margin:2px 2px 0;font-size:12.5px;line-height:1.45;color:var(--soft)}
-.card-head h2 small{display:inline-block;white-space:nowrap;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-deep);margin-left:6px}
-.box .bs{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--choc)}
-.box .hh{position:absolute;top:7px;right:8px;font-size:10px;font-weight:600;color:var(--gold-deep)}
-.box .dot{position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 2px #fff}
-.box.open{background:transparent;border:1.5px dashed var(--line-strong)}
-.box.open .bi{font-family:var(--sans);font-size:26px;font-weight:400;color:var(--gold-deep)}
-.box.confirmed{background:var(--confirmed);border-color:var(--confirmed);color:var(--ivory)}
-.box.confirmed .bn,.box.confirmed .bs,.box.confirmed .bi small{color:#f1dfc3}
-.box.confirmed .hh{color:#e7cd98}
-.box.declined,.box.freed{background:var(--declined);border-color:var(--declined-line);color:var(--declined-ink)}
-.box.declined .bs,.box.freed .bs{color:var(--declined-ink)}
-.box.other{cursor:default;background:transparent;border:1px dotted var(--line);color:var(--soft);opacity:.75}
-.box.other .bi{font-family:var(--sans);font-size:12px}
-.legend .open{border-style:dashed;background:transparent}
-.legend .sent{background:var(--sent);border-color:var(--sent-line)}
-.legend .confirmed{background:var(--confirmed);border-color:var(--confirmed)}
-.legend .declined{background:var(--declined);border-color:var(--declined-line)}
-.legend .check{background:var(--bad);border-color:var(--bad);border-radius:50%}
-@media(max-width:360px){.box{min-height:72px}.box .bi{font-size:20px}}
+.intro{margin:2px 2px 0;font-size:13px;color:var(--soft)}
+.count{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.count .n{font-family:var(--serif);font-size:46px;line-height:1;color:var(--choc-deep)}
+.count .of{font-size:14px;color:var(--soft)}
+.bar{display:flex;height:8px;margin-top:12px;border-radius:999px;background:var(--cream);overflow:hidden}
+.bar i{display:block;height:100%}
+.bar .c{background:var(--choc)}
+.bar .w{background:var(--gold)}
+.lab{display:block;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--choc)}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.seg button{min-height:54px;border-radius:12px;border:1px solid var(--line-strong);background:#fff;font-family:var(--serif);font-size:26px;color:var(--choc-deep);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--choc);border-color:var(--choc);color:var(--ivory)}
+.seg button:disabled{opacity:.3;cursor:default}
+.seg button:focus-visible{outline:2px solid var(--gold-deep);outline-offset:3px}
+#invite{margin-top:14px;min-height:52px;font-size:12px}
+.undo{margin:8px 2px 0;font-size:13px;color:var(--soft)}
+.undo button{border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--choc);text-decoration:underline;cursor:pointer}
+.note{margin:10px 2px 0;font-size:12.5px;line-height:1.5;color:var(--soft)}
+.own .num{font-family:var(--serif);font-size:30px;line-height:1.1;color:var(--choc-deep)}
+.own .num small{display:block;font-family:var(--sans);font-size:12px;color:var(--soft)}
+.links{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px}
+.links a,.see a{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--choc)}
+.see{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:12px;color:var(--soft)}
+[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -47,186 +43,195 @@
   <b>Design preview</b><span>Sample data</span>
   <label>Viewing as <select id="who" aria-label="Viewing as"></select></label>
   <span class="spacer"></span>
-  <a href="./index.html?review">Invitation</a><a href="./host.html" aria-current="page">Host board</a><a href="./gate.html">Gate</a><a href="./admin.html">Overall view</a>
+  <a href="./index.html?review">Invitation</a><a href="./host.html" aria-current="page">Host page</a><a href="./gate.html">Gate</a><a href="./admin.html">Overall view</a>
 </div>
 <header class="top"><div class="in">
-  <h1 id="title">Guests</h1>
+  <h1 id="title">Your invitations</h1>
   <div class="sub">Dinner Night · Sunday 20 December</div>
-  <div class="chips" id="chips"></div>
 </div></header>
 <main class="wrap">
-  <p class="intro" id="intro">Each box is a chair. Tap an empty one to invite a guest. A household takes several chairs at one table, so families sit together. Guests don’t see their table before the day: the gate shows them to it, so tables can still change.</p>
-  <div id="tables"></div>
-  <p class="section-title">Key</p>
-  <div class="legend">
-    <span><i class="open"></i>Open</span><span><i class="sent"></i>Sent</span><span><i class="confirmed"></i>Confirmed</span><span><i class="declined"></i>Declined, replace</span><span><i class="check"></i>Number to check</span>
-  </div>
+  <p class="intro" id="intro">Tap Invite and WhatsApp opens with the invitation. Pick the contact and send. Nothing to type.</p>
+
+  <section class="card own" id="own" hidden>
+    <span class="lab" id="ownLab">Your own invitation</span>
+    <div class="num" id="ownNum"></div>
+    <p class="note" id="ownNote"></p>
+    <div class="links" id="ownLinks"></div>
+  </section>
+
+  <section class="card" aria-live="polite">
+    <div class="count"><span class="n" id="invited">0</span><span class="of" id="of">of 0 people invited</span></div>
+    <div class="bar" aria-hidden="true"><i class="c" id="barC"></i><i class="w" id="barW"></i></div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <section class="card">
+    <span class="lab" id="segLab">How many people?</span>
+    <div class="seg" id="seg" role="group" aria-labelledby="segLab"></div>
+    <button class="btn primary wide" id="invite" type="button">Invite on WhatsApp</button>
+    <div id="after" hidden>
+      <div class="banner ok" id="afterMsg"></div>
+      <p class="undo">Didn’t send it? <button type="button" id="undo">Undo</button></p>
+    </div>
+    <div class="banner warn" id="full" hidden>Everyone you can invite has an invitation. Places not confirmed by 10 December come back here.</div>
+    <p class="note">Each person gets their own invitation and number. For a couple or family, choose 2 to 4: their invitations come in one message, and they sit together.</p>
+    <p class="note">A forwarded invitation still lets in only one person.</p>
+    <p class="note" id="returns">Places not confirmed by 10 December come back to you.</p>
+    <p class="note" id="helper" hidden></p>
+  </section>
 </main>
 
 <div class="veil" id="veil"></div>
-<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" inert></section>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" inert>
+  <h3 id="sheetTitle">WhatsApp opens</h3>
+  <div class="meta" id="sheetMeta">On the real page, WhatsApp opens here. They pick the contact and send.</div>
+  <div class="msg" id="msg"></div>
+  <div class="see" id="see"></div>
+  <div class="stack"><a class="btn green wide" id="send" href="#" target="_blank" rel="noopener" hidden>Send on WhatsApp</a><button class="btn primary wide" id="done" type="button">Back to your page</button></div>
+</section>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="./config.js"></script>
+<script src="./api.js"></script>
+<script src="./live.js"></script>
 <script src="./demo-data.js"></script>
 <script>
 (function(){
   'use strict';
-  var D=window.DEMO,Q=new URLSearchParams(location.search);
-  var me=D.HOSTS[Q.get('h')]?Q.get('h'):'mike';
-  var who=document.getElementById('who');
-  Object.keys(D.HOSTS).forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=D.HOSTS[k].name+(D.HOSTS[k].role?' ('+D.HOSTS[k].role+')':'');if(k===me)o.selected=true;who.appendChild(o);});
-  who.addEventListener('change',function(){location.search='?h='+who.value;});
+  /* two modes: the design preview with sample data (?h=mike), or a host's real page (?k=their private code) */
+  var D=window.DEMO,L=window.LIVE,Q=new URLSearchParams(location.search);
+  var me=D.HOSTS[Q.get('h')]?Q.get('h'):'mike',H=L.on?{name:'',role:null}:D.HOSTS[me];
+  function $(id){return document.getElementById(id);}
+  function showToast(m){var t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){t.classList.remove('show');},2600);}
+  function list(nums){return nums.length<2?String(nums[0]):nums.slice(0,-1).join(', ')+' and '+nums[nums.length-1];}
+  var WORDS=['','one','two','three','four','five','six','seven','eight','nine'];
+  function day(iso){var d=new Date(iso);return d.getUTCDate()+' '+['January','February','March','April','May','June','July','August','September','October','November','December'][d.getUTCMonth()];}
+  if(!L.on){
+    var who=$('who');
+    Object.keys(D.HOSTS).forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=D.HOSTS[k].name+(D.HOSTS[k].role?' ('+D.HOSTS[k].role+')':'');if(k===me)o.selected=true;who.appendChild(o);});
+    who.addEventListener('change',function(){location.search='?h='+who.value;});
+  }
 
-  var sheet=document.getElementById('sheet'),veil=document.getElementById('veil'),toast=document.getElementById('toast');
-  var nextId=D.households.length+1;
-  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function showToast(m){toast.textContent=m;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){toast.classList.remove('show');},2600);}
+  /* T: the host's counts. In the preview they come from the sample, and invitations made here are added on top;
+     on a real page they come from the database after every change */
+  var T={alloc:0,invited:0,confirmed:0,waiting:0,own:[],guestAlloc:0},made=[],seats=1,last=null;
+  function fromServer(r){
+    H={name:r.name,role:r.role};
+    T={alloc:r.seats,confirmed:+r.confirmed,waiting:+r.waiting,invited:+r.confirmed+(+r.waiting),
+      own:(r.own||[]).map(function(o){return {num:o.num,token:o.token,own:o.own,kids:o.kids,
+        kidsNote:o.kids?(WORDS[o.kids].charAt(0).toUpperCase()+WORDS[o.kids].slice(1))+' children come in with '+(o.own==='wife'?'your wife':'you')+' and take no chair.':''};})};
+    T.guestAlloc=T.alloc-T.own.length;
+  }
+  function ownCard(){
+    if(!T.own.length)return;
+    var you=T.own[0],wife=T.own[1];
+    function link(o){return L.on?L.guestLink(o.token):'./index.html?g='+o.num;}
+    $('own').hidden=false;if(wife)$('ownLab').textContent='Your own invitations';
+    $('ownNum').innerHTML=wife?'Honoured guests '+you.num+' and '+wife.num+'<small>You ('+you.num+') and your wife ('+wife.num+') at the family table, out of your '+T.alloc+'</small>':
+      'Honoured guest '+you.num+'<small>For you at the family table, out of your '+T.alloc+'</small>';
+    var note=T.own.map(function(o){return o.kidsNote;}).filter(function(v,i,a){return v&&a.indexOf(v)===i;}).join(' ');
+    $('ownNote').textContent=(wife?'At the gate each of you gives your own number, like every guest.':'At the gate you give your number like every guest.')+(note?' '+note:'');
+    $('ownLinks').innerHTML=wife?'<a href="'+link(you)+'">Open yours</a><a href="'+link(wife)+'">Open your wife’s</a>':'<a href="'+link(you)+'">Open your invitation</a>';
+  }
+  function start(){
+    $('title').textContent=H.name+'’s invitations';
+    document.title=H.name+'’s invitations · Dinner Night';
+    ownCard();
+    if(H.role){$('helper').hidden=false;$('helper').textContent='If someone helps '+H.name+' with this, they open this same link.';}
+    render();
+  }
 
-  function mySeats(){return D.seats.filter(function(s){return s.host===me;});}
+  function invited(){return T.invited+made.reduce(function(a,m){return a+m.nums.length;},0);}
+  function left(){return Math.max(0,T.guestAlloc-invited());}
   function render(){
-    var name=D.HOSTS[me].name;
-    document.getElementById('title').textContent=name+'’s guests';
-    var mine=mySeats(),guests=mine.filter(function(s){return !s.family;}),fam=mine.filter(function(s){return s.family;});
-    var n={sent:0,confirmed:0,replace:0,check:0,open:0};
-    var seenHH={};
-    mine.forEach(function(s){
-      var st=D.seatState(s,false);
-      if(st==='open')n.open++;
-      else if(st==='sent')n.sent++;
-      else if(st==='confirmed')n.confirmed++;
-      else if(st==='declined'||st==='freed')n.replace++;
-      if(s.hh&&!seenHH[s.hh.id]&&D.mismatch(s.hh)){seenHH[s.hh.id]=1;n.check++;}
-    });
-    var chips='<span class="chip">'+(fam.length?(guests.length+fam.length)+' chairs · '+guests.length+' guests':guests.length+' guests')+'</span>'+
-      '<span class="chip">'+n.sent+' sent</span><span class="chip ok">'+n.confirmed+' confirmed</span>'+
-      (n.replace?'<span class="chip warn">'+n.replace+' to replace</span>':'')+
-      (n.check?'<span class="chip bad">'+n.check+' number'+(n.check>1?'s':'')+' to check</span>':'')+
-      '<span class="chip">'+n.open+' open</span>';
-    document.getElementById('chips').innerHTML=chips;
-
-    var helper={mum:'If someone helps Juliana with this, they open this same link.',dad:'If someone helps Samuel with this, they open this same link.'}[me];
-    document.getElementById('intro').textContent='Each box is a chair. Tap an empty one to invite a guest. A household takes several chairs at one table, so families sit together. Guests don’t see their table before the day: the gate shows them to it, so tables can still change.'+(helper?' '+helper:'');
-    var html='';
-    function box(s,t){
-      var st=D.seatState(s,false),h=s.hh,first=h&&h.chairs[0]===s.code;
-      var label={open:'Invite',sent:'Sent',confirmed:'Confirmed',declined:'Declined',freed:'Not coming'}[st];
-      var tag=h?(h.label||h.initials):'';
-      var main=st==='open'?'+':(first?(h.label?'<span class="lbl">'+esc(h.label)+'</span>':esc(h.initials)):'<small>with '+(h.label&&h.label.indexOf('You')===0?'you':esc(tag))+'</small>');
-      return '<button type="button" class="box '+st+'" data-code="'+s.code+'" aria-label="'+esc(D.tableLabel(t))+', chair '+s.chair+', '+label+(h?', '+esc(tag):'')+'">'+
-        '<span class="bn">'+s.chair+'</span><span class="bi">'+main+'</span><span class="bs">'+label+(st==='declined'||st==='freed'?' · replace':'')+'</span>'+
-        (h&&first&&h.size>1&&!D.mismatch(h)?'<span class="hh">×'+h.size+'</span>':'')+
-        (h&&first&&D.mismatch(h)?'<span class="dot" aria-hidden="true"></span>':'')+'</button>';
-    }
-    function other(s,text){return '<div class="box other" aria-hidden="true"><span class="bn">'+s.chair+'</span><span class="bi">'+esc(text)+'</span><span class="bs"></span></div>';}
-    /* the host's own chairs, at the family table: they come in with a code like everyone else */
-    var own=mine.filter(function(s){return s.family;});
-    if(own.length){
-      var t0=own[0].table,h0=own[0].hh;
-      html+='<p class="section-title">You</p><section class="card"><div class="card-head"><h2>'+esc(D.tableName(t0))+'<small>Table '+t0+'</small></h2><span>The family table</span></div>'+
-        '<p class="note">'+(own.length>1?'Your chairs at the family table come':'Your chair at the family table comes')+' out of your 20. At the gate you give your four digits like every guest.'+(h0&&h0.kidsNote?' '+esc(h0.kidsNote):'')+'</p><div class="grid">';
-      own.forEach(function(s){html+=box(s,t0);});
-      html+='</div></section>';
-    }
-    /* the guests, table by table; other hosts' chairs show faintly */
-    var tables={};mine.forEach(function(s){if(!s.family)(tables[s.table]=tables[s.table]||[]).push(s);});
-    html+='<p class="section-title">Your guests</p>';
-    Object.keys(tables).map(Number).sort(function(a,b){return a-b;}).forEach(function(t){
-      var row=D.seats.filter(function(s){return s.table===t;});
-      var count=tables[t].length;
-      var others=row.filter(function(s){return s.host&&s.host!==me;}).map(function(s){return D.hostName(s.host);});
-      var shared=others.length?' · shared with '+others.filter(function(v,i,a){return a.indexOf(v)===i;}).join(', '):'';
-      html+='<section class="card"><div class="card-head"><h2>'+esc(D.tableName(t))+'<small>Table '+t+'</small></h2><span>'+count+' of 9 chairs'+(row.some(function(s){return s.family;})?' · the family table':'')+shared+'</span></div><div class="grid">';
-      row.forEach(function(s){
-        if(s.host===me&&!s.family)html+=box(s,t);
-        else html+=other(s,s.host===me?'You':s.host?D.hostName(s.host):'Spare');
-      });
-      html+='</div></section>';
-    });
-    document.getElementById('tables').innerHTML=html;
+    var inv=invited(),waiting=T.waiting+made.reduce(function(a,m){return a+m.nums.length;},0),L2=left();
+    $('invited').textContent=inv;
+    $('of').textContent='of '+T.guestAlloc+' people invited'+(T.own.length?(T.own.length>1?', besides you and your wife':', besides you'):'');
+    $('barC').style.width=(T.guestAlloc?100*T.confirmed/T.guestAlloc:0)+'%';
+    $('barW').style.width=(T.guestAlloc?100*(inv-T.confirmed)/T.guestAlloc:0)+'%';
+    $('chips').innerHTML='<span class="chip ok">'+T.confirmed+' confirmed</span>'+
+      (waiting?'<span class="chip">'+waiting+' not confirmed yet</span>':'')+
+      '<span class="chip">'+L2+' left to invite</span>';
+    if(seats>L2)seats=Math.max(1,L2);
+    $('seg').innerHTML=[1,2,3,4].map(function(n){return '<button type="button" data-n="'+n+'" aria-pressed="'+(n===seats&&L2>0)+'"'+(n>L2?' disabled':'')+' aria-label="'+n+(n>1?' people':' person')+'">'+n+'</button>';}).join('');
+    $('full').hidden=L2>0;
+    $('invite').disabled=L2<=0;
+    $('invite').textContent=L2>0?'Invite on WhatsApp':'All '+T.guestAlloc+' invited';
   }
+  $('seg').addEventListener('click',function(e){var b=e.target.closest('button[data-n]');if(!b||b.disabled)return;seats=+b.getAttribute('data-n');render();});
 
-  /* ---------- the sheet ---------- */
-  var trigger=null;
-  function openSheet(inner){trigger=document.activeElement;sheet.innerHTML=inner;sheet.inert=false;sheet.classList.add('show');veil.classList.add('show');var f=sheet.querySelector('input,button');if(f)f.focus({preventScroll:true});}
+  /* one tap: an invitation per person, each with its own number and link, kept together as one group */
+  function freshNumber(){var n;do{n=101+Math.floor(Math.random()*799);}while(n===950||D.byNum[n]||made.some(function(m){return m.nums.indexOf(n)>=0;}));return n;}
+  function message(m){
+    var by=m.confirmBy?day(m.confirmBy):'10 December';
+    var head='Hello, you are cordially invited to Dinner Night, hosted by the Ashiteye and Laryea families.\nThe couple: Michael & Beatrice\n'+
+      'Sunday 20 December 2026, 4:00 pm\nEvents Rising Sun, Teshie\n\n';
+    if(m.nums.length===1)return head+
+      'Your honoured-guest number is '+m.nums[0]+'.\n\n'+
+      'Please open your invitation and confirm by '+by+':\n'+m.links[0]+'\n\n'+
+      'At the gate, give your number and you will be shown to your table.';
+    return head+
+      'This message has '+m.nums.length+' invitations, one for each guest. Please forward one to '+(m.nums.length===2?'the person':'each person')+' coming with you.\n\n'+
+      m.nums.map(function(n,i){return 'Honoured guest '+n+':\n'+m.links[i];}).join('\n\n')+'\n\n'+
+      'Each guest opens their own invitation and confirms by '+by+'. At the gate, each gives their number and you will be shown to your table.';
+  }
+  var sheet=$('sheet'),veil=$('veil'),trigger=null;
+  function openSheet(){trigger=document.activeElement;sheet.inert=false;sheet.classList.add('show');veil.classList.add('show');($('send').hidden?$('done'):$('send')).focus({preventScroll:true});}
   function closeSheet(){sheet.classList.remove('show');veil.classList.remove('show');sheet.inert=true;if(trigger&&trigger.focus)trigger.focus();}
-  veil.addEventListener('click',closeSheet);
+  $('done').addEventListener('click',closeSheet);veil.addEventListener('click',closeSheet);
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&sheet.classList.contains('show'))closeSheet();});
+  $('send').addEventListener('click',function(){setTimeout(closeSheet,600);});
 
-  function freeRunFrom(code){
-    var s=D.byCode[code],row=D.seats.filter(function(x){return x.table===s.table;}),out=[];
-    for(var i=row.indexOf(s);i<row.length;i++){var x=row[i];if(x.host!==me||x.family!==s.family)break;var st=D.seatState(x,false);if(x!==s&&st!=='open')break;out.push(x.code);}
-    return out;
-  }
-  function message(size,code){
-    return 'Hello, you are invited to Dinner Night with Michael & Beatrice, hosted by the Ashiteye and Laryea families.\n'+
-      (size>1?'This invitation is for '+size+'.\n':'')+
-      'Sunday 20 December 2026, 4:00 pm\nEvents Rising Sun, Teshie\n\n'+
-      'Please open your invitation and confirm your attendance:\n'+D.link(code)+'\n\n'+
-      'At the gate, give the last four digits of your phone number and you will be shown to your table.';
-  }
-  function inviteForm(code,prefill){
-    var s=D.byCode[code],run=freeRunFrom(code),max=Math.max(1,run.length);
-    var size=prefill?Math.min(prefill.size,max):1;
-    openSheet('<h3 id="sheetTitle">'+(prefill?'Edit invitation':'Invite a guest')+'</h3><div class="meta">'+esc(D.tableLabel(s.table))+' · chair '+s.chair+'</div>'+
-      '<div class="field"><label for="fName">Name</label><input id="fName" autocomplete="off" value="'+(prefill?esc(prefill.name):'')+'" placeholder="Their name, for your records"></div>'+
-      '<div class="field"><label for="fPhone">WhatsApp number</label><input id="fPhone" type="tel" inputmode="tel" value="'+(prefill?esc(D.fmtPhone(prefill.hostPhone)):'')+'" placeholder="024 123 4567"><p class="err" id="fErr" hidden>Enter a name and a full phone number.</p></div>'+
-      '<div class="field"><span class="lab" id="szLab">Chairs for this household</span><div class="stepper" role="group" aria-labelledby="szLab"><button type="button" id="szM" aria-label="One fewer">−</button><output id="szO">'+size+'</output><button type="button" id="szP" aria-label="One more">+</button></div></div>'+
-      '<div class="msg" id="fMsg"><b>The message they will receive</b></div>'+
-      '<div class="stack"><button class="btn primary wide" id="fSend" type="button">Send on WhatsApp</button><button class="btn wide" id="fCancel" type="button">Cancel</button></div>');
-    var o=document.getElementById('szO'),m=document.getElementById('szM'),p=document.getElementById('szP'),msg=document.getElementById('fMsg');
-    function upd(){o.textContent=size;m.disabled=size<=1;p.disabled=size>=max;msg.innerHTML='<b>The message they will receive</b>'+esc(message(size,code));}
-    m.onclick=function(){size=Math.max(1,size-1);upd();};p.onclick=function(){size=Math.min(max,size+1);upd();};upd();
-    document.getElementById('fCancel').onclick=closeSheet;
-    document.getElementById('fSend').onclick=function(){
-      var nm=document.getElementById('fName').value.trim(),ph=document.getElementById('fPhone').value.replace(/\D/g,'');
-      if(!nm||ph.length<9){document.getElementById('fErr').hidden=false;return;}
-      if(prefill)clearHH(prefill);
-      var h={id:nextId++,host:me,family:s.family,table:s.table,chairs:run.slice(0,size),name:nm,initials:D.initials(nm),hostPhone:ph,guestPhone:null,size:size,status:'sent',att:0,sentOn:'today',arrived:0};
-      h.chairs.forEach(function(c){D.byCode[c].hh=h;});D.households.push(h);
-      closeSheet();render();showToast('Preview: WhatsApp would open with this message');
-    };
-  }
-  function clearHH(h){h.chairs.forEach(function(c){if(D.byCode[c].hh===h)D.byCode[c].hh=null;});var i=D.households.indexOf(h);if(i>=0)D.households.splice(i,1);}
-
-  function details(code){
-    var s=D.byCode[code],h=s.hh,st=D.seatState(s,false);
-    var chairs='chair'+(h.chairs.length>1?'s ':' ')+h.chairs.map(function(c){return D.byCode[c].chair;}).join(', ');
-    var head='<h3 id="sheetTitle">'+esc(h.name)+'</h3><div class="meta">'+esc(D.tableLabel(h.table))+' · '+chairs+'</div>';
-    var kv='<dl class="kv"><dt>Number you entered</dt><dd>'+esc(D.fmtPhone(h.hostPhone))+'</dd>'+(h.size>1?'<dt>Household</dt><dd>'+h.size+' chairs</dd>':'')+(h.kids?'<dt>Children</dt><dd>'+h.kids+(h.kidsWho?', '+esc(h.kidsWho):'')+', no chair</dd>':'')+
-      (h.status==='confirmed'?'<dt>Gate digits</dt><dd>'+D.last4(h)+'</dd>':'')+'</dl>';
-    var body='',btns='';
-    if(st==='freed'){
-      body='<div class="banner warn">'+esc(h.name)+'’s household is coming as '+h.att+' of '+h.size+'. This chair is free for someone else.</div>';
-      btns='<button class="btn primary wide" id="aFree" type="button">Invite someone to this chair</button>';
-    }else if(h.status==='sent'){
-      body='<div class="banner warn">Sent on '+esc(h.sentOn)+'. Not answered yet.</div>';
-      btns='<button class="btn primary wide" id="aRemind" type="button">Remind on WhatsApp</button><button class="btn wide" id="aEdit" type="button">Edit</button><button class="btn wide" id="aClear" type="button">Clear '+(h.size>1?'these chairs':'this chair')+'</button>';
-    }else if(h.status==='declined'){
-      body='<div class="banner warn">Declined. These chairs are yours to give to someone else.</div>';
-      btns='<button class="btn primary wide" id="aReplace" type="button">Invite someone else</button>';
-    }else{
-      body='<div class="banner ok">Confirmed · '+h.att+' of '+h.size+' coming</div>';
-      if(D.mismatch(h))body+='<div class="banner bad">The numbers differ. You entered '+esc(D.fmtPhone(h.hostPhone))+'; the guest confirmed with '+esc(D.fmtPhone(h.guestPhone))+'. The gate will use the guest’s.</div>';
-      btns=(D.mismatch(h)?'<button class="btn primary wide" id="aUse" type="button">Use the guest’s number</button>':'')+'<button class="btn wide" id="aMsg" type="button">Message on WhatsApp</button>';
+  function show(m){
+    var text=message(m),n=m.nums.length;
+    $('msg').innerHTML='<b>The message they’ll receive</b>';$('msg').appendChild(document.createTextNode(text));
+    $('see').innerHTML='See the invitation'+(n>1?'s':'')+' they open:'+m.nums.map(function(x,i){return ' <a href="'+(L.on?m.links[i]:'./index.html?g='+x)+'" target="_blank" rel="noopener">'+x+'</a>';}).join('');
+    $('afterMsg').textContent=(n>1?n+' invitations ready, to sit together · numbers ':'Invitation ready · number ')+list(m.nums);
+    $('after').hidden=false;
+    if(L.on){
+      $('sheetTitle').textContent='Ready to send';
+      $('sheetMeta').textContent='Tap Send on WhatsApp, pick the contact and send.';
+      $('send').href='https://wa.me/?text='+encodeURIComponent(text);$('send').hidden=false;$('done').className='btn wide';
     }
-    openSheet(head+body+kv+'<div class="stack">'+btns+'<button class="btn wide" id="aClose" type="button">Close</button></div>');
-    function on(id,fn){var el=document.getElementById(id);if(el)el.onclick=fn;}
-    on('aClose',closeSheet);
-    on('aRemind',function(){closeSheet();showToast('Preview: WhatsApp would open with a gentle reminder');});
-    on('aMsg',function(){closeSheet();showToast('Preview: WhatsApp would open');});
-    on('aEdit',function(){var pre={name:h.name,hostPhone:h.hostPhone,size:h.size};var c0=h.chairs[0];clearHH(h);inviteForm(c0,pre);});
-    on('aClear',function(){clearHH(h);closeSheet();render();showToast('Chairs cleared');});
-    on('aReplace',function(){var c0=h.chairs[0];clearHH(h);inviteForm(c0);});
-    on('aFree',function(){h.chairs=h.chairs.filter(function(c){return c!==code;});h.size=h.chairs.length;s.hh=null;inviteForm(code);});
-    on('aUse',function(){h.hostPhone=h.guestPhone;closeSheet();render();showToast('Number updated');});
+    seats=1;                               /* back to one person, so the next tap can't send a family's invitations by mistake */
+    render();openSheet();
   }
-
-  document.getElementById('tables').addEventListener('click',function(e){
-    var b=e.target.closest('button.box');if(!b)return;
-    var code=+b.getAttribute('data-code'),st=D.seatState(D.byCode[code],false);
-    if(st==='open')inviteForm(code);else details(code);
+  $('invite').addEventListener('click',function(){
+    if(left()<=0)return;
+    var n=Math.min(seats,left());
+    if(!L.on){
+      var m={nums:[],links:[]};
+      while(m.nums.length<n){var x=freshNumber();m.nums.push(x);m.links.push(D.link(x));}
+      made.push(m);last=m;show(m);return;
+    }
+    var btn=$('invite');btn.disabled=true;btn.textContent='Making the invitation'+(n>1?'s':'')+'…';
+    API.rpc('host_invite',{p_token:L.token,p_count:n}).then(function(r){
+      if(!r||r.error){showToast(r&&r.error==='full'?'All your places are taken':r&&r.error==='closed'?'Invitations have closed':'Something went wrong. Try again.');return refresh();}
+      last={grp:r.grp,confirmBy:r.confirm_by,nums:r.invitations.map(function(i){return i.num;}),links:r.invitations.map(function(i){return L.guestLink(i.token);})};
+      return refresh().then(function(){show(last);});
+    }).catch(function(){showToast('No connection. Try again.');render();});
   });
-  render();
+  $('undo').addEventListener('click',function(){
+    var m=L.on?last:made.pop();if(!m)return;
+    var done=function(){$('after').hidden=true;last=null;showToast((m.nums.length>1?'Invitations ':'Invitation ')+list(m.nums)+' cancelled');};
+    if(!L.on){done();render();return;}
+    API.rpc('host_undo',{p_token:L.token,p_grp:m.grp}).then(function(r){
+      if(r&&r.error==='confirmed'){showToast('Already confirmed, so it stays');return;}
+      done();return refresh();
+    }).catch(function(){showToast('No connection. Try again.');});
+  });
+
+  function refresh(){return API.rpc('host_get',{p_token:L.token}).then(function(r){if(r&&!r.error){fromServer(r);render();}});}
+  if(L.on){
+    $('intro').textContent='Loading your invitations…';
+    API.rpc('host_get',{p_token:L.token}).then(function(r){
+      if(!r||r.error){$('title').textContent='This link isn’t working';$('intro').textContent='Please ask Michael for your link again.';document.querySelectorAll('main .card').forEach(function(c){c.hidden=true;});return;}
+      $('intro').textContent='Tap Invite, then send the message on WhatsApp. Pick the contact and send. Nothing to type.';
+      fromServer(r);start();
+    }).catch(function(){$('intro').textContent='No connection. Pull down to try again.';});
+  }else{
+    T=D.tally(me);start();
+  }
 })();
 </script>
 </body>

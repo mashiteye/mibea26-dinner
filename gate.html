@@ -31,16 +31,19 @@
 .match .t{flex:1}
 .match .t b{display:block;font-family:var(--serif);font-weight:500;font-size:22px;color:var(--choc-deep)}
 .match .t span{font-size:12px;color:var(--soft)}
+.mates{list-style:none;margin:12px auto 0;padding:0;max-width:320px;font-size:13px;color:var(--soft);text-align:center}
+.mates li{padding:3px 0}
+.mates b{font-family:var(--serif);font-weight:500;font-size:18px;color:var(--choc-deep);margin-right:4px;font-variant-numeric:lining-nums}
 .sheet h3{text-align:center}
 .sheet .meta{text-align:center}
 </style>
 </head>
 <body>
 <div class="preview">
-  <b>Design preview</b><span>Sample data · try 2580, 4417, 7777 or 0000</span>
+  <b>Design preview</b><span>Sample data · try 418, 350, 777, 263 or 950</span>
   <label><input type="checkbox" id="offline"> Offline</label>
   <span class="spacer"></span>
-  <a href="./index.html?review">Invitation</a><a href="./host.html">Host board</a><a href="./gate.html" aria-current="page">Gate</a><a href="./admin.html">Overall view</a>
+  <a href="./index.html?review">Invitation</a><a href="./host.html">Host page</a><a href="./gate.html" aria-current="page">Gate</a><a href="./admin.html">Overall view</a>
 </div>
 <header class="top"><div class="in">
   <h1>Gate</h1>
@@ -49,13 +52,13 @@
 </div></header>
 <main class="wrap">
   <div class="banner warn offline-note" id="offlineNote" hidden>No signal. The full list is saved on this phone, so the gate works as normal. Admissions sync when the signal returns.</div>
-  <p class="ask">Ask for the last four digits of their phone number</p>
-  <div class="digits" id="digits" aria-live="polite"><span></span><span></span><span></span><span></span></div>
+  <p class="ask">Ask for their honoured-guest number</p>
+  <div class="digits" id="digits" aria-live="polite"><span></span><span></span><span></span></div>
   <div class="pad" id="pad">
     <button type="button">1</button><button type="button">2</button><button type="button">3</button>
     <button type="button">4</button><button type="button">5</button><button type="button">6</button>
     <button type="button">7</button><button type="button">8</button><button type="button">9</button>
-    <button type="button" class="fn" data-k="name">By name</button><button type="button">0</button><button type="button" class="fn" data-k="back" aria-label="Delete">Delete</button>
+    <button type="button" class="fn" data-k="help">No number?</button><button type="button">0</button><button type="button" class="fn" data-k="back" aria-label="Delete">Delete</button>
   </div>
 </main>
 
@@ -63,28 +66,62 @@
 <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" inert></section>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="./config.js"></script>
+<script src="./api.js"></script>
+<script src="./live.js"></script>
 <script src="./demo-data.js"></script>
 <script>
 (function(){
   'use strict';
-  var D=window.DEMO;
+  /* two modes: the design preview with sample data, or the real gate (?k=the gate's code) with the list from the database,
+     kept on this phone so the gate works with no signal; admissions made offline wait here and are sent when it returns */
+  var L=window.LIVE,D=window.DEMO;
   var entry='',digits=[].slice.call(document.querySelectorAll('#digits span'));
   var sheet=document.getElementById('sheet'),veil=document.getElementById('veil'),toast=document.getElementById('toast');
   function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function dots(i){return i.split('').join('.')+'.';}
+  function clock(){var d=new Date(),hr=d.getHours(),mi=d.getMinutes();return (hr%12||12)+':'+(mi<10?'0':'')+mi+(hr<12?' am':' pm');}
   function showToast(m){toast.textContent=m;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){toast.classList.remove('show');},2400);}
   function counts(){
-    var conf=0,inn=0;D.households.forEach(function(h){if(h.status==='confirmed'){conf+=h.att;inn+=h.arrived;}});
+    var conf=0,inn=0;D.invites.forEach(function(v){if(v.status==='confirmed'){conf++;if(v.arrived)inn++;}});
     document.getElementById('inCount').textContent=inn+' of '+conf+' in';
+  }
+  var CACHE='mibea26-gate-list',QUEUE='mibea26-gate-queue',savedAt=null,online=true;
+  function load(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch(e){return d;}}
+  function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function netChip(){
+    var net=document.getElementById('net'),note=document.getElementById('offlineNote'),q=load(QUEUE,[]).length;
+    var at=savedAt?LIVE.clock(savedAt):'';
+    net.textContent=online?'Online'+(at?' · list saved '+at:''):'No signal'+(at?' · list from '+at:'');
+    net.className='chip '+(online?'ok':'warn');note.hidden=online;
+    if(q)net.textContent+=' · '+q+' to send';
+  }
+  /* a fresh list from the database; anyone let in on this phone but not sent yet stays in */
+  function apply(json){
+    D=LIVE.build(json);savedAt=json.at||new Date().toISOString();
+    load(QUEUE,[]).forEach(function(a){a.nums.forEach(function(n){var v=D.byNum[n];if(v&&!v.arrived){v.arrived=true;v.arrivedAt=LIVE.clock(a.at);}});});
+    counts();netChip();
+  }
+  function pull(){
+    return API.rpc('gate_list',{p_token:L.token}).then(function(r){
+      if(!r||r.error){document.querySelector('.ask').textContent='This gate link isn’t working. Ask Michael for it again.';return;}
+      online=true;save(CACHE,r);apply(r);
+    }).catch(function(){online=false;netChip();});
+  }
+  function flush(){
+    var q=load(QUEUE,[]);if(!q.length)return Promise.resolve();
+    var a=q[0];
+    return API.rpc('gate_admit',{p_token:L.token,p_nums:a.nums,p_at:a.at}).then(function(){
+      save(QUEUE,load(QUEUE,[]).slice(1));online=true;netChip();return flush();
+    }).catch(function(){online=false;netChip();});
   }
   function draw(){digits.forEach(function(d,i){d.textContent=entry.charAt(i);d.classList.toggle('on',i===entry.length);});}
   function press(k){
     if(sheet.classList.contains('show'))return;
     if(k==='back'){entry=entry.slice(0,-1);draw();return;}
-    if(k==='name'){nameSearch();return;}
-    if(entry.length>=4)return;
+    if(k==='help'){noNumber();return;}
+    if(entry.length>=3)return;
     entry+=k;draw();
-    if(entry.length===4)setTimeout(function(){lookup(entry);},180);
+    if(entry.length===3)setTimeout(function(){lookup(entry);},180);
   }
   document.getElementById('pad').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;press(b.getAttribute('data-k')||b.textContent);});
   document.addEventListener('keydown',function(e){
@@ -97,61 +134,70 @@
   function closeSheet(){sheet.classList.remove('show');veil.classList.remove('show');sheet.inert=true;entry='';draw();if(trigger&&trigger.focus)trigger.focus();}
   veil.addEventListener('click',closeSheet);
 
+  /* a number is one person: confirmed, never confirmed, or not one of ours */
   function lookup(code){
-    var hits=D.households.filter(function(h){return h.status==='confirmed'&&D.last4(h)===code;});
-    if(hits.length===1)return guest(hits[0]);
-    if(hits.length>1){
-      var html='<h3 id="sheetTitle">'+hits.length+' guests share '+code+'</h3><div class="meta">Ask for their name, then choose</div><div style="margin-top:10px">';
-      hits.forEach(function(h,i){html+='<div class="match"><div class="t"><b>'+esc(D.tableLabel(h.table))+'</b><span>'+dots(h.initials)+' · '+esc(D.hostName(h.host))+'’s guests · '+h.att+' chair'+(h.att>1?'s':'')+'</span></div><button class="btn" type="button" data-i="'+i+'">This one</button></div>';});
-      openSheet(html+'</div><div class="stack"><button class="btn wide" id="gBack" type="button">Back</button></div>');
-      sheet.querySelectorAll('button[data-i]').forEach(function(b){b.onclick=function(){guest(hits[+b.getAttribute('data-i')]);};});
-      document.getElementById('gBack').onclick=closeSheet;return;
+    var v=D.byNum[+code];
+    if(!v){
+      openSheet('<h3 id="sheetTitle">No invitation with '+code+'</h3><div class="meta">Check the number with them</div>'+
+        '<div class="stack"><button class="btn primary wide" id="gBack" type="button">Try again</button><button class="btn wide" id="gHelp" type="button">They don’t have a number</button></div>');
+      document.getElementById('gBack').onclick=closeSheet;document.getElementById('gHelp').onclick=noNumber;return;
     }
-    var unconfirmed=D.households.filter(function(h){return h.status==='sent'&&h.hostPhone.slice(-4)===code;});
-    var html2='<h3 id="sheetTitle">No confirmed guest with '+code+'</h3><div class="meta">Check the digits, or search by name</div>';
-    if(unconfirmed.length){var u=unconfirmed[0];html2+='<div class="banner warn">An invitation from '+esc(D.hostName(u.host))+' matches, for '+esc(D.tableLabel(u.table))+', but it was never confirmed. Call '+esc(D.hostName(u.host))+' before letting them in.</div>';}
-    openSheet(html2+'<div class="stack"><button class="btn primary wide" id="gName" type="button">Search by name</button><button class="btn wide" id="gBack" type="button">Try again</button></div>');
-    document.getElementById('gName').onclick=function(){nameSearch();};
-    document.getElementById('gBack').onclick=closeSheet;
+    var host=D.hostName(v.host);
+    if(v.status==='confirmed')return guest(v);
+    openSheet('<h3 id="sheetTitle">Honoured guest '+v.num+'</h3><div class="meta">'+esc(host)+'’s guest</div>'+
+      '<div class="banner warn">Invited, but they never confirmed. Call '+esc(host)+' before letting them in.</div>'+
+      '<div class="stack"><button class="btn primary wide" id="gCall" type="button">Call '+esc(host)+'</button><button class="btn wide" id="gNext" type="button">Next guest</button></div>');
+    document.getElementById('gCall').onclick=function(){callHost(v.host);};
+    document.getElementById('gNext').onclick=closeSheet;
   }
+  /* hosts' phone numbers live only in the database, never in this page's code */
+  function callHost(k){
+    var h=D.HOSTS[k]||{},p=String(h.phone||'').replace(/\D/g,'');
+    if(L.on&&p){location.href='tel:'+(p.charAt(0)==='0'?'+233'+p.slice(1):'+'+p);return;}
+    showToast(L.on?'No number saved for '+(h.name||'this host'):'Preview: this would call '+(h.name||''));
+  }
+  function list(nums){return nums.length<2?String(nums[0]):nums.slice(0,-1).join(', ')+' and '+nums[nums.length-1];}
 
-  function guest(h){
-    var left=h.att-h.arrived,host=D.hostName(h.host);
-    var html='<div class="meta" id="sheetTitle">Your table is</div><div class="big-table">'+esc(D.tableName(h.table))+'</div><div class="table-no">Table '+h.table+'</div>'+
-      '<div class="who"><b>'+dots(h.initials)+'</b> · '+esc(host)+'’s guests'+(h.family?' · family':'')+'</div>'+(h.kids?'<div class="who">With '+h.kids+' children, who take no chair</div>':'')+
-      '<div class="count">'+h.arrived+' of '+h.att+' in</div>';
-    if(left<=0){
-      html+='<div class="banner bad">Already admitted'+(h.arrivedAt?' at '+esc(h.arrivedAt):'')+'. Someone has come in on these digits. Ask for the name; if it doesn’t match, call '+esc(host)+'.</div>'+
+  /* a confirmed number: the table, who invited them, and anyone invited with them (a couple, a family),
+     so people who arrive together can come in together */
+  function guest(v){
+    var host=D.hostName(v.host),mates=D.group(v).filter(function(x){return x!==v;});
+    var html='<div class="meta" id="sheetTitle">Honoured guest '+v.num+' · your table is</div><div class="big-table">'+esc(D.tableName(v.table))+'</div><div class="table-no">Table '+v.table+'</div>'+
+      '<div class="who">'+(v.family?esc(host)+(v.own==='wife'?'’s wife':'')+' · family table':'Check who invited them: <b>'+esc(host)+'</b>')+'</div>'+
+      (v.kids?'<div class="who">With '+v.kids+' children, who take no chair</div>':'');
+    if(v.arrived){
+      html+='<div class="banner bad">Already in at '+esc(v.arrivedAt)+'. Nobody else comes in on '+v.num+'. If something looks wrong, call '+esc(host)+'.</div>'+
         '<div class="stack"><button class="btn primary wide" id="gCall" type="button">Call '+esc(host)+'</button><button class="btn wide" id="gNext" type="button">Next guest</button></div>';
     }else{
-      html+='<div class="field"><span class="lab" id="nLab">How many are here now?</span><div class="stepper" role="group" aria-labelledby="nLab"><button type="button" id="nM" aria-label="One fewer">−</button><output id="nO">'+left+'</output><button type="button" id="nP" aria-label="One more">+</button></div></div>'+
-        '<div class="stack"><button class="btn green wide" id="gAdmit" type="button">Admit '+left+'</button><button class="btn wide" id="gNext" type="button">Cancel</button></div>';
+      var ready=mates.filter(function(x){return x.status==='confirmed'&&!x.arrived;});
+      if(mates.length)html+='<ul class="mates">'+mates.map(function(x){return '<li><b>'+x.num+'</b> '+(x.arrived?'in at '+esc(x.arrivedAt):x.status==='confirmed'?'confirmed, not in yet':'not confirmed')+'</li>';}).join('')+'</ul>';
+      html+='<div class="stack"><button class="btn green wide" id="gAdmit" type="button">Let in '+v.num+'</button>'+
+        (ready.length?'<button class="btn green wide" id="gAll" type="button">Let in '+list([v.num].concat(ready.map(function(x){return x.num;})))+'</button>':'')+
+        '<button class="btn wide" id="gNext" type="button">Cancel</button></div>';
     }
     openSheet(html);
     document.getElementById('gNext').onclick=closeSheet;
-    var call=document.getElementById('gCall');if(call)call.onclick=function(){showToast('Preview: this would call '+host);};
-    var admit=document.getElementById('gAdmit');
-    if(admit){
-      var n=left,o=document.getElementById('nO'),m=document.getElementById('nM'),p=document.getElementById('nP');
-      function upd(){o.textContent=n;m.disabled=n<=1;p.disabled=n>=left;admit.textContent='Admit '+n;}
-      m.onclick=function(){n=Math.max(1,n-1);upd();};p.onclick=function(){n=Math.min(left,n+1);upd();};upd();
-      admit.onclick=function(){
-        h.arrived+=n;if(!h.arrivedAt)h.arrivedAt='now';counts();
-        sheet.innerHTML='<div class="meta" id="sheetTitle">Admitted</div><div class="big-table">'+esc(D.tableName(h.table))+'</div><div class="table-no">Table '+h.table+'</div><div class="banner ok" style="text-align:center">Show them to '+esc(D.tableLabel(h.table))+'</div>';
-        setTimeout(closeSheet,2200);
-      };
+    var call=document.getElementById('gCall');if(call)call.onclick=function(){callHost(v.host);};
+    function admit(people){
+      var at=clock();people.forEach(function(x){x.arrived=true;x.arrivedAt=at;});counts();
+      if(L.on){var q=load(QUEUE,[]);q.push({nums:people.map(function(x){return x.num;}),at:new Date().toISOString()});save(QUEUE,q);netChip();flush();}
+      sheet.innerHTML='<div class="meta" id="sheetTitle">Let in · '+list(people.map(function(x){return x.num;}))+'</div><div class="big-table">'+esc(D.tableName(v.table))+'</div><div class="table-no">Table '+v.table+'</div>'+
+        '<div class="banner ok" style="text-align:center">Show them to '+esc(D.tableLabel(v.table))+'.</div>';
+      setTimeout(closeSheet,2400);
     }
+    var one=document.getElementById('gAdmit');if(one)one.onclick=function(){admit([v]);};
+    var all=document.getElementById('gAll');if(all)all.onclick=function(){admit([v].concat(mates.filter(function(x){return x.status==='confirmed'&&!x.arrived;})));};
   }
 
-  function nameSearch(){
-    openSheet('<h3 id="sheetTitle">Search by name</h3><div class="meta">For a guest who doesn’t know their digits</div><div class="field"><label for="q">Name</label><input id="q" autocomplete="off" placeholder="Start typing"></div><div id="res"></div><div class="stack"><button class="btn wide" id="gBack" type="button">Back</button></div>');
-    var q=document.getElementById('q'),res=document.getElementById('res');
-    q.oninput=function(){
-      var v=q.value.trim().toLowerCase();if(v.length<2){res.innerHTML='';return;}
-      var hits=D.households.filter(function(h){return (h.status==='confirmed'||h.status==='sent')&&h.name.toLowerCase().indexOf(v)>=0;}).slice(0,6);
-      res.innerHTML=hits.length?hits.map(function(h,i){return '<div class="match"><div class="t"><b>'+esc(h.name)+'</b><span>'+esc(D.tableLabel(h.table))+' · '+esc(D.hostName(h.host))+'’s guests · '+(h.status==='confirmed'?h.att+' confirmed':'not confirmed')+'</span></div><button class="btn" type="button" data-i="'+i+'">Open</button></div>';}).join(''):'<div class="banner warn">No one by that name</div>';
-      res.querySelectorAll('button[data-i]').forEach(function(b){b.onclick=function(){var h=hits[+b.getAttribute('data-i')];if(h.status==='confirmed')guest(h);else showToast('Not confirmed: call '+D.hostName(h.host));};});
-    };
+  /* a guest with no number: it is in their host's WhatsApp message, or the host can say */
+  function noNumber(){
+    var keys=Object.keys(D.HOSTS);
+    openSheet('<h3 id="sheetTitle">No number?</h3><div class="meta">Most guests can find it in a few seconds</div>'+
+      '<div class="banner warn">Ask them to open the WhatsApp message from their host: the number is in it. Or to open the invitation, which shows it once confirmed.</div>'+
+      '<p class="meta" style="margin-top:14px;text-align:left">Still nothing? Ask who invited them and call that host.</p>'+
+      '<div style="margin-top:6px">'+keys.map(function(k){return '<div class="match"><div class="t"><b>'+esc(D.HOSTS[k].name)+'</b><span>'+(D.HOSTS[k].role?D.HOSTS[k].role+' · ':'')+'host</span></div><button class="btn" type="button" data-k="'+k+'">Call</button></div>';}).join('')+'</div>'+
+      '<div class="stack"><button class="btn wide" id="gBack" type="button">Back</button></div>');
+    sheet.querySelectorAll('button[data-k]').forEach(function(b){b.onclick=function(){callHost(b.getAttribute('data-k'));};});
     document.getElementById('gBack').onclick=closeSheet;
   }
 
@@ -160,7 +206,14 @@
     net.textContent=off.checked?'Offline · using the saved list':'Online · list saved 3:58 pm';
     net.className='chip '+(off.checked?'warn':'ok');note.hidden=!off.checked;
   });
-  counts();draw();
+  draw();
+  if(L.on){
+    var cached=load(CACHE,null);if(cached)apply(cached);else{D={invites:[],byNum:{},groups:{},group:function(v){return [v];},HOSTS:{},hostName:function(){return '';},tableName:function(){return '';},tableLabel:function(){return '';}};counts();}
+    pull().then(flush);
+    setInterval(function(){flush().then(pull);},30000);
+    window.addEventListener('online',function(){flush().then(pull);});
+    window.addEventListener('offline',function(){online=false;netChip();});
+  }else counts();
 })();
 </script>
 </body>
