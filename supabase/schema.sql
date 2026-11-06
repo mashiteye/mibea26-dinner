@@ -170,14 +170,17 @@ create or replace function _left(h hosts, p_skip uuid default null) returns int 
     - coalesce((select sum(_held(i)) from invitations i where i.host=h.key and not i.family and i.grp is distinct from p_skip),0)::int
 $$;
 
--- the invitation already using a WhatsApp number, if any (one number, one invitation, across every host)
-create or replace function _used(p_phone text, p_skip int default null) returns invitations language sql stable set search_path=public as $$
-  select * from invitations i where i.phone=p_phone and _holds(i) and i.num is distinct from p_skip order by i.created_at limit 1
+-- the invitation already using a WhatsApp number at another table, if any. One number, one table: several
+-- invitations may share a number at the same table (a family, seated together), never at two tables
+drop function if exists _used(text,int);
+create or replace function _used(p_phone text, p_skip int default null, p_table int default null) returns invitations language sql stable set search_path=public as $$
+  select * from invitations i where i.phone=p_phone and _holds(i) and i.num is distinct from p_skip and i.table_num is distinct from p_table
+  order by i.created_at limit 1
 $$;
--- what a host is told about it: their own guest in full, another host's guest only by that host's name
+-- what a host is told about it: their own guest in full, another host's guest only by that host's name and table
 create or replace function _usedjson(u invitations, h hosts) returns json language sql stable set search_path=public as $$
   select case when u.host=h.key then json_build_object('mine',true,'num',u.num,'name',u.name,'table',u.table_num,'chairs',u.chairs[1:_held(u)])
-    else json_build_object('mine',false,'host',(select x.name from hosts x where x.key=u.host)) end
+    else json_build_object('mine',false,'host',(select x.name from hosts x where x.key=u.host),'table',u.table_num) end
 $$;
 -- one invitation as its own host sees it
 create or replace function _iv(i invitations) returns json language sql stable set search_path=public as $$
@@ -237,7 +240,7 @@ begin
 end $$;
 
 revoke execute on function _token(), _short_token(), _holds(invitations), _held(invitations), _state(invitations), _phone(text),
-  _taken(int,uuid), _pick(int,int,uuid,int), _bad_chairs(int,int[],uuid), _room(text,int,uuid), _left(hosts,uuid), _used(text,int),
+  _taken(int,uuid), _pick(int,int,uuid,int), _bad_chairs(int,int[],uuid), _room(text,int,uuid), _left(hosts,uuid), _used(text,int,int),
   _usedjson(invitations,hosts), _iv(invitations), _seat(text,int,uuid), _fresh_num(), _make(text,int,boolean,int,timestamptz,int[],text,text)
   from public, anon, authenticated;
 
@@ -289,14 +292,15 @@ begin
     'waiting',(select coalesce(sum(seats),0) from invitations i where host=h.key and not family and i.status='sent' and now()<=i.expires_at));
 end $$;
 
--- is this WhatsApp number free? Checked as the host types it, before they send
-create or replace function host_phone(p_token text, p_phone text, p_skip int default null) returns json language plpgsql stable security definer set search_path=public as $$
+-- is this WhatsApp number free for this table? Checked as the host types it, before they send
+drop function if exists host_phone(text,text,int);
+create or replace function host_phone(p_token text, p_phone text, p_skip int default null, p_table int default null) returns json language plpgsql stable security definer set search_path=public as $$
 declare h hosts; v text := _phone(p_phone); u invitations;
 begin
   select * into h from hosts where token=p_token;
   if not found then return json_build_object('error','not_found'); end if;
   if v is null then return json_build_object('valid',false); end if;
-  u := _used(v,p_skip);
+  u := _used(v,p_skip,p_table);
   if u.num is null then return json_build_object('valid',true,'phone',v); end if;
   return json_build_object('valid',true,'phone',v,'used',_usedjson(u,h));
 end $$;
@@ -318,9 +322,7 @@ begin
   if p_phone is not null then
     v_phone := _phone(p_phone);
     if v_phone is null then return json_build_object('error','phone'); end if;
-    perform pg_advisory_xact_lock(hashtext(v_phone));
-    u := _used(v_phone,null);
-    if u.num is not null then return json_build_object('error','used','used',_usedjson(u,h)); end if;
+    perform pg_advisory_xact_lock(hashtext(v_phone));   -- the number first, then the table: the same order in every function
   end if;
   if p_table is null then
     t := _seat(h.key,n);
@@ -341,6 +343,10 @@ begin
       if e is not null then return json_build_object('error',e); end if;
       ch := p_chairs;
     end if;
+  end if;
+  if v_phone is not null then
+    u := _used(v_phone,null,t);
+    if u.num is not null then return json_build_object('error','used','used',_usedjson(u,h)); end if;
   end if;
   v_exp := case when now()<=s.deadline then s.deadline else s.late_deadline end;
   g := _make(h.key,n,false,t,v_exp,ch,nullif(left(btrim(coalesce(p_name,'')),60),''),v_phone);
@@ -363,7 +369,7 @@ begin
   v_phone := _phone(p_phone);
   if v_phone is null then return json_build_object('error','phone'); end if;
   perform pg_advisory_xact_lock(hashtext(v_phone));
-  u := _used(v_phone,i.num);
+  u := _used(v_phone,i.num,i.table_num);
   if u.num is not null then return json_build_object('error','used','used',_usedjson(u,h)); end if;
   if p_chairs is not null then p_chairs := array(select unnest(p_chairs)); end if;
   if p_chairs is not null and p_seen is not null and p_seen<>_held(i) then return json_build_object('error','gone'); end if;
@@ -400,7 +406,7 @@ begin
   v_phone := _phone(p_phone);
   if v_phone is null then return json_build_object('error','phone'); end if;
   perform pg_advisory_xact_lock(hashtext(v_phone));
-  u := _used(v_phone,i.num);
+  u := _used(v_phone,i.num,i.table_num);
   if u.num is not null then return json_build_object('error','used','used',_usedjson(u,h)); end if;
   if i.table_num is null then return json_build_object('error','table'); end if;
   perform pg_advisory_xact_lock(4242,i.table_num);
@@ -541,10 +547,10 @@ end $$;
 
 -- the web may call these, and only these. They run as the database owner (security definer) on purpose: the tables
 -- themselves stay closed, and each function checks the code in the link before it reads or changes anything
-revoke execute on function guest_get(text), guest_confirm(text,int), host_get(text), host_phone(text,text,int),
+revoke execute on function guest_get(text), guest_confirm(text,int), host_get(text), host_phone(text,text,int,int),
   host_invite(text,int,int,int[],text,text), host_edit(text,int,text,text,int[],int), host_reassign(text,int,text,text,int[],int), host_cancel(text,int),
   host_undo(text,uuid), host_overview(text), gate_list(text), gate_admit(text,int,int,timestamptz,text), admin_get(text), admin_move(text,uuid,int,int[]) from public;
-grant execute on function guest_get(text), guest_confirm(text,int), host_get(text), host_phone(text,text,int),
+grant execute on function guest_get(text), guest_confirm(text,int), host_get(text), host_phone(text,text,int,int),
   host_invite(text,int,int,int[],text,text), host_edit(text,int,text,text,int[],int), host_reassign(text,int,text,text,int[],int), host_cancel(text,int),
   host_undo(text,uuid), host_overview(text), gate_list(text), gate_admit(text,int,int,timestamptz,text), admin_get(text), admin_move(text,uuid,int,int[]) to anon, authenticated;
 

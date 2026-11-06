@@ -65,7 +65,13 @@
   invitations.forEach(function(v){
     if(v.status==='confirmed'&&!v.num&&!v.family&&R()<.42){v.arrived=v.att;v.arrivedAt=pick(['3:48 pm','3:55 pm','4:02 pm','4:06 pm','4:09 pm','4:15 pm']);}
   });
-  /* honoured-guest numbers, shuffled so they say nothing about the table, and a link code for each */
+  /* one family on two invitations sent to the same number, side by side at table 10: they read as one family */
+  (function(){
+    var at10=invitations.filter(function(v){return v.host==='mike'&&v.table===10;}).sort(function(a,b){return a.chairs[0]-b.chairs[0];});
+    for(var i=0;i+1<at10.length;i++){var a=at10[i],b=at10[i+1];
+      if(a.chairs[a.chairs.length-1]+1===b.chairs[0]){b.phone=a.phone;b.name=a.name.replace(/ family$/,'').split(' ').pop()+' cousins';break;}}
+  })();
+    /* honoured-guest numbers, shuffled so they say nothing about the table, and a link code for each */
   var R2=rng(418),pool=[];
   for(var n2=101;n2<=899;n2++)pool.push(n2);
   for(var q=pool.length-1;q>0;q--){var w=Math.floor(R2()*(q+1)),tmp=pool[q];pool[q]=pool[w];pool[w]=tmp;}

@@ -273,10 +273,11 @@ a.linkbtn{display:inline-block}
     mine.forEach(function(s){if(s.inv.status==='confirmed')conf++;else sent++;});
     var C=170,R=124,out='';
     function at(c,r){var a=(-90+360/cap*(c-1))*Math.PI/180;return {x:C+r*Math.cos(a),y:C+r*Math.sin(a),deg:-90+360/cap*(c-1)};}
-    /* one invitation's chairs are joined, so a family reads as one */
+    /* one invitation's chairs are joined, and so are invitations sent to the same number: a family reads as one */
+    function kin(a,b){return a===b||(!!a.phone&&a.phone===b.phone);}
     for(var i=0;i<cap;i++){
       var s1=row[i],s2=row[(i+1)%cap];
-      if(cap>1&&s1.inv&&s1.inv===s2.inv&&s1.inv.host===me){
+      if(cap>1&&s1.inv&&s2.inv&&kin(s1.inv,s2.inv)&&s1.inv.host===me&&s2.inv.host===me){
         var a1=at(s1.chair,R),a2=at(s2.chair,R);
         out+='<path d="M'+a1.x.toFixed(1)+' '+a1.y.toFixed(1)+' A'+R+' '+R+' 0 0 1 '+a2.x.toFixed(1)+' '+a2.y.toFixed(1)+'" fill="none" stroke="'+(s1.inv.status==='confirmed'?'#3e8e5a':'#e2b33a')+'" stroke-width="16" stroke-linecap="round" opacity=".38"/>';
       }
@@ -361,6 +362,9 @@ a.linkbtn{display:inline-block}
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&sheet.classList.contains('show'))closeSheet();});
   sheet.addEventListener('click',function(e){var b=e.target.closest('[data-close]');if(b)closeSheet();});
 
+  /* the other invitations on the same number at the same table: one family */
+  function family(v,p,t){return B.invites.filter(function(x){return p&&x.phone===p&&x.host===me&&x.table===t&&B.held(x)>0&&!(v&&x.num===v.num);});}
+  function familyOf(v){var f=family(v,v.phone,v.table);return f.length?'<dt>Family</dt><dd>'+f.map(function(x){return x.num+(x.name?' ('+esc(x.name)+')':'');}).join(', ')+'</dd>':'';}
   function statusWords(v){
     if(v.status!=='confirmed')return 'Sent, not confirmed yet';
     return v.att<v.seats?'Confirmed '+v.att+' of '+v.seats+'; the other '+plural(v.seats-v.att,'seat')+' came back to you':'Confirmed';
@@ -371,7 +375,7 @@ a.linkbtn{display:inline-block}
     var tel=v.phone?(L.on?'<a href="tel:+'+v.phone+'">'+esc(L.showPhone(v.phone))+'</a>':esc(L.showPhone(v.phone))):'<span style="color:var(--soft)">None yet</span>';
     openSheet('<h3 id="sheetTitle">'+(v.name?esc(v.name):'No name yet')+'</h3>'+
       '<div class="meta">'+esc(B.tableLabel(v.table))+(v.chairs&&v.chairs.length?' · '+L.seatWords(v.chairs):'')+'</div>'+
-      '<dl class="kv"><dt>Code</dt><dd>'+v.num+'</dd><dt>WhatsApp</dt><dd>'+tel+'</dd><dt>Seats</dt><dd>'+v.seats+'</dd><dt>Answer</dt><dd>'+statusWords(v)+'</dd></dl>'+
+      '<dl class="kv"><dt>Code</dt><dd>'+v.num+'</dd><dt>WhatsApp</dt><dd>'+tel+'</dd>'+familyOf(v)+'<dt>Seats</dt><dd>'+v.seats+'</dd><dt>Answer</dt><dd>'+statusWords(v)+'</dd></dl>'+
       '<div class="pair"><button class="btn" type="button" id="dEdit">Edit only</button><button class="btn primary" type="button" id="dRe">Reassign</button></div>'+
       '<p class="hint">Edit only fixes the name, number or seats; nothing is sent. Reassign gives the seats to someone else, with a new number.</p>'+
       '<div class="linkrow">'+(v.phone?(L.on?'<a class="linkbtn" id="dAgain" href="'+waUrl(v)+'" target="_blank" rel="noopener">Send the invitation again</a>':'<button class="linkbtn" type="button" id="dAgain">Send the invitation again</button>'):'<span></span>')+
@@ -411,30 +415,38 @@ a.linkbtn{display:inline-block}
     var st={n:ok(n0)?n0:0,phone:'',used:null,checked:''};
     if(!st.n)for(var k=1;k<=4;k++)if(ok(k)){st.n=k;break;}
     function same(){return v&&st.n===n0;}   /* the same number of seats: the same chairs */
-    function chairs(){return !st.n?null:same()?(v.chairs||[]):pick(t,st.n,v||null,start);}
+    function next(){   /* beside the family already on this number, if there is one */
+      var f=st.fam||[],last=0;if(v||!f.length)return start;
+      f.forEach(function(x){(x.chairs||[]).forEach(function(c){if(c>last)last=c;});});
+      var cap=B.chairsAt(t).length;return last%cap+1;
+    }
+    function chairs(){return !st.n?null:same()?(v.chairs||[]):pick(t,st.n,v||null,next());}
     function seatsUi(){
       [].forEach.call($('fSeats').querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',String(+b.getAttribute('data-n')===st.n));});
       var c=chairs();$('fSeatsMsg').textContent=c&&c.length?cap1(L.seatWords(c))+' at '+B.tableLabel(t):same()?B.tableLabel(t):'No free seats for you at this table';
     }
     function phoneUi(){
       var raw=$('fPhone').value,p=L.phone(raw),m=$('fPhoneMsg'),digits=raw.replace(/\D/g,'').length;
-      st.phone=p;st.used=null;m.className='hint';m.textContent='';
+      var hadFam=st.fam&&st.fam.length;st.phone=p;st.used=null;st.fam=[];m.className='hint';m.textContent='';if(hadFam)seatsUi();
       if(!p){if(digits>=10){m.className='hint bad';m.textContent='Check the number. A number from abroad needs its country code, like +44.';}valid();return;}
-      /* one number, one invitation: this host's own guests are checked here, everyone's in the database */
-      var dup=B.invites.filter(function(x){return x.phone===p&&B.held(x)>0&&!(v&&x.num===v.num);})[0];
-      if(dup){st.used=dup.host===me?{mine:true,num:dup.num,name:dup.name,table:dup.table,chairs:dup.chairs}:{mine:false,host:B.hostName(dup.host)};usedUi();valid();return;}
-      if(L.showPhone(p).replace(/\s/g,'')!==raw.replace(/\s/g,''))m.textContent='Saved as '+L.showPhone(p);
+      /* one number, one table: at this table the same number joins its family; at another table it is refused.
+         This host's own guests are checked here, everyone's in the database */
+      var dup=B.invites.filter(function(x){return x.phone===p&&B.held(x)>0&&!(v&&x.num===v.num)&&x.table!==t;})[0];
+      if(dup){st.used=dup.host===me?{mine:true,num:dup.num,name:dup.name,table:dup.table,chairs:dup.chairs}:{mine:false,host:B.hostName(dup.host),table:dup.table};usedUi();valid();return;}
+      var fam=family(v,p,t);st.fam=fam;
+      if(fam.length){m.textContent='Same family as '+fam.map(function(x){return x.num+(x.name?' ('+x.name+')':'');}).join(', ')+'. They sit together.';seatsUi();}
+      else if(L.showPhone(p).replace(/\s/g,'')!==raw.replace(/\s/g,''))m.textContent='Saved as '+L.showPhone(p);
       if(L.on&&st.checked!==p){
         clearTimeout(checkT);var asked=p;
-        checkT=setTimeout(function(){API.rpc('host_phone',{p_token:L.token,p_phone:asked,p_skip:v?v.num:null}).then(function(r){
+        checkT=setTimeout(function(){API.rpc('host_phone',{p_token:L.token,p_phone:asked,p_skip:v?v.num:null,p_table:t}).then(function(r){
           if(st.phone!==asked||!r)return;st.checked=asked;if(r.used){st.used=r.used;usedUi();}valid();}).catch(function(){});},350);
       }
       valid();
     }
     function usedUi(){
       var u=st.used,m=$('fPhoneMsg');m.className='hint warn';
-      m.textContent=u.mine?'This number already has invitation '+u.num+(u.name?' ('+u.name+')':'')+' at Table '+u.table+', '+L.seatWords(u.chairs)+'.':
-        'This number is already invited by '+u.host+'.';
+      m.textContent=u.mine?'This number already has invitation '+u.num+(u.name?' ('+u.name+')':'')+' at Table '+u.table+', '+L.seatWords(u.chairs)+'. A family sits at one table: invite them there.':
+        'This number is already invited by '+u.host+(u.table?', at Table '+u.table:'')+'.';
     }
     function valid(){var c=chairs();$('fGo').disabled=!($('fName').value.trim()&&st.phone&&!st.used&&c&&(c.length||same()));}
     $('fSeats').addEventListener('click',function(e){var b=e.target.closest('button[data-n]');if(!b||b.disabled)return;st.n=+b.getAttribute('data-n');seatsUi();valid();});
