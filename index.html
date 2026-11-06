@@ -111,6 +111,7 @@ html:not(.js) .needs-js{display:none}
   display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
 }
 .btn.primary{background:var(--choc);color:var(--ivory);border-color:var(--choc)}
+.btn.cancelled{background:rgba(255,249,239,.75);color:#8b7b6d;border:1px dashed rgba(111,67,47,.45);cursor:default}
 .btn[hidden]{display:none}
 .btn:focus-visible{outline:2px solid var(--gold-deep);outline-offset:3px}
 
@@ -254,7 +255,7 @@ html:not(.js) .needs-js{display:none}
 .count-field[hidden]{display:none}
 .stepper{display:flex;align-items:center;justify-content:space-between;margin-top:8px;border:1px solid rgba(111,67,47,.35);border-radius:14px;background:#fffdf8;padding:4px}
 .stepper button{width:48px;height:46px;border:0;border-radius:11px;background:rgba(111,67,47,.08);font-size:22px;line-height:1;color:var(--choc);cursor:pointer}
-.stepper button:disabled{opacity:.35;cursor:default}
+.stepper button:disabled,.stepper button[aria-disabled="true"]{opacity:.35;cursor:default}
 .stepper output{font-family:var(--serif);font-size:26px;color:var(--choc-deep);font-variant-numeric:lining-nums tabular-nums}
 .place-card h2.place-num{font-size:clamp(56px,17vw,78px);line-height:1;letter-spacing:.03em;font-variant-numeric:lining-nums tabular-nums}
 .place-gate{margin:2px 0 0;font-size:10px;font-weight:600;letter-spacing:.24em;padding-left:.24em;text-transform:uppercase;color:var(--choc)}
@@ -344,7 +345,7 @@ html:not(.js) .needs-js{display:none}
     <div class="line countdown" id="countdown"></div>
     <div class="actions" id="actions">
       <button class="btn primary needs-js" id="rsvpBtn" type="button" aria-haspopup="dialog" aria-label="Confirm attendance">Confirm</button>
-      <a class="btn" href="https://www.google.com/maps/dir/?api=1&amp;destination=5.600437%2C-0.103578" target="_blank" rel="noopener">Directions</a>
+      <a class="btn" id="dirBtn" href="https://www.google.com/maps/dir/?api=1&amp;destination=5.600437%2C-0.103578" target="_blank" rel="noopener">Directions</a>
       <button class="btn needs-js" id="helpBtn" type="button" aria-haspopup="dialog">Help</button>
     </div>
   </div>
@@ -441,7 +442,8 @@ html:not(.js) .needs-js{display:none}
   var WORDS=['','one','two','three','four','five','six','seven','eight','nine'];
   var TOKEN=Q.get('i'),LIVE=!!(TOKEN&&window.API&&API.ready);
   var G=parseInt(Q.get('g'),10),PREVIEW=!LIVE&&(G>=100&&G<=999||Q.has('review'));
-  var GUEST={num:G>=100&&G<=999?G:418,seats:Math.max(1,Math.min(4,parseInt(Q.get('n'),10)||1)),closed:false,by:'10 December'};
+  var GUEST={num:G>=100&&G<=999?G:418,seats:Math.max(1,Math.min(4,parseInt(Q.get('n'),10)||1)),closed:false,by:'12 December'};
+  if(PREVIEW&&Q.has('cancelled')){GUEST.cancelled=true;GUEST.host=Q.get('host')||'Michael';GUEST.hostTel='preview';}   /* ?cancelled previews a cancelled invitation */
   var STORE=LIVE?'mibea26-i-'+TOKEN:'mibea26-dinner-'+GUEST.num;   /* one answer per invitation, so two invitations opened on one phone stay apart */
   var state=(function(){var v=null;try{v=localStorage.getItem(STORE);}catch(e){}if(!v)return {};try{v=JSON.parse(v)||{};}catch(e){return {};}return v.s==='yes'?v:{};})();   /* only a confirmation is kept: there is no declining */
   if(LIVE){GUEST.num=state.num||0;GUEST.seats=state.seats||1;GUEST.known=false;}   /* the real number and seats come from the database in a moment */
@@ -479,28 +481,40 @@ html:not(.js) .needs-js{display:none}
   setTimeout(function(){tick();setInterval(tick,1000);},1000-Date.now()%1000);   /* ticks on the second, every second */
 
   /* ---------- confirm attendance: one tap (and how many, for a household), then the honoured-guest card.
-     Only Confirm: a guest who can't come simply doesn't, and their seats go back to the host on 10 December.
+     Only Confirm: a guest who can't come simply doesn't, and their seats go back to the host on 12 December.
      A confirmation is final here; a change goes through the host ---------- */
   var rsvpBtn=document.getElementById('rsvpBtn');
   var forLine=document.getElementById('forLine'),countField=document.getElementById('countField'),countOut=document.getElementById('countOut');
   var countMinus=document.getElementById('countMinus'),countPlus=document.getElementById('countPlus');
   var yesBtn=document.getElementById('yesBtn');
   var count=GUEST.seats;
-  function setCount(n){count=Math.max(1,Math.min(GUEST.seats,n));countOut.textContent=count;countMinus.disabled=count<=1;countPlus.disabled=count>=GUEST.seats;}
+  function setCount(n){count=Math.max(1,Math.min(GUEST.seats,n));countOut.textContent=count;countMinus.disabled=count<=1;countPlus.setAttribute('aria-disabled',String(count>=GUEST.seats));}
   countMinus.addEventListener('click',function(){setCount(count-1);});
-  countPlus.addEventListener('click',function(){setCount(count+1);});
+  /* more than the invitation holds: say so, rather than a button that does nothing */
+  countPlus.addEventListener('click',function(){
+    if(count>=GUEST.seats){showToast('This invitation is for '+GUEST.seats+'. For more seats, speak to the person who invited you.');return;}
+    setCount(count+1);
+  });
   function prepareSheet(){
     var many=GUEST.seats>1;
     forLine.hidden=!many;forLine.textContent='This invitation is for '+GUEST.seats;
     countField.hidden=!many||GUEST.closed;
     setCount(GUEST.seats);
   }
+  var dirBtn=document.getElementById('dirBtn'),helpBtn=document.getElementById('helpBtn');
   function updateActions(){
-    var yes=state.s==='yes';
+    var yes=state.s==='yes',off=!!GUEST.cancelled;
     rsvpBtn.hidden=!LIVE&&!PREVIEW||!!GUEST.invalid;   /* no invitation behind this link: Directions and Help only */
-    rsvpBtn.textContent=yes?'Guest '+GUEST.num:'Confirm';              /* one button: it asks first, then it is the guest's card */
-    rsvpBtn.setAttribute('aria-label',yes?'Honoured guest '+GUEST.num+', see your card':'Confirm attendance');
-    rsvpBtn.classList.toggle('pulse',!state.s);   /* pulses until this phone has answered */
+    rsvpBtn.textContent=off?'Cancelled':yes?'Guest '+GUEST.num:'Confirm';   /* one button: it asks first, then it is the guest's card */
+    rsvpBtn.setAttribute('aria-label',off?'This invitation was cancelled':yes?'Honoured guest '+GUEST.num+', see your card':'Confirm attendance');
+    rsvpBtn.classList.toggle('pulse',!state.s&&!off);   /* pulses until this phone has answered */
+    /* cancelled: a quiet Cancelled in place of Confirm, no Directions, and Help becomes a call to the host who invited them */
+    rsvpBtn.classList.toggle('primary',!off);rsvpBtn.classList.toggle('cancelled',off);
+    dirBtn.hidden=off;
+    var call=off&&GUEST.hostTel;
+    helpBtn.textContent=call?'Call '+(GUEST.host||'your host'):'Help';
+    helpBtn.setAttribute('aria-label',call?'Call '+(GUEST.host||'your host')+', who invited you':'Help');
+    helpBtn.removeAttribute('aria-haspopup');if(!call)helpBtn.setAttribute('aria-haspopup','dialog');
   }
   /* two bottom sheets share the veil: confirm attendance, and help */
   var helpSheet=document.getElementById('helpSheet'),openEl=null;
@@ -528,8 +542,14 @@ html:not(.js) .needs-js{display:none}
   veil.addEventListener('click',closeSheet);
   document.getElementById('rsvpClose').addEventListener('click',closeSheet);
   document.getElementById('helpClose').addEventListener('click',closeSheet);
-  rsvpBtn.addEventListener('click',function(){if(state.s==='yes')revealTable();else openSheet();});
-  document.getElementById('helpBtn').addEventListener('click',openHelp);
+  rsvpBtn.addEventListener('click',function(){
+    if(GUEST.cancelled){showToast('This invitation was cancelled.'+(GUEST.hostTel?' Call '+(GUEST.host||'your host')+' for help.':''));return;}
+    if(state.s==='yes')revealTable();else openSheet();
+  });
+  helpBtn.addEventListener('click',function(){
+    if(!(GUEST.cancelled&&GUEST.hostTel))return openHelp();
+    if(GUEST.hostTel==='preview')showToast('Preview: this calls '+GUEST.host+', who invited them');else location.href='tel:+'+GUEST.hostTel;
+  });
   /* copy a number: the clipboard where the browser allows it, a hidden field where it doesn't, and long-press as the last resort */
   function copyText(text){
     function fallback(){
@@ -578,18 +598,24 @@ html:not(.js) .needs-js{display:none}
       yesBtn.disabled=false;yesBtn.textContent='Confirm';
       if(r&&r.status==='confirmed'){GUEST.num=r.num;GUEST.seats=r.seats||GUEST.seats;confirmed(r.att||c);}
       else if(r&&r.status==='expired')closedNow();
-      else showToast('This invitation isn’t valid any more');
+      else{showToast('This invitation isn’t valid any more');closeSheet();look();}   /* cancelled meanwhile: show it as cancelled */
     }).catch(function(){yesBtn.disabled=false;yesBtn.textContent='Confirm';showToast('No connection. Please try again.');});
   });
   /* a real link: the number, the seats and the answer come from the database; the answer saved on this phone shows at once meanwhile */
-  if(LIVE)API.rpc('guest_get',{p_token:TOKEN}).then(function(r){
+  function look(){return API.rpc('guest_get',{p_token:TOKEN}).then(function(r){
     if(!r){GUEST.invalid=true;state={};updateActions();return;}
+    if(r.status==='cancelled'){   /* the host cancelled it (or gave the seats to someone else): nothing here to confirm */
+      GUEST.cancelled=true;GUEST.host=r.host||'';GUEST.hostTel=String(r.host_phone||'').replace(/\D/g,'');
+      state={};try{localStorage.removeItem(STORE);}catch(e){}
+      updateActions();return;
+    }
     GUEST.num=r.num;GUEST.seats=r.seats||1;GUEST.known=true;if(r.confirm_by)GUEST.by=day(r.confirm_by);
     if(r.status==='confirmed'){state={s:'yes',num:r.num,seats:GUEST.seats,c:r.att||GUEST.seats};saveState();}
     else if(r.status==='expired'){state={};closedNow();}
     else if(openEl===sheet&&!yesBtn.disabled)prepareSheet();   /* the form was already open: it now asks how many */
     updateActions();
-  }).catch(function(){});
+  }).catch(function(){});}
+  if(LIVE)look();
   document.addEventListener('keydown',function(e){
     var active=openEl;
     if(!active)return;
