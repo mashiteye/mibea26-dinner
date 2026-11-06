@@ -64,16 +64,17 @@
   </section>
 
   <section class="card">
-    <span class="lab" id="segLab">How many seats?</span>
+    <span class="lab" id="segLab">How many people?</span>
     <div class="seg" id="seg" role="group" aria-labelledby="segLab"></div>
     <button class="btn primary wide" id="invite" type="button">Invite on WhatsApp</button>
     <div id="after" hidden>
       <div class="banner ok" id="afterMsg"></div>
       <p class="undo">Didn’t send it? <button type="button" id="undo">Undo</button></p>
     </div>
-    <div class="banner warn" id="full" hidden>All your seats are out. If someone can’t come, or hasn’t answered by 10 December, their seats come back here.</div>
-    <p class="note">Each invitation carries its own number. If a guest forwards theirs, only their seats go with it.</p>
-    <p class="note" id="returns">Seats come back on their own if a guest taps “Can’t make it”, or hasn’t answered by 10 December.</p>
+    <div class="banner warn" id="full" hidden>Everyone you can invite has an invitation. If someone can’t come, or hasn’t answered by 10 December, their place comes back here.</div>
+    <p class="note">One invitation is for one person. Choose 2 to 4 only for a couple or family coming together on one number.</p>
+    <p class="note">Each invitation has its own number. If someone forwards theirs, it still lets in only the people it was made for.</p>
+    <p class="note" id="returns">When a guest says they can’t come, confirms for fewer people, or hasn’t answered by 10 December, those places come back to you.</p>
     <p class="note" id="helper" hidden></p>
   </section>
 </main>
@@ -118,7 +119,7 @@
   function render(){
     var inv=invited(),waiting=T.waiting+made.reduce(function(a,m){return a+m.size;},0),L=left();
     $('invited').textContent=inv;
-    $('of').textContent='of '+T.guestAlloc+' seats invited'+(T.own?', besides your own':'');
+    $('of').textContent='of '+T.guestAlloc+' people invited'+(T.own?(T.own.size>1?', besides you and your wife':', besides you'):'');
     $('barC').style.width=(100*T.confirmed/T.guestAlloc)+'%';
     $('barW').style.width=(100*(inv-T.confirmed)/T.guestAlloc)+'%';
     $('chips').innerHTML='<span class="chip ok">'+T.confirmed+' confirmed</span>'+
@@ -129,7 +130,7 @@
     $('seg').innerHTML=[1,2,3,4].map(function(n){return '<button type="button" data-n="'+n+'" aria-pressed="'+(n===seats&&L>0)+'"'+(n>L?' disabled':'')+'>'+n+'</button>';}).join('');
     $('full').hidden=L>0;
     $('invite').disabled=L<=0;
-    $('invite').textContent=L>0?'Invite on WhatsApp':'All '+T.guestAlloc+' seats invited';
+    $('invite').textContent=L>0?'Invite on WhatsApp':'All '+T.guestAlloc+' invited';
   }
   $('seg').addEventListener('click',function(e){var b=e.target.closest('button[data-n]');if(!b||b.disabled)return;seats=+b.getAttribute('data-n');render();});
 
@@ -157,12 +158,13 @@
     $('see').href='./index.html?g='+m.num+'&n='+m.size;
     $('afterMsg').textContent='Invitation for '+(m.size>1?WORDS[m.size]:'one')+' ready · number '+m.num;
     $('after').hidden=false;
+    seats=1;                               /* back to one person, so the next tap can't send a family invitation by mistake */
     render();openSheet();
   });
   $('undo').addEventListener('click',function(){
     var m=made.pop();if(!m)return;
     $('after').hidden=true;render();
-    showToast('Invitation '+m.num+' cancelled · '+m.size+(m.size>1?' seats':' seat')+' back');
+    showToast('Invitation '+m.num+' cancelled');
   });
   render();
 })();

@@ -183,6 +183,9 @@ html:not(.js) .needs-js{display:none}
   background:#fff9ee;color:var(--choc);font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;
 }
 .table-close:focus-visible{outline:2px solid #8d652f;outline-offset:4px}
+/* plans change: fewer seats, or not coming, so the seats go back to the host */
+.change-answer{display:block;margin:8px auto 0;min-height:40px;padding:0 12px;border:0;background:none;font-family:var(--serif);font-style:italic;font-size:15px;color:var(--choc);text-decoration:underline;text-decoration-color:rgba(111,67,47,.4);text-underline-offset:3px;cursor:pointer}
+.change-answer:focus-visible{outline:2px solid #8d652f;outline-offset:2px;border-radius:6px}
 @keyframes placeReveal{from{opacity:0}to{opacity:1}}
 @keyframes placeVeil{from{opacity:0}to{opacity:1}}
 
@@ -346,6 +349,7 @@ html:not(.js) .needs-js{display:none}
       <p class="place-welcome" id="placeWelcome"><span>You’ll be shown to your table.</span> <span>We look forward to welcoming you.</span></p>
     </div>
     <button class="table-close" id="tableClose" type="button" autofocus>Close</button>
+    <button class="change-answer" id="changeBtn" type="button">Change my answer</button>
   </div>
 </dialog>
 
@@ -462,16 +466,22 @@ html:not(.js) .needs-js{display:none}
   var rsvpBtn=document.getElementById('rsvpBtn');
   var forLine=document.getElementById('forLine'),countField=document.getElementById('countField'),countOut=document.getElementById('countOut');
   var countMinus=document.getElementById('countMinus'),countPlus=document.getElementById('countPlus');
-  var rsvpMessage=document.getElementById('rsvpMessage');
-  var count=GUEST.seats;
+  var rsvpMessage=document.getElementById('rsvpMessage'),rsvpTitle=document.getElementById('rsvpTitle');
+  var yesBtn=document.getElementById('yesBtn'),noBtn=document.getElementById('noBtn');
+  var count=GUEST.seats,changing=false;
   function setCount(n){count=Math.max(1,Math.min(GUEST.seats,n));countOut.textContent=count;countMinus.disabled=count<=1;countPlus.disabled=count>=GUEST.seats;}
   countMinus.addEventListener('click',function(){setCount(count-1);});
   countPlus.addEventListener('click',function(){setCount(count+1);});
   function prepareSheet(){
     var many=GUEST.seats>1;
-    forLine.hidden=!many;forLine.textContent='This invitation is for '+GUEST.seats;
+    changing=state.s==='yes';              /* already confirmed: this is a change, to fewer seats or to not coming */
+    rsvpTitle.textContent=changing?'Change your answer':'Confirm attendance';
+    forLine.hidden=!many&&!changing;
+    forLine.textContent=changing?'You’ve confirmed'+(many?' for '+(state.c||GUEST.seats):''):'This invitation is for '+GUEST.seats;
     countField.hidden=!many;
     setCount(state.c||GUEST.seats);
+    yesBtn.hidden=changing&&!many;         /* one seat: the only change is not coming */
+    yesBtn.textContent=changing?'Save':'Confirm';
     if(state.s==='no'){rsvpMessage.hidden=false;rsvpMessage.textContent='You told us you can’t make it. You can still change your answer.';}
     else rsvpMessage.hidden=true;
   }
@@ -535,14 +545,17 @@ html:not(.js) .needs-js{display:none}
     });
   });
   updateActions();
-  document.getElementById('yesBtn').addEventListener('click',function(){
+  yesBtn.addEventListener('click',function(){
     state={s:'yes',c:GUEST.seats>1?count:1};
     saveState();updateActions();
-    closeSheet();celebrate();showToast('Attendance confirmed');
+    closeSheet();
+    if(changing){showToast(state.c>1?'Saved · seats for '+WORDS[state.c]:'Saved · a seat is kept for you');return;}   /* a change: no second cork */
+    celebrate();showToast('Attendance confirmed');
     setTimeout(revealTable,2400);                              /* the cork pops, then the honoured-guest card */
   });
-  document.getElementById('noBtn').addEventListener('click',function(){
+  noBtn.addEventListener('click',function(){
     state={s:'no'};saveState();updateActions();
+    prepareSheet();                        /* back to a first answer, in case they change their mind again */
     rsvpMessage.hidden=false;rsvpMessage.textContent='Thank you for letting us know. We’ll miss you.';
     showToast('Response saved');
   });
@@ -574,6 +587,7 @@ html:not(.js) .needs-js{display:none}
     dialog.showModal();
   }
   document.getElementById('tableClose').addEventListener('click',function(){dialog.close();});
+  document.getElementById('changeBtn').addEventListener('click',function(){dialog.close();openSheet();});
   dialog.addEventListener('click',function(e){if(e.target===dialog)dialog.close();});
   dialog.addEventListener('close',function(){rsvpBtn.focus();});
 
@@ -1256,6 +1270,7 @@ html:not(.js) .needs-js{display:none}
       ['Cork pop and gold-leaf shower','On confirming',function(){closePanel();celebrate();},'Show'],
       ['Button becomes “Guest '+GUEST.num+'”','After confirming',function(){asConfirmed();closePanel();},'Show'],
       ['Honoured-guest card','The Guest button after confirming',function(){asConfirmed();closePanel();revealTable();},'Show'],
+      ['Change my answer','On the card: fewer seats, or can’t come after all',function(){asConfirmed();closePanel();openSheet();},'Open'],
       ['Pulse on Confirm','Until the guest answers',function(){state={};saveState();updateActions();closePanel();},'Reset'],
       ['Desktop frame','Seen on a computer']
     ];
