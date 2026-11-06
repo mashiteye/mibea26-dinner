@@ -183,9 +183,6 @@ html:not(.js) .needs-js{display:none}
   background:#fff9ee;color:var(--choc);font-size:10px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;
 }
 .table-close:focus-visible{outline:2px solid #8d652f;outline-offset:4px}
-/* plans change: fewer seats, or not coming, so the seats go back to the host */
-.change-answer{display:block;margin:8px auto 0;min-height:40px;padding:0 12px;border:0;background:none;font-family:var(--serif);font-style:italic;font-size:15px;color:var(--choc);text-decoration:underline;text-decoration-color:rgba(111,67,47,.4);text-underline-offset:3px;cursor:pointer}
-.change-answer:focus-visible{outline:2px solid #8d652f;outline-offset:2px;border-radius:6px}
 @keyframes placeReveal{from{opacity:0}to{opacity:1}}
 @keyframes placeVeil{from{opacity:0}to{opacity:1}}
 
@@ -295,6 +292,7 @@ html:not(.js) .needs-js{display:none}
 .review .t small{display:block;margin-top:2px;font-size:11px;color:var(--soft)}
 .review li button{flex:none;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid rgba(111,67,47,.35);background:#fff;color:var(--choc);font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
 @media(max-width:380px){.actions .btn{padding:0 13px;letter-spacing:.06em}}
+@media(max-width:340px){.actions .btn{padding:0 11px}}   /* the narrowest phones: "Guest 888", Directions and Help stay on one row */
 
 @media(prefers-reduced-motion:reduce){
   .sheet,.veil,.toast{transition-duration:.01s!important}
@@ -349,7 +347,6 @@ html:not(.js) .needs-js{display:none}
       <p class="place-welcome" id="placeWelcome"><span>You’ll be shown to your table.</span> <span>We look forward to welcoming you.</span></p>
     </div>
     <button class="table-close" id="tableClose" type="button" autofocus>Close</button>
-    <button class="change-answer" id="changeBtn" type="button">Change my answer</button>
   </div>
 </dialog>
 
@@ -468,27 +465,24 @@ html:not(.js) .needs-js{display:none}
   var countMinus=document.getElementById('countMinus'),countPlus=document.getElementById('countPlus');
   var rsvpMessage=document.getElementById('rsvpMessage'),rsvpTitle=document.getElementById('rsvpTitle');
   var yesBtn=document.getElementById('yesBtn'),noBtn=document.getElementById('noBtn');
-  var count=GUEST.seats,changing=false;
+  var count=GUEST.seats;
   function setCount(n){count=Math.max(1,Math.min(GUEST.seats,n));countOut.textContent=count;countMinus.disabled=count<=1;countPlus.disabled=count>=GUEST.seats;}
   countMinus.addEventListener('click',function(){setCount(count-1);});
   countPlus.addEventListener('click',function(){setCount(count+1);});
+  /* an answer is final here: a guest who changes their mind calls their host */
   function prepareSheet(){
-    var many=GUEST.seats>1;
-    changing=state.s==='yes';              /* already confirmed: this is a change, to fewer seats or to not coming */
-    rsvpTitle.textContent=changing?'Change your answer':'Confirm attendance';
-    forLine.hidden=!many&&!changing;
-    forLine.textContent=changing?'You’ve confirmed'+(many?' for '+(state.c||GUEST.seats):''):'This invitation is for '+GUEST.seats;
-    countField.hidden=!many;
+    var many=GUEST.seats>1,no=state.s==='no';
+    rsvpTitle.textContent=no?'We’ll miss you':'Confirm attendance';
+    forLine.hidden=!many||no;forLine.textContent='This invitation is for '+GUEST.seats;
+    countField.hidden=!many||no;
     setCount(state.c||GUEST.seats);
-    yesBtn.hidden=changing&&!many;         /* one seat: the only change is not coming */
-    yesBtn.textContent=changing?'Save':'Confirm';
-    if(state.s==='no'){rsvpMessage.hidden=false;rsvpMessage.textContent='You told us you can’t make it. You can still change your answer.';}
-    else rsvpMessage.hidden=true;
+    yesBtn.hidden=no;noBtn.hidden=no;
+    rsvpMessage.hidden=!no;rsvpMessage.textContent=no?'You told us you can’t make it. Thank you for letting us know.':'';
   }
   function updateActions(){
-    var yes=state.s==='yes';
-    rsvpBtn.textContent=yes?'Guest '+GUEST.num:'Confirm';              /* one button: it asks first, then it is the guest's card */
-    rsvpBtn.setAttribute('aria-label',yes?'Honoured guest '+GUEST.num+', see your card':'Confirm attendance');
+    var yes=state.s==='yes',no=state.s==='no';
+    rsvpBtn.textContent=yes?'Guest '+GUEST.num:no?'Declined':'Confirm';   /* one button: it asks first, then it shows the answer */
+    rsvpBtn.setAttribute('aria-label',yes?'Honoured guest '+GUEST.num+', see your card':no?'Declined, see your answer':'Confirm attendance');
     rsvpBtn.classList.toggle('pulse',!state.s);   /* pulses until this phone has answered */
   }
   /* two bottom sheets share the veil: confirm attendance, and help */
@@ -548,15 +542,12 @@ html:not(.js) .needs-js{display:none}
   yesBtn.addEventListener('click',function(){
     state={s:'yes',c:GUEST.seats>1?count:1};
     saveState();updateActions();
-    closeSheet();
-    if(changing){showToast(state.c>1?'Saved · seats for '+WORDS[state.c]:'Saved · a seat is kept for you');return;}   /* a change: no second cork */
-    celebrate();showToast('Attendance confirmed');
+    closeSheet();celebrate();showToast('Attendance confirmed');
     setTimeout(revealTable,2400);                              /* the cork pops, then the honoured-guest card */
   });
   noBtn.addEventListener('click',function(){
     state={s:'no'};saveState();updateActions();
-    prepareSheet();                        /* back to a first answer, in case they change their mind again */
-    rsvpMessage.hidden=false;rsvpMessage.textContent='Thank you for letting us know. We’ll miss you.';
+    prepareSheet();
     showToast('Response saved');
   });
   document.addEventListener('keydown',function(e){
@@ -587,7 +578,6 @@ html:not(.js) .needs-js{display:none}
     dialog.showModal();
   }
   document.getElementById('tableClose').addEventListener('click',function(){dialog.close();});
-  document.getElementById('changeBtn').addEventListener('click',function(){dialog.close();openSheet();});
   dialog.addEventListener('click',function(e){if(e.target===dialog)dialog.close();});
   dialog.addEventListener('close',function(){rsvpBtn.focus();});
 
@@ -1243,6 +1233,7 @@ html:not(.js) .needs-js{display:none}
   /* ---------- review mode (?review): every feature, numbered, with a way to see the ones that wait for a time or a tap ---------- */
   function setLight(mode){hero.classList.remove('evening','morning');if(mode)hero.classList.add(mode);evening=mode==='evening';}
   function setHousehold(n){GUEST.seats=n;if(state.c&&state.c>n)state.c=n;}
+  function unanswered(){if(state.s){state={};saveState();updateActions();}}
   function asConfirmed(){if(state.s!=='yes'){state={s:'yes',c:GUEST.seats};saveState();}updateActions();}
   if(Q.has('review'))(function(){
     var items=[
@@ -1264,13 +1255,13 @@ html:not(.js) .needs-js{display:none}
       ['Evening light','After 6 pm on the guest’s phone',function(){setLight('evening');},'Show'],
       ['Morning light','Before 11 am',function(){setLight('morning');},'Show'],
       ['Daylight','11 am to 6 pm',function(){setLight('');},'Show'],
-      ['Confirm, nothing to type','The main button',function(){closePanel();openSheet();},'Open'],
-      ['Household invitation','The form asks how many of the four will attend',function(){setHousehold(4);closePanel();openSheet();},'Show'],
+      ['Confirm, nothing to type','The main button',function(){unanswered();closePanel();openSheet();},'Open'],
+      ['Household invitation','The form asks how many of the four will attend',function(){unanswered();setHousehold(4);closePanel();openSheet();},'Show'],
       ['Help: Isaac and Evans','Call or copy their numbers',function(){closePanel();openHelp();},'Open'],
       ['Cork pop and gold-leaf shower','On confirming',function(){closePanel();celebrate();},'Show'],
       ['Button becomes “Guest '+GUEST.num+'”','After confirming',function(){asConfirmed();closePanel();},'Show'],
       ['Honoured-guest card','The Guest button after confirming',function(){asConfirmed();closePanel();revealTable();},'Show'],
-      ['Change my answer','On the card: fewer seats, or can’t come after all',function(){asConfirmed();closePanel();openSheet();},'Open'],
+      ['“Declined” after can’t make it','The answer is final; a change goes through the host',function(){state={s:'no'};saveState();updateActions();closePanel();},'Show'],
       ['Pulse on Confirm','Until the guest answers',function(){state={};saveState();updateActions();closePanel();},'Reset'],
       ['Desktop frame','Seen on a computer']
     ];
