@@ -54,7 +54,7 @@
     function hostTables(k){return plan.filter(function(p){return p.host===k;}).sort(function(a,b){return a.table-b.table;});}
     function room(k,t,skip){
       var p=plan.filter(function(x){return x.host===k&&x.table===t;})[0],n=p?p.chairs:0;
-      invites.forEach(function(v){if(v.host===k&&v.table===t&&v!==skip)n-=held(v);});
+      invites.forEach(function(v){if(v.host===k&&v.table===t&&!(skip&&v.num===skip.num))n-=held(v);});
       return Math.max(0,n);
     }
     function chairsAt(t){return seats.filter(function(s){return s.table===t;});}
@@ -72,6 +72,8 @@
     if(/^2330\d{9}$/.test(d))return '233'+d.slice(4);
     if(/^0\d{9}$/.test(d))return '233'+d.slice(1);
     if(/^[235]\d{8}$/.test(d))return '233'+d;
+    if(/^233[1-9]\d{8}$/.test(d))return d;
+    if(/^233/.test(d))return '';                 /* Ghana's code with a digit too many or too few */
     if(/^[1-9]\d{10,14}$/.test(d))return d;
     return '';
   }

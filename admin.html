@@ -120,7 +120,7 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
   function chairs(t){return D.seats.filter(function(s){return s.table===t;});}
   function at(t){var out=[];chairs(t).forEach(function(s){if(s.inv&&out.indexOf(s.inv)<0)out.push(s.inv);});return out;}
   function freeAt(t){return chairs(t).filter(function(s){return !s.inv;}).length;}
-  function whose(v){var h=D.hostName(v.host);return v.family?h+(v.seats>1?' and wife':'')+', family':h+'’s guest'+(v.seats>1?'s':'');}
+  function whose(v){var h=D.hostName(v.host);return v.family?h+(v.own==='wife'?'’s wife':v.seats>1?' and wife':'')+', family':h+'’s guest'+(v.seats>1?'s':'');}
   /* the line under a table: whose guests sit there, Shared, or Family */
   function tableWho(t){
     if(t===18)return 'Family';

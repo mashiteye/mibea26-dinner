@@ -76,18 +76,10 @@ alter table plan enable row level security;
 alter table invitations enable row level security;
 revoke all on settings, hosts, dinner_tables, plan, invitations from anon, authenticated;
 
--- an older setup made one row per person, grouped. Each group becomes one invitation for that many seats: the first
--- row keeps its number and link, the others are cancelled
-do $$
-declare r record;
-begin
-  for r in select grp, min(pos) first, count(*) n, sum(kids) kids from invitations where status<>'cancelled' group by grp having count(*)>1 loop
-    update invitations set seats=r.n, kids=r.kids where grp=r.grp and pos=r.first and status<>'cancelled';
-    update invitations set status='cancelled' where grp=r.grp and pos<>r.first and status<>'cancelled';
-  end loop;
-  update invitations set att=seats where status='confirmed' and att is null;
-  update invitations set arrived=coalesce(att,seats) where arrived_at is not null and arrived=0;
-end $$;
+-- an older setup made one row per person. Each stays as it is, an invitation for one seat: its number may already be
+-- with a guest, and it may have confirmed. Its answer and arrival carry over to the seat counts
+update invitations set att=seats where status='confirmed' and att is null;
+update invitations set arrived=coalesce(att,seats) where arrived_at is not null and arrived=0;
 
 -- ---------- helpers (not callable from the web) ----------
 create or replace function _token() returns text language sql volatile set search_path=public as $$
@@ -118,6 +110,8 @@ create or replace function _phone(p text) returns text language sql immutable se
     when d ~ '^2330[0-9]{9}$' then '233'||substr(d,5)
     when d ~ '^0[0-9]{9}$' then '233'||substr(d,2)
     when d ~ '^[235][0-9]{8}$' then '233'||d
+    when d ~ '^233[1-9][0-9]{8}$' then d
+    when d ~ '^233' then null                    -- Ghana's code with a digit too many or too few
     when d ~ '^[1-9][0-9]{10,14}$' then d
   end
   from (select regexp_replace(regexp_replace(coalesce(p,''),'[^0-9]','','g'),'^00','') d) x
@@ -247,15 +241,19 @@ revoke execute on function _token(), _short_token(), _holds(invitations), _held(
   _usedjson(invitations,hosts), _iv(invitations), _seat(text,int,uuid), _fresh_num(), _make(text,int,boolean,int,timestamptz,int[],text,text)
   from public, anon, authenticated;
 
--- invitations made before seat numbers existed get them now, in the order they were made
+-- invitations made before seat numbers existed get them now, in the order they were made, so an older group of
+-- one-person invitations sits side by side
 do $$
 declare r record;
 begin
   for r in select i.num from invitations i where i.table_num is not null and i.chairs is null and _holds(i)
            order by i.table_num, i.family desc, array_position(array['mike','bea','mum','dad','joshua','isaac','benjamin'],i.host), i.created_at, i.pos, i.num loop
-    update invitations x set chairs=_pick(x.table_num,_held(x),x.grp) where x.num=r.num;
+    update invitations x set chairs=_pick(x.table_num,_held(x)) where x.num=r.num;
   end loop;
 end $$;
+-- then each of them is an invitation of its own: one row per group, as every new invitation is. It keeps its number,
+-- link, answer and seat; Michael moves them one by one
+update invitations set grp=gen_random_uuid(), pos=0 where pos>0;
 
 -- ---------- the guest: their own invitation, and Confirm (how many of the seats, for a household) ----------
 create or replace function guest_get(p_token text) returns json language sql stable security definer set search_path=public as $$
@@ -313,6 +311,7 @@ begin
   if not found then return json_build_object('error','not_found'); end if;
   select * into s from settings;
   if now()>s.late_deadline then return json_build_object('error','closed'); end if;
+  if p_chairs is not null then p_chairs := array(select unnest(p_chairs)); end if;   -- one flat list, counted from 1
   n := coalesce(cardinality(p_chairs),p_count);
   if n is null or n<1 or n>4 then return json_build_object('error','count'); end if;
   if _left(h,null)<n then return json_build_object('error','full','left',greatest(0,_left(h,null))); end if;
@@ -325,8 +324,11 @@ begin
   end if;
   if p_table is null then
     t := _seat(h.key,n);
-    if t is not null then perform pg_advisory_xact_lock(4242,t); end if;
-    ch := case when t is null then null else _pick(t,n) end;
+    if t is not null then
+      perform pg_advisory_xact_lock(4242,t);
+      ch := _pick(t,n);
+      if ch is null then t := null; end if;   -- the table filled meanwhile: not seated yet, for Michael to place
+    end if;
   else
     t := p_table;
     perform pg_advisory_xact_lock(4242,t);   -- one change at a time per table: two hosts at a shared table can't take the same chair
@@ -346,9 +348,12 @@ begin
 end $$;
 
 -- Edit only: fix the name or number, or change the seats at the same table. Nothing is sent and the code stays.
--- Changing the seats after they confirmed: the new number counts as confirmed, because the host has spoken to them
-create or replace function host_edit(p_token text, p_num int, p_name text, p_phone text, p_chairs int[] default null) returns json language plpgsql security definer set search_path=public as $$
-declare h hosts; i invitations; v_phone text; u invitations; n int; e text;
+-- Seats change only when their number changes (p_chairs), and only if the page saw the seats as they are now
+-- (p_seen); otherwise it says the invitation has changed. Changing the seats after they confirmed: the new number
+-- counts as confirmed, because the host has spoken to them. After invitations close, the seats stay as they are
+drop function if exists host_edit(text,int,text,text,int[]);
+create or replace function host_edit(p_token text, p_num int, p_name text, p_phone text, p_chairs int[] default null, p_seen int default null) returns json language plpgsql security definer set search_path=public as $$
+declare h hosts; s settings; i invitations; v_phone text; u invitations; n int; e text;
 begin
   select * into h from hosts where token=p_token for update;
   if not found then return json_build_object('error','not_found'); end if;
@@ -360,7 +365,11 @@ begin
   perform pg_advisory_xact_lock(hashtext(v_phone));
   u := _used(v_phone,i.num);
   if u.num is not null then return json_build_object('error','used','used',_usedjson(u,h)); end if;
-  if p_chairs is not null and p_chairs is distinct from i.chairs[1:_held(i)] then
+  if p_chairs is not null then p_chairs := array(select unnest(p_chairs)); end if;
+  if p_chairs is not null and p_seen is not null and p_seen<>_held(i) then return json_build_object('error','gone'); end if;
+  if p_chairs is not null and cardinality(p_chairs)<>_held(i) then
+    select * into s from settings;
+    if now()>s.late_deadline then return json_build_object('error','closed'); end if;
     n := cardinality(p_chairs);
     if n<1 or n>4 then return json_build_object('error','count'); end if;
     if i.table_num is null then return json_build_object('error','table'); end if;
@@ -375,8 +384,10 @@ begin
   return _iv(i);
 end $$;
 
--- Reassign: the seats go to someone else. Their invitation has a new number and link; the old ones stop working
-create or replace function host_reassign(p_token text, p_num int, p_name text, p_phone text, p_chairs int[] default null) returns json language plpgsql security definer set search_path=public as $$
+-- Reassign: the seats go to someone else. Their invitation has a new number and link; the old ones stop working.
+-- The same seats unless p_chairs gives a different number of them; p_seen as in Edit only
+drop function if exists host_reassign(text,int,text,text,int[]);
+create or replace function host_reassign(p_token text, p_num int, p_name text, p_phone text, p_chairs int[] default null, p_seen int default null) returns json language plpgsql security definer set search_path=public as $$
 declare h hosts; s settings; i invitations; v_phone text; u invitations; n int; ch int[]; e text; g uuid; v_exp timestamptz;
 begin
   select * into h from hosts where token=p_token for update;
@@ -393,7 +404,9 @@ begin
   if u.num is not null then return json_build_object('error','used','used',_usedjson(u,h)); end if;
   if i.table_num is null then return json_build_object('error','table'); end if;
   perform pg_advisory_xact_lock(4242,i.table_num);
-  ch := coalesce(p_chairs,i.chairs[1:_held(i)]);
+  if p_seen is not null and p_seen is distinct from _held(i) then return json_build_object('error','gone'); end if;
+  if p_chairs is not null then p_chairs := array(select unnest(p_chairs)); end if;
+  ch := case when p_chairs is not null and cardinality(p_chairs)<>_held(i) then p_chairs else i.chairs[1:_held(i)] end;
   n := cardinality(ch);
   if n is null or n<1 or n>4 then return json_build_object('error','count'); end if;
   if ch is distinct from i.chairs[1:_held(i)] then
@@ -513,6 +526,7 @@ begin
   if n=0 then return json_build_object('error','not_found'); end if;
   if not exists (select 1 from dinner_tables where num=p_table) then return json_build_object('error','table'); end if;
   perform pg_advisory_xact_lock(4242,p_table);
+  if p_chairs is not null then p_chairs := array(select unnest(p_chairs)); end if;
   if p_chairs is null then
     ch := _pick(p_table,n,p_grp);
     if ch is null then return json_build_object('error','full','free',(select d.chairs from dinner_tables d where d.num=p_table)-cardinality(_taken(p_table,p_grp))); end if;
@@ -528,10 +542,10 @@ end $$;
 -- the web may call these, and only these. They run as the database owner (security definer) on purpose: the tables
 -- themselves stay closed, and each function checks the code in the link before it reads or changes anything
 revoke execute on function guest_get(text), guest_confirm(text,int), host_get(text), host_phone(text,text,int),
-  host_invite(text,int,int,int[],text,text), host_edit(text,int,text,text,int[]), host_reassign(text,int,text,text,int[]), host_cancel(text,int),
+  host_invite(text,int,int,int[],text,text), host_edit(text,int,text,text,int[],int), host_reassign(text,int,text,text,int[],int), host_cancel(text,int),
   host_undo(text,uuid), host_overview(text), gate_list(text), gate_admit(text,int,int,timestamptz,text), admin_get(text), admin_move(text,uuid,int,int[]) from public;
 grant execute on function guest_get(text), guest_confirm(text,int), host_get(text), host_phone(text,text,int),
-  host_invite(text,int,int,int[],text,text), host_edit(text,int,text,text,int[]), host_reassign(text,int,text,text,int[]), host_cancel(text,int),
+  host_invite(text,int,int,int[],text,text), host_edit(text,int,text,text,int[],int), host_reassign(text,int,text,text,int[],int), host_cancel(text,int),
   host_undo(text,uuid), host_overview(text), gate_list(text), gate_admit(text,int,int,timestamptz,text), admin_get(text), admin_move(text,uuid,int,int[]) to anon, authenticated;
 
 -- ---------- the people, the room and the family table (only added once) ----------

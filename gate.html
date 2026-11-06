@@ -170,7 +170,7 @@
   function guest(v){
     var host=D.hostName(v.host),n=att(v),left=n-Math.min(n,v.arrived||0);
     var html='<div class="meta" id="sheetTitle">Honoured guest '+v.num+' · your table is</div>'+where(v)+
-      '<div class="who">'+(v.family?esc(host)+(v.seats>1?' and wife':'')+' · family table':(v.name?'<b>'+esc(v.name)+'</b> · ':'Check who invited them: ')+'<b>'+esc(host)+'</b>’s guest'+(v.seats>1?'s':''))+'</div>'+
+      '<div class="who">'+(v.family?esc(host)+(v.own==='wife'?'’s wife':v.seats>1?' and wife':'')+' · family table':(v.name?'<b>'+esc(v.name)+'</b> · ':'Check who invited them: ')+'<b>'+esc(host)+'</b>’s guest'+(v.seats>1?'s':''))+'</div>'+
       (v.kids?'<div class="who">With '+v.kids+' children, who take no chair</div>':'')+
       (n>1?'<div class="count">'+(n-left)+' of '+n+' in</div>':'');
     if(left<=0){
