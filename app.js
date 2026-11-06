@@ -331,6 +331,7 @@
       '<dl class="kv"><dt>Code</dt><dd>'+v.num+'</dd><dt>Phone</dt><dd>'+tel+'</dd>'+(ADMIN?'<dt>Host</dt><dd>'+esc(hostLabel(v.host))+'</dd>':'')+familyOf(v)+
         '<dt>Seats</dt><dd>'+v.seats+'</dd><dt>Answer</dt><dd>'+esc(statusWords(v))+'</dd>'+
         (v.status==='confirmed'&&v.arrived?'<dt>In</dt><dd>'+Math.min(v.arrived,v.att)+' of '+v.att+(v.arrivedAt?', the last at '+esc(v.arrivedAt):'')+'</dd>':'')+'</dl>'+
+      (v.status==='sent'&&(!L.on||v.token)?'<div class="stack" style="margin-top:14px"><button class="btn green wide" type="button" id="dConf">Confirm for them</button></div>':'')+
       (holds&&v.table?'<div class="pair"><button class="btn" type="button" id="dEdit">Edit only</button><button class="btn primary" type="button" id="dRe">Reassign</button></div>'+
         '<p class="hint">Edit only fixes the name, number or seats; nothing is sent. Reassign gives the seats to someone else, with a new number.</p>':
        holds?'<div class="stack"><button class="btn" type="button" id="dEdit">Edit only</button></div><p class="hint">Edit only fixes the name or number; nothing is sent. Once it has a table, its seats can change or go to someone else.</p>':
@@ -344,6 +345,7 @@
     if($('dRe'))$('dRe').onclick=function(){form('reassign',v.table,v.chairs&&v.chairs[0],v);};
     if($('dMove'))$('dMove').onclick=function(){moveSheet(v);};
     if($('dShare'))$('dShare').onclick=function(){shareMsg(v);};
+    if($('dConf'))$('dConf').onclick=function(){confirmFor(v);};
     $('dCancel').onclick=function(){cancelSheet(v);};
     if(!L.on&&$('dAgain'))$('dAgain').onclick=function(){showToast('Preview: WhatsApp would open in their chat');};
   }
@@ -507,13 +509,44 @@
     openSheet('<h3 id="sheetTitle">Saved</h3>'+
       '<div class="meta">'+esc(v.name)+' · '+esc(B.tableLabel(v.table))+' · '+L.seatWords(v.chairs)+'</div><div class="big">'+v.num+'</div>'+
       (replaced?'<p class="hint">'+replaced+' no longer works.</p>':'')+
-      '<p class="hint">Nothing was sent. Pass the message on by text or any app: the link is how they confirm, and '+v.num+' is the code they give at the gate.</p>'+
+      '<p class="hint">Nothing was sent. Pass the message on by text or any app: the link is how they confirm, and '+v.num+' is the code they give at the gate. Giving the code in person? When they say they’re coming, tap their chair and Confirm for them.</p>'+
       '<div class="msg"><b>The message</b>'+esc(text)+'</div>'+
       '<div class="stack">'+(v.phone?(L.on?'<a class="btn green wide" href="sms:+'+v.phone+'?&body='+encodeURIComponent(text)+'"'+BTN+'>Send by text message</a>':'<button class="btn green wide" type="button" id="sSms">Send by text message</button>'):'')+
         '<button class="btn wide" type="button" id="sShare">'+(navigator.share?'Share the message':'Copy the message')+'</button>'+
         '<button class="btn wide" type="button" data-close>Done</button></div>');
     $('sShare').onclick=function(){shareMsg(v);};
     if($('sSms'))$('sSms').onclick=function(){showToast('Preview: your messages app would open with this text');};
+  }
+  /* a guest who can't confirm themselves (no link, no smartphone): the host confirms for them, after speaking to them.
+     It is the guest's own Confirm, made from here: how many are coming, and the rest of the seats go back to the host */
+  function confirmFor(v){
+    v=B.byNum[v.num]||v;
+    var n=v.seats,back=ADMIN?B.hostName(v.host):'you';
+    openSheet('<h3 id="sheetTitle">Confirm for '+esc(v.name||'them')+'?</h3>'+
+      '<div class="meta">Code '+v.num+' · '+esc(B.tableLabel(v.table))+(v.chairs&&v.chairs.length?' · '+L.seatWords(v.chairs):'')+'</div>'+
+      (v.seats>1?'<div class="field"><span class="lab" id="cfLab">How many are coming?</span><div class="seg" id="cfSeats" role="group" aria-labelledby="cfLab">'+
+        [1,2,3,4].slice(0,v.seats).map(function(k){return '<button type="button" data-n="'+k+'" aria-pressed="'+(k===n)+'">'+k+'</button>';}).join('')+'</div></div>':'')+
+      '<p class="hint">Only once they’ve told you they’re coming. It counts as their own Confirm'+(v.seats>1?'; any seats not coming go back to '+esc(back):'')+'.</p>'+
+      '<div class="stack"><button class="btn green wide" type="button" id="cfGo">Confirm '+plural(n,'seat')+'</button><button class="btn wide" type="button" data-close>Cancel</button></div>','#cfGo');
+    if($('cfSeats'))$('cfSeats').addEventListener('click',function(e){
+      var b=e.target.closest('button[data-n]');if(!b)return;n=+b.getAttribute('data-n');
+      [].forEach.call($('cfSeats').querySelectorAll('button'),function(x){x.setAttribute('aria-pressed',String(x===b));});
+      $('cfGo').textContent='Confirm '+plural(n,'seat');
+    });
+    $('cfGo').onclick=function(){
+      var who=v.name||'them';
+      if(!L.on){
+        closeSheet();sampleChange(function(list){var x=list.filter(function(i){return i.num===v.num;})[0];if(x){x.status='confirmed';x.att=n;x.chairs=(x.chairs||[]).slice(0,n);}});
+        showToast('Confirmed for '+who+': '+plural(n,'seat'));return;
+      }
+      $('cfGo').disabled=true;$('cfGo').textContent='Confirming…';
+      API.rpc('guest_confirm',{p_token:v.token,p_count:n}).then(function(r){
+        closeSheet();
+        showToast(r&&r.status==='confirmed'?(r.att===n?'Confirmed for '+who+': '+plural(r.att,'seat'):'They had already confirmed '+plural(r.att,'seat')):
+          r&&r.status==='expired'?'Too late: confirmations have closed':'That invitation has changed. Look again.');
+        load().catch(function(){});
+      }).catch(function(){$('cfGo').disabled=false;$('cfGo').textContent='Confirm '+plural(n,'seat');showToast('No connection. Try again.');});
+    };
   }
   /* the message, any way the phone can share it: text, email, another chat app; or copied */
   function shareMsg(v){
