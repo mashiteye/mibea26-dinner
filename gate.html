@@ -37,10 +37,10 @@
 </head>
 <body>
 <div class="preview">
-  <b>Design preview</b><span>Sample data · try 2580, 4417, 7777 or 0000</span>
+  <b>Design preview</b><span>Sample data · try 418, 350, 777, 263, 512 or 950</span>
   <label><input type="checkbox" id="offline"> Offline</label>
   <span class="spacer"></span>
-  <a href="./index.html?review">Invitation</a><a href="./host.html">Host board</a><a href="./gate.html" aria-current="page">Gate</a><a href="./admin.html">Overall view</a>
+  <a href="./index.html?review">Invitation</a><a href="./host.html">Host page</a><a href="./gate.html" aria-current="page">Gate</a><a href="./admin.html">Overall view</a>
 </div>
 <header class="top"><div class="in">
   <h1>Gate</h1>
@@ -49,13 +49,13 @@
 </div></header>
 <main class="wrap">
   <div class="banner warn offline-note" id="offlineNote" hidden>No signal. The full list is saved on this phone, so the gate works as normal. Admissions sync when the signal returns.</div>
-  <p class="ask">Ask for the last four digits of their phone number</p>
-  <div class="digits" id="digits" aria-live="polite"><span></span><span></span><span></span><span></span></div>
+  <p class="ask">Ask for their honoured-guest number</p>
+  <div class="digits" id="digits" aria-live="polite"><span></span><span></span><span></span></div>
   <div class="pad" id="pad">
     <button type="button">1</button><button type="button">2</button><button type="button">3</button>
     <button type="button">4</button><button type="button">5</button><button type="button">6</button>
     <button type="button">7</button><button type="button">8</button><button type="button">9</button>
-    <button type="button" class="fn" data-k="name">By name</button><button type="button">0</button><button type="button" class="fn" data-k="back" aria-label="Delete">Delete</button>
+    <button type="button" class="fn" data-k="help">No number?</button><button type="button">0</button><button type="button" class="fn" data-k="back" aria-label="Delete">Delete</button>
   </div>
 </main>
 
@@ -71,7 +71,7 @@
   var entry='',digits=[].slice.call(document.querySelectorAll('#digits span'));
   var sheet=document.getElementById('sheet'),veil=document.getElementById('veil'),toast=document.getElementById('toast');
   function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function dots(i){return i.split('').join('.')+'.';}
+  function clock(){var d=new Date(),hr=d.getHours(),mi=d.getMinutes();return (hr%12||12)+':'+(mi<10?'0':'')+mi+(hr<12?' am':' pm');}
   function showToast(m){toast.textContent=m;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){toast.classList.remove('show');},2400);}
   function counts(){
     var conf=0,inn=0;D.households.forEach(function(h){if(h.status==='confirmed'){conf+=h.att;inn+=h.arrived;}});
@@ -81,10 +81,10 @@
   function press(k){
     if(sheet.classList.contains('show'))return;
     if(k==='back'){entry=entry.slice(0,-1);draw();return;}
-    if(k==='name'){nameSearch();return;}
-    if(entry.length>=4)return;
+    if(k==='help'){noNumber();return;}
+    if(entry.length>=3)return;
     entry+=k;draw();
-    if(entry.length===4)setTimeout(function(){lookup(entry);},180);
+    if(entry.length===3)setTimeout(function(){lookup(entry);},180);
   }
   document.getElementById('pad').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;press(b.getAttribute('data-k')||b.textContent);});
   document.addEventListener('keydown',function(e){
@@ -97,35 +97,36 @@
   function closeSheet(){sheet.classList.remove('show');veil.classList.remove('show');sheet.inert=true;entry='';draw();if(trigger&&trigger.focus)trigger.focus();}
   veil.addEventListener('click',closeSheet);
 
+  /* a number is one invitation: confirmed, still waiting for an answer, declined, or not one of ours */
   function lookup(code){
-    var hits=D.households.filter(function(h){return h.status==='confirmed'&&D.last4(h)===code;});
-    if(hits.length===1)return guest(hits[0]);
-    if(hits.length>1){
-      var html='<h3 id="sheetTitle">'+hits.length+' guests share '+code+'</h3><div class="meta">Ask for their name, then choose</div><div style="margin-top:10px">';
-      hits.forEach(function(h,i){html+='<div class="match"><div class="t"><b>'+esc(D.tableLabel(h.table))+'</b><span>'+dots(h.initials)+' · '+esc(D.hostName(h.host))+'’s guests · '+h.att+' chair'+(h.att>1?'s':'')+'</span></div><button class="btn" type="button" data-i="'+i+'">This one</button></div>';});
-      openSheet(html+'</div><div class="stack"><button class="btn wide" id="gBack" type="button">Back</button></div>');
-      sheet.querySelectorAll('button[data-i]').forEach(function(b){b.onclick=function(){guest(hits[+b.getAttribute('data-i')]);};});
-      document.getElementById('gBack').onclick=closeSheet;return;
+    var h=D.byNum[+code];
+    if(!h){
+      openSheet('<h3 id="sheetTitle">No invitation with '+code+'</h3><div class="meta">Check the number with them</div>'+
+        '<div class="stack"><button class="btn primary wide" id="gBack" type="button">Try again</button><button class="btn wide" id="gHelp" type="button">They don’t have a number</button></div>');
+      document.getElementById('gBack').onclick=closeSheet;document.getElementById('gHelp').onclick=noNumber;return;
     }
-    var unconfirmed=D.households.filter(function(h){return h.status==='sent'&&h.hostPhone.slice(-4)===code;});
-    var html2='<h3 id="sheetTitle">No confirmed guest with '+code+'</h3><div class="meta">Check the digits, or search by name</div>';
-    if(unconfirmed.length){var u=unconfirmed[0];html2+='<div class="banner warn">An invitation from '+esc(D.hostName(u.host))+' matches, for '+esc(D.tableLabel(u.table))+', but it was never confirmed. Call '+esc(D.hostName(u.host))+' before letting them in.</div>';}
-    openSheet(html2+'<div class="stack"><button class="btn primary wide" id="gName" type="button">Search by name</button><button class="btn wide" id="gBack" type="button">Try again</button></div>');
-    document.getElementById('gName').onclick=function(){nameSearch();};
-    document.getElementById('gBack').onclick=closeSheet;
+    var host=D.hostName(h.host);
+    if(h.status==='confirmed')return guest(h);
+    var head='<h3 id="sheetTitle">Honoured guest '+h.num+'</h3><div class="meta">'+esc(host)+'’s guests · '+h.size+(h.size>1?' seats':' seat')+'</div>';
+    var why=h.status==='sent'?
+      '<div class="banner warn">Invited, but they never confirmed. Call '+esc(host)+' before letting them in.</div>':
+      '<div class="banner bad">They said they can’t come, and the seats went back to '+esc(host)+'. Call '+esc(host)+' before letting anyone in on this number.</div>';
+    openSheet(head+why+'<div class="stack"><button class="btn primary wide" id="gCall" type="button">Call '+esc(host)+'</button><button class="btn wide" id="gNext" type="button">Next guest</button></div>');
+    document.getElementById('gCall').onclick=function(){showToast('Preview: this would call '+host);};
+    document.getElementById('gNext').onclick=closeSheet;
   }
 
   function guest(h){
     var left=h.att-h.arrived,host=D.hostName(h.host);
-    var html='<div class="meta" id="sheetTitle">Your table is</div><div class="big-table">'+esc(D.tableName(h.table))+'</div><div class="table-no">Table '+h.table+'</div>'+
-      '<div class="who"><b>'+dots(h.initials)+'</b> · '+esc(host)+'’s guests'+(h.family?' · family':'')+'</div>'+(h.kids?'<div class="who">With '+h.kids+' children, who take no chair</div>':'')+
-      '<div class="count">'+h.arrived+' of '+h.att+' in</div>';
+    var html='<div class="meta" id="sheetTitle">Honoured guest '+h.num+' · your table is</div><div class="big-table">'+esc(D.tableName(h.table))+'</div><div class="table-no">Table '+h.table+'</div>'+
+      '<div class="who">'+(h.family?esc(host)+(h.size>1?' and wife':'')+' · family':esc(host)+'’s guests')+'</div>'+(h.kids?'<div class="who">With '+h.kids+' children, who take no chair</div>':'')+
+      '<div class="count">'+h.arrived+' of '+h.att+' in'+(h.arrived&&left>0?' · '+left+(left>1?' seats':' seat')+' left':'')+'</div>';
     if(left<=0){
-      html+='<div class="banner bad">Already admitted'+(h.arrivedAt?' at '+esc(h.arrivedAt):'')+'. Someone has come in on these digits. Ask for the name; if it doesn’t match, call '+esc(host)+'.</div>'+
+      html+='<div class="banner bad">All '+h.att+' already in'+(h.arrivedAt?', the last at '+esc(h.arrivedAt):'')+'. Nobody else comes in on '+h.num+'. If something looks wrong, call '+esc(host)+'.</div>'+
         '<div class="stack"><button class="btn primary wide" id="gCall" type="button">Call '+esc(host)+'</button><button class="btn wide" id="gNext" type="button">Next guest</button></div>';
     }else{
       html+='<div class="field"><span class="lab" id="nLab">How many are here now?</span><div class="stepper" role="group" aria-labelledby="nLab"><button type="button" id="nM" aria-label="One fewer">−</button><output id="nO">'+left+'</output><button type="button" id="nP" aria-label="One more">+</button></div></div>'+
-        '<div class="stack"><button class="btn green wide" id="gAdmit" type="button">Admit '+left+'</button><button class="btn wide" id="gNext" type="button">Cancel</button></div>';
+        '<div class="stack"><button class="btn green wide" id="gAdmit" type="button">Let in '+left+'</button><button class="btn wide" id="gNext" type="button">Cancel</button></div>';
     }
     openSheet(html);
     document.getElementById('gNext').onclick=closeSheet;
@@ -133,25 +134,27 @@
     var admit=document.getElementById('gAdmit');
     if(admit){
       var n=left,o=document.getElementById('nO'),m=document.getElementById('nM'),p=document.getElementById('nP');
-      function upd(){o.textContent=n;m.disabled=n<=1;p.disabled=n>=left;admit.textContent='Admit '+n;}
+      function upd(){o.textContent=n;m.disabled=n<=1;p.disabled=n>=left;admit.textContent='Let in '+n;}
       m.onclick=function(){n=Math.max(1,n-1);upd();};p.onclick=function(){n=Math.min(left,n+1);upd();};upd();
       admit.onclick=function(){
-        h.arrived+=n;if(!h.arrivedAt)h.arrivedAt='now';counts();
-        sheet.innerHTML='<div class="meta" id="sheetTitle">Admitted</div><div class="big-table">'+esc(D.tableName(h.table))+'</div><div class="table-no">Table '+h.table+'</div><div class="banner ok" style="text-align:center">Show them to '+esc(D.tableLabel(h.table))+'</div>';
-        setTimeout(closeSheet,2200);
+        h.arrived+=n;h.arrivedAt=clock();counts();
+        var rest=h.att-h.arrived;
+        sheet.innerHTML='<div class="meta" id="sheetTitle">Let in · honoured guest '+h.num+'</div><div class="big-table">'+esc(D.tableName(h.table))+'</div><div class="table-no">Table '+h.table+'</div>'+
+          '<div class="banner ok" style="text-align:center">Show them to '+esc(D.tableLabel(h.table))+(rest>0?'. '+rest+(rest>1?' more':' more')+' can still come in on '+h.num+'.':'')+'</div>';
+        setTimeout(closeSheet,2400);
       };
     }
   }
 
-  function nameSearch(){
-    openSheet('<h3 id="sheetTitle">Search by name</h3><div class="meta">For a guest who doesn’t know their digits</div><div class="field"><label for="q">Name</label><input id="q" autocomplete="off" placeholder="Start typing"></div><div id="res"></div><div class="stack"><button class="btn wide" id="gBack" type="button">Back</button></div>');
-    var q=document.getElementById('q'),res=document.getElementById('res');
-    q.oninput=function(){
-      var v=q.value.trim().toLowerCase();if(v.length<2){res.innerHTML='';return;}
-      var hits=D.households.filter(function(h){return (h.status==='confirmed'||h.status==='sent')&&h.name.toLowerCase().indexOf(v)>=0;}).slice(0,6);
-      res.innerHTML=hits.length?hits.map(function(h,i){return '<div class="match"><div class="t"><b>'+esc(h.name)+'</b><span>'+esc(D.tableLabel(h.table))+' · '+esc(D.hostName(h.host))+'’s guests · '+(h.status==='confirmed'?h.att+' confirmed':'not confirmed')+'</span></div><button class="btn" type="button" data-i="'+i+'">Open</button></div>';}).join(''):'<div class="banner warn">No one by that name</div>';
-      res.querySelectorAll('button[data-i]').forEach(function(b){b.onclick=function(){var h=hits[+b.getAttribute('data-i')];if(h.status==='confirmed')guest(h);else showToast('Not confirmed: call '+D.hostName(h.host));};});
-    };
+  /* a guest with no number: it is in their host's WhatsApp message, or the host can say */
+  function noNumber(){
+    var keys=Object.keys(D.HOSTS);
+    openSheet('<h3 id="sheetTitle">No number?</h3><div class="meta">Most guests can find it in a few seconds</div>'+
+      '<div class="banner warn">Ask them to open the WhatsApp message from their host: the number is in it. Or to open the invitation, which shows it once confirmed.</div>'+
+      '<p class="meta" style="margin-top:14px;text-align:left">Still nothing? Ask who invited them and call that host.</p>'+
+      '<div style="margin-top:6px">'+keys.map(function(k){return '<div class="match"><div class="t"><b>'+esc(D.HOSTS[k].name)+'</b><span>'+(D.HOSTS[k].role?D.HOSTS[k].role+' · ':'')+'host</span></div><button class="btn" type="button" data-k="'+k+'">Call</button></div>';}).join('')+'</div>'+
+      '<div class="stack"><button class="btn wide" id="gBack" type="button">Back</button></div>');
+    sheet.querySelectorAll('button[data-k]').forEach(function(b){b.onclick=function(){showToast('Preview: this would call '+D.HOSTS[b.getAttribute('data-k')].name);};});
     document.getElementById('gBack').onclick=closeSheet;
   }
 

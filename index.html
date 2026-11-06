@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<!-- Guest view locked on 5 November 2026 at Michael's request. Change it only when he asks. -->
+<!-- Guest view locked on 5 November 2026 at Michael's request. Change it only when he asks.
+     6 November 2026, with his approval: honoured-guest numbers replace the phone digits. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -235,25 +236,20 @@ html:not(.js) .needs-js{display:none}
   .sheet.show{opacity:1;transform:translate(-50%,-50%)}
 }
 
-/* ---------- confirm attendance: actions, form, gate digits ---------- */
+/* ---------- confirm attendance: actions, form, the honoured-guest card ---------- */
 .actions .btn{padding:0 18px;letter-spacing:.1em}
 .sheet .for{margin-top:12px;font-family:var(--sans);font-style:normal;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--choc)}
 .field{margin:18px auto 0;max-width:340px;text-align:left}
-.field label,.field .lab{display:block;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--choc)}
-.field input{display:block;width:100%;margin-top:8px;min-height:52px;padding:0 16px;border:1px solid rgba(111,67,47,.35);border-radius:14px;background:#fffdf8;font-family:var(--serif);font-size:22px;letter-spacing:.04em;color:var(--choc-deep);font-variant-numeric:lining-nums;outline:none}
-.field input:focus{border-color:var(--gold-deep);box-shadow:0 0 0 3px rgba(197,154,82,.18)}
-.sheet .field .hint{margin:7px 0 0;font-size:14px}
-.sheet .field .err{margin:7px 0 0;font-family:var(--sans);font-style:normal;font-size:13px;color:#a3392b}
+.field .lab{display:block;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--choc)}
 .count-field[hidden]{display:none}
 .stepper{display:flex;align-items:center;justify-content:space-between;margin-top:8px;border:1px solid rgba(111,67,47,.35);border-radius:14px;background:#fffdf8;padding:4px}
 .stepper button{width:48px;height:46px;border:0;border-radius:11px;background:rgba(111,67,47,.08);font-size:22px;line-height:1;color:var(--choc);cursor:pointer}
 .stepper button:disabled{opacity:.35;cursor:default}
 .stepper output{font-family:var(--serif);font-size:26px;color:var(--choc-deep);font-variant-numeric:lining-nums tabular-nums}
+.place-card h2.place-num{font-size:clamp(56px,17vw,78px);line-height:1;letter-spacing:.03em;font-variant-numeric:lining-nums tabular-nums}
 .place-gate{margin:2px 0 0;font-size:10px;font-weight:600;letter-spacing:.24em;padding-left:.24em;text-transform:uppercase;color:var(--choc)}
-.gate-digits{display:flex;justify-content:center;gap:8px;margin-top:10px}
-.gate-digits span{width:44px;height:54px;display:grid;place-items:center;border:1px solid #d7be8e;border-radius:8px;background:#fffdf7;font-family:var(--serif);font-size:30px;color:var(--choc-deep);font-variant-numeric:lining-nums tabular-nums}
-.gate-digits[hidden]{display:none}
-.place-welcome{margin-top:16px!important}
+.place-welcome{margin-top:12px!important}
+.place-welcome span{display:block;text-wrap:balance}
 /* ---------- help: two people guests can call, each number with Call and Copy ---------- */
 .people{margin-top:6px;text-align:left}
 .person{margin-top:16px}
@@ -338,17 +334,16 @@ html:not(.js) .needs-js{display:none}
   </div>
 </div>
 
-<dialog class="table-dialog" id="tableDialog" aria-labelledby="placeTitle" aria-describedby="placeGuest placeWelcome">
+<dialog class="table-dialog" id="tableDialog" aria-labelledby="placeLabel placeTitle" aria-describedby="placeGuest placeGateLabel placeWelcome">
   <div class="place-setting">
     <div class="place-card">
       <div class="place-ornament" aria-hidden="true">✧</div>
-      <p class="place-label">Your table</p>
-      <h2 id="placeTitle">Table 1</h2>
+      <p class="place-label" id="placeLabel">Honoured guest</p>
+      <h2 class="place-num" id="placeTitle">418</h2>
       <p class="place-guest" id="placeGuest">A seat is kept for you</p>
       <div class="place-rule" aria-hidden="true"></div>
-      <p class="place-gate" id="placeGateLabel">At the gate, say</p>
-      <div class="gate-digits" id="gateDigits" role="img"></div>
-      <p class="place-welcome" id="placeWelcome">We look forward to welcoming you.</p>
+      <p class="place-gate" id="placeGateLabel">Give it at the gate</p>
+      <p class="place-welcome" id="placeWelcome"><span>You’ll be shown to your table.</span> <span>We look forward to welcoming you.</span></p>
     </div>
     <button class="table-close" id="tableClose" type="button" autofocus>Close</button>
   </div>
@@ -381,12 +376,6 @@ html:not(.js) .needs-js{display:none}
       <output id="countOut" aria-live="polite">1</output>
       <button type="button" id="countPlus" aria-label="One more">+</button>
     </div>
-  </div>
-  <div class="field">
-    <label for="phone">Your phone number</label>
-    <input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="024 123 4567">
-    <p class="hint">At the gate you will give its last four digits.</p>
-    <p class="err" id="phoneErr" hidden>Enter your full phone number.</p>
   </div>
   <div class="stack">
     <button class="btn primary" id="yesBtn" type="button">Confirm</button>
@@ -428,11 +417,13 @@ html:not(.js) .needs-js{display:none}
   var dialog=document.getElementById('tableDialog');
   var sheetTrigger=null;
 
-  /* the seat this link belongs to; until the host system issues links, ?t= (table) and ?n= (seats in the household) preview it */
+  /* the invitation this link belongs to: its honoured-guest number and its seats.
+     Until the links come from the database, ?g= (number) and ?n= (seats) preview it */
   var Q=new URLSearchParams(location.search);
   var WORDS=['','one','two','three','four','five','six','seven','eight','nine'];
-  var GUEST={table:Math.max(1,Math.min(20,parseInt(Q.get('t'),10)||(Q.has('review')?11:1))),seats:Math.max(1,Math.min(9,parseInt(Q.get('n'),10)||1))};
-  var STORE='mibea26-dinner-rsvp';
+  var G=parseInt(Q.get('g'),10);
+  var GUEST={num:G>=100&&G<=999?G:418,seats:Math.max(1,Math.min(9,parseInt(Q.get('n'),10)||1))};
+  var STORE='mibea26-dinner-'+GUEST.num;   /* one answer per invitation, so two invitations opened on one phone stay apart */
   var state=(function(){var v=null;try{v=localStorage.getItem(STORE);}catch(e){}if(!v)return {};if(v==='yes'||v==='no')return {s:v};try{return JSON.parse(v)||{};}catch(e){return {};}})();
   function saveState(){try{localStorage.setItem(STORE,JSON.stringify(state));}catch(e){}}
   (function(){var h=new Date().getHours();if(h>=18||h<6)hero.classList.add('evening');else if(h<11)hero.classList.add('morning');})();
@@ -467,11 +458,11 @@ html:not(.js) .needs-js{display:none}
   tick();
   setTimeout(function(){tick();setInterval(tick,1000);},1000-Date.now()%1000);   /* ticks on the second, every second */
 
-  /* ---------- confirm attendance: phone number, how many of the household, then the table ---------- */
+  /* ---------- confirm attendance: one tap (and how many, for a household), then the honoured-guest card ---------- */
   var rsvpBtn=document.getElementById('rsvpBtn');
   var forLine=document.getElementById('forLine'),countField=document.getElementById('countField'),countOut=document.getElementById('countOut');
   var countMinus=document.getElementById('countMinus'),countPlus=document.getElementById('countPlus');
-  var phone=document.getElementById('phone'),phoneErr=document.getElementById('phoneErr'),rsvpMessage=document.getElementById('rsvpMessage');
+  var rsvpMessage=document.getElementById('rsvpMessage');
   var count=GUEST.seats;
   function setCount(n){count=Math.max(1,Math.min(GUEST.seats,n));countOut.textContent=count;countMinus.disabled=count<=1;countPlus.disabled=count>=GUEST.seats;}
   countMinus.addEventListener('click',function(){setCount(count-1);});
@@ -481,14 +472,13 @@ html:not(.js) .needs-js{display:none}
     forLine.hidden=!many;forLine.textContent='This invitation is for '+GUEST.seats;
     countField.hidden=!many;
     setCount(state.c||GUEST.seats);
-    phoneErr.hidden=true;
     if(state.s==='no'){rsvpMessage.hidden=false;rsvpMessage.textContent='You told us you can’t make it. You can still change your answer.';}
     else rsvpMessage.hidden=true;
   }
   function updateActions(){
     var yes=state.s==='yes';
-    rsvpBtn.textContent=yes?'Table '+GUEST.table:'Confirm';              /* one button: it asks first, then it is the guest's table */
-    rsvpBtn.setAttribute('aria-label',yes?'Table '+GUEST.table+', see your table card':'Confirm attendance');
+    rsvpBtn.textContent=yes?'Guest '+GUEST.num:'Confirm';              /* one button: it asks first, then it is the guest's card */
+    rsvpBtn.setAttribute('aria-label',yes?'Honoured guest '+GUEST.num+', see your card':'Confirm attendance');
     rsvpBtn.classList.toggle('pulse',!state.s);   /* pulses until this phone has answered */
   }
   /* two bottom sheets share the veil: confirm attendance, and help */
@@ -545,15 +535,11 @@ html:not(.js) .needs-js{display:none}
     });
   });
   updateActions();
-  function digitsOf(v){return String(v||'').replace(/\D/g,'');}
-  phone.addEventListener('input',function(){phoneErr.hidden=true;});
   document.getElementById('yesBtn').addEventListener('click',function(){
-    var d=digitsOf(phone.value);
-    if(d.length<9||d.length>15){phoneErr.hidden=false;phone.focus();return;}
-    state={s:'yes',d:d.slice(-4),c:GUEST.seats>1?count:1};   /* only the last four digits stay on the phone */
+    state={s:'yes',c:GUEST.seats>1?count:1};
     saveState();updateActions();
     closeSheet();celebrate();showToast('Attendance confirmed');
-    setTimeout(revealTable,2400);                              /* the cork pops, then the table card */
+    setTimeout(revealTable,2400);                              /* the cork pops, then the honoured-guest card */
   });
   document.getElementById('noBtn').addEventListener('click',function(){
     state={s:'no'};saveState();updateActions();
@@ -579,19 +565,12 @@ html:not(.js) .needs-js{display:none}
     showToast.t=setTimeout(function(){toast.classList.remove('show');},2200);
   }
 
-  /* ---------- table dialog ---------- */
+  /* ---------- the honoured-guest card: the number to give at the gate, where they are shown to their table ---------- */
   function revealTable(){
     if(dialog.open)return;
-    document.getElementById('placeTitle').textContent='Table '+GUEST.table;
+    document.getElementById('placeTitle').textContent=GUEST.num;
     var c=state.s==='yes'&&state.c?state.c:GUEST.seats;
     document.getElementById('placeGuest').textContent=c>1?'Seats for '+WORDS[c]:'A seat is kept for you';
-    var dg=document.getElementById('gateDigits'),gl=document.getElementById('placeGateLabel');
-    dg.innerHTML='';
-    if(state.d){
-      state.d.split('').forEach(function(ch){var sp=document.createElement('span');sp.textContent=ch;dg.appendChild(sp);});
-      dg.setAttribute('aria-label','Last four digits: '+state.d.split('').join(' '));
-      dg.hidden=false;gl.textContent='At the gate, say';
-    }else{dg.hidden=true;gl.textContent='At the gate, give the last four digits of your phone';}
     dialog.showModal();
   }
   document.getElementById('tableClose').addEventListener('click',function(){dialog.close();});
@@ -1250,7 +1229,7 @@ html:not(.js) .needs-js{display:none}
   /* ---------- review mode (?review): every feature, numbered, with a way to see the ones that wait for a time or a tap ---------- */
   function setLight(mode){hero.classList.remove('evening','morning');if(mode)hero.classList.add(mode);evening=mode==='evening';}
   function setHousehold(n){GUEST.seats=n;if(state.c&&state.c>n)state.c=n;}
-  function asConfirmed(){if(state.s!=='yes'||!state.d){state={s:'yes',d:'4417',c:GUEST.seats};saveState();}updateActions();}
+  function asConfirmed(){if(state.s!=='yes'){state={s:'yes',c:GUEST.seats};saveState();}updateActions();}
   if(Q.has('review'))(function(){
     var items=[
       ['Champagne pour opening','The details show at once; the bottle tips in and the glass fills above them',function(){location.reload();},'Replay'],
@@ -1271,19 +1250,19 @@ html:not(.js) .needs-js{display:none}
       ['Evening light','After 6 pm on the guest’s phone',function(){setLight('evening');},'Show'],
       ['Morning light','Before 11 am',function(){setLight('morning');},'Show'],
       ['Daylight','11 am to 6 pm',function(){setLight('');},'Show'],
-      ['Confirm, with phone number','The main button',function(){closePanel();openSheet();},'Open'],
+      ['Confirm, nothing to type','The main button',function(){closePanel();openSheet();},'Open'],
       ['Household invitation','The form asks how many of the four will attend',function(){setHousehold(4);closePanel();openSheet();},'Show'],
       ['Help: Isaac and Evans','Call or copy their numbers',function(){closePanel();openHelp();},'Open'],
       ['Cork pop and gold-leaf shower','On confirming',function(){closePanel();celebrate();},'Show'],
-      ['Button becomes “Table '+GUEST.table+'”','After confirming',function(){asConfirmed();closePanel();},'Show'],
-      ['Table card with gate digits','The table button after confirming',function(){asConfirmed();closePanel();revealTable();},'Show'],
+      ['Button becomes “Guest '+GUEST.num+'”','After confirming',function(){asConfirmed();closePanel();},'Show'],
+      ['Honoured-guest card','The Guest button after confirming',function(){asConfirmed();closePanel();revealTable();},'Show'],
       ['Pulse on Confirm','Until the guest answers',function(){state={};saveState();updateActions();closePanel();},'Reset'],
       ['Desktop frame','Seen on a computer']
     ];
     var tab=document.createElement('button');tab.className='review-tab';tab.type='button';tab.textContent='Review';
     var panel=document.createElement('section');panel.className='review';panel.hidden=true;panel.setAttribute('aria-label','Review every feature');
-    var html='<h2>Every feature</h2><p class="note">Guest view locked on 5 November 2026. Buttons show the parts that wait for a time of day or a tap.</p>'+
-      '<div class="links"><a href="./host.html">Host board</a><a href="./gate.html">Gate</a><a href="./admin.html">Overall view</a></div><ol>';
+    var html='<h2>Every feature</h2><p class="note">Guest view locked on 5 November 2026; honoured-guest numbers added on 6 November. Buttons show the parts that wait for a time of day or a tap.</p>'+
+      '<div class="links"><a href="./host.html">Host page</a><a href="./gate.html">Gate</a><a href="./admin.html">Overall view</a></div><ol>';
     items.forEach(function(it,i){html+='<li><span class="n">'+(i+1)+'</span><span class="t">'+it[0]+'<small>'+it[1]+'</small></span>'+(it[2]?'<button type="button" data-i="'+i+'">'+it[3]+'</button>':'')+'</li>';});
     panel.innerHTML=html+'</ol>';
     function closePanel(){panel.hidden=true;tab.textContent='Review';}

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#fbf4e8">
-<title>All tables · Dinner Night</title>
+<title>Overall view · Dinner Night</title>
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,23 +23,30 @@
 .legend .open{background:#fff;border-style:dashed}
 .legend .sent{background:#e9d7b5}
 .legend .confirmed{background:#6f432f;border-color:#6f432f}
-.legend .declined{background:#d99a3d;border-color:#d99a3d}
 .legend .arrived{background:#3e7a4f;border-color:#3e7a4f}
-.legend .check{background:#fff;border:2px solid #a3392b;border-radius:50%}
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table.hosts{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;font-variant-numeric:lining-nums tabular-nums}
-table.hosts th{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
+table.hosts th{font-size:11px;font-weight:600;color:var(--soft);text-align:right;padding:6px 3px;border-bottom:1px solid var(--line)}
 table.hosts th:first-child,table.hosts td:first-child{text-align:left}
-table.hosts td{padding:8px 4px;border-bottom:1px solid var(--line);text-align:right;color:var(--choc-deep)}
+table.hosts td{padding:9px 3px;border-bottom:1px solid var(--line);text-align:right;color:var(--choc-deep)}
 table.hosts td a{color:var(--choc);font-weight:600;text-decoration:none}
+table.hosts tr.all td{border-bottom:0;font-weight:600}
 .issues{list-style:none;margin:8px 0 0;padding:0}
 .issues li{padding:10px 0;border-top:1px solid var(--line);font-size:13px;line-height:1.45}
-.issues li b{display:block;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--bad);margin-bottom:2px}
+.issues li b{display:block;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--choc);margin-bottom:2px}
 .issues li.warn b{color:var(--declined-ink)}
-.seatlist{list-style:none;margin:10px 0 0;padding:0}
-.seatlist li{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid var(--line);font-size:13px}
-.seatlist .c{width:18px;font-weight:600;color:var(--soft)}
-.seatlist .nm{flex:1;color:var(--choc-deep)}
-.seatlist .st{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--choc)}
+.hh{list-style:none;margin:12px 0 0;padding:0}
+.hh li{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.hh .no{min-width:52px;font-family:var(--serif);font-size:26px;line-height:1;color:var(--choc-deep);font-variant-numeric:lining-nums tabular-nums}
+.hh .d{flex:1;font-size:13px;color:var(--choc-deep)}
+.hh .d small{display:block;margin-top:2px;font-size:11.5px;color:var(--soft)}
+.hh .btn{min-height:38px;padding:0 14px}
+.hh li.free{font-size:12.5px;color:var(--soft)}
+.pick{list-style:none;margin:12px 0 0;padding:0;max-height:46vh;overflow:auto}
+.pick li{border-top:1px solid var(--line)}
+.pick button{display:flex;width:100%;align-items:baseline;justify-content:space-between;gap:10px;padding:12px 2px;border:0;background:none;text-align:left;cursor:pointer;color:var(--choc-deep);font:inherit}
+.pick button b{font-family:var(--serif);font-weight:500;font-size:20px}
+.pick button span{font-size:12px;color:var(--soft)}
 .export{margin-top:16px}
 </style>
 </head>
@@ -47,29 +54,29 @@ table.hosts td a{color:var(--choc);font-weight:600;text-decoration:none}
 <div class="preview">
   <b>Design preview</b><span>Sample data</span>
   <span class="spacer"></span>
-  <a href="./index.html?review">Invitation</a><a href="./host.html">Host board</a><a href="./gate.html">Gate</a><a href="./admin.html" aria-current="page">Overall view</a>
+  <a href="./index.html?review">Invitation</a><a href="./host.html">Host page</a><a href="./gate.html">Gate</a><a href="./admin.html" aria-current="page">Overall view</a>
 </div>
 <header class="top"><div class="in">
-  <h1>All tables</h1>
-  <div class="sub">Dinner Night · Sunday 20 December</div>
+  <h1>Overall view</h1>
+  <div class="sub">Dinner Night · Sunday 20 December · 180 seats</div>
   <div class="chips" id="chips"></div>
   <div class="seg" role="group" aria-label="View"><button type="button" id="vBefore" aria-pressed="true">Before the day</button><button type="button" id="vNight" aria-pressed="false">On the night</button></div>
 </div></header>
 <main class="wrap">
   <section class="card">
-    <div class="card-head"><h2>The room</h2><span>Tap a table for its chairs</span></div>
-    <svg id="map" viewBox="0 0 400 560" role="img" aria-label="Twenty tables of nine, coloured by each chair’s status"></svg>
+    <div class="card-head"><h2>By host</h2><span id="hostsNote">Seats</span></div>
+    <div class="tablewrap"><table class="hosts" id="hosts"></table></div>
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>The room</h2><span>Tap a table to see or move</span></div>
+    <svg id="map" viewBox="0 0 400 560" role="img" aria-label="Twenty tables of nine, each chair coloured by its answer"></svg>
     <div class="legend" id="legend"></div>
   </section>
   <section class="card">
-    <div class="card-head"><h2>By host</h2><span>Chairs, not households</span></div>
-    <table class="hosts" id="hosts"></table>
-  </section>
-  <section class="card">
-    <div class="card-head"><h2>To check</h2><span id="issueCount"></span></div>
+    <div class="card-head"><h2>To follow up</h2><span id="issueCount"></span></div>
     <ul class="issues" id="issues"></ul>
   </section>
-  <button class="btn wide export" id="export" type="button">Export the guest list</button>
+  <button class="btn wide export" id="export" type="button">Export the list</button>
 </main>
 
 <div class="veil" id="veil"></div>
@@ -83,99 +90,146 @@ table.hosts td a{color:var(--choc);font-weight:600;text-decoration:none}
   var D=window.DEMO,night=false;
   var sheet=document.getElementById('sheet'),veil=document.getElementById('veil'),toast=document.getElementById('toast');
   function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-  function showToast(m){toast.textContent=m;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){toast.classList.remove('show');},2400);}
-  var FILL={open:'#fff',sent:'#e9d7b5',confirmed:'#6f432f',declined:'#d99a3d',freed:'#d99a3d',arrived:'#3e7a4f',spare:'none'};
-  var STROKE={open:'#b7a58c',sent:'#cdb68d',confirmed:'#6f432f',declined:'#d99a3d',freed:'#d99a3d',arrived:'#3e7a4f',spare:'#b7a58c'};
-  var LABEL={open:'Open',sent:'Sent',confirmed:'Confirmed',declined:'Declined',freed:'Not coming',arrived:'In',spare:'Spare'};
+  function showToast(m){toast.textContent=m;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){toast.classList.remove('show');},2600);}
+  function plural(n,one,many){return n+' '+(n===1?one:(many||one+'s'));}
+  var FILL={open:'#fff',sent:'#e9d7b5',confirmed:'#6f432f',arrived:'#3e7a4f'};
+  var STROKE={open:'#b7a58c',sent:'#cdb68d',confirmed:'#6f432f',arrived:'#3e7a4f'};
+
+  /* who holds a chair: an invitation waiting for an answer, or a confirmed one for as many as are coming.
+     A chair is free once its guest can't come, or when fewer are coming than were invited */
+  function holder(s){
+    var h=s.hh;if(!h||h.status==='declined')return null;
+    if(h.status==='confirmed'&&h.chairs.indexOf(s.code)>=h.att)return null;
+    return h;
+  }
+  function state(s){var h=holder(s);if(!h)return 'open';if(h.status==='sent')return 'sent';return night&&h.chairs.indexOf(s.code)<h.arrived?'arrived':'confirmed';}
+  function chairs(t){return D.seats.filter(function(s){return s.table===t;});}
+  function placed(t){var seen=[];chairs(t).forEach(function(s){var h=holder(s);if(h&&seen.indexOf(h)<0)seen.push(h);});return seen;}
+  function freeAt(t){return chairs(t).filter(function(s){return !holder(s);}).length;}
+  function need(h){return h.status==='confirmed'?h.att:h.size;}
+  function whose(h){return D.hostName(h.host)+(h.family?(h.size>1?' and wife':'')+', family':'’s guests');}
+  /* the line under a table: whose guests sit there, Shared, or Family */
+  function tableWho(t){
+    if(t===18)return 'Family';
+    var hosts=placed(t).map(function(h){return h.host;});
+    if(!hosts.length)hosts=chairs(t).map(function(s){return s.host;}).filter(Boolean);
+    var u=hosts.filter(function(v,i,a){return a.indexOf(v)===i;});
+    return !u.length?'Free':u.length>1?'Shared':D.hostName(u[0]);
+  }
 
   /* tables numbered from the entrance up: row 1 (tables 1 to 4) by the door, row 5 (17 to 20) at the front */
   var COLS=[62,154,246,338],ROWS={1:470,2:380,3:290,4:200,5:110};
   function pos(t){var r=Math.ceil(t/4),c=(t-1)%4;return {x:COLS[c],y:ROWS[r]};}
-  function tableLabel(t){   /* who sits at a table: a host, Shared, or Family */
-    var hosts=D.seats.filter(function(s){return s.table===t&&s.host;}).map(function(s){return s.host;});
-    var u=hosts.filter(function(v,i,a){return a.indexOf(v)===i;});
-    var fam=D.seats.some(function(s){return s.table===t&&s.family;});
-    if(!u.length)return 'Spare';
-    if(fam)return u.length>1?'Family':(u[0]==='mike'?'Michael’s':'Beatrice’s')+' family';
-    return u.length>1?'Shared':D.hostName(u[0]);
-  }
   function drawMap(){
     var svg='<rect x="110" y="18" width="180" height="30" rx="4" fill="#fffaf2" stroke="#c9a45e" stroke-width="1"/>'+
       '<text x="200" y="37" text-anchor="middle" font-size="12" font-weight="600" fill="#4c2f25">High table</text>';
     for(var t=1;t<=20;t++){
-      var p=pos(t),row=D.seats.filter(function(s){return s.table===t;});
-      var fam=row[0].family;
-      svg+='<g class="tbl" tabindex="0" role="button" aria-label="Table '+t+'" data-t="'+t+'">';
+      var p=pos(t),row=chairs(t),taken=9-freeAt(t);
+      svg+='<g class="tbl" tabindex="0" role="button" aria-label="'+esc(D.tableLabel(t))+', '+taken+' of 9 chairs taken" data-t="'+t+'">';
       svg+='<circle class="t" cx="'+p.x+'" cy="'+p.y+'" r="20" fill="#fffaf2" stroke="#c9b48f" stroke-width="1"/>';
-      if(fam)svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="24" fill="none" stroke="#c9a45e" stroke-width="1"/>';
+      if(t===18)svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="24" fill="none" stroke="#c9a45e" stroke-width="1"/>';
       svg+='<text x="'+p.x+'" y="'+(p.y+5)+'" text-anchor="middle" font-size="14" font-weight="600" fill="#4c2f25">'+t+'</text>';
       row.forEach(function(s,k){
-        var a=(-90+40*k)*Math.PI/180,cx=p.x+31*Math.cos(a),cy=p.y+31*Math.sin(a),st=D.seatState(s,night);
-        var bad=s.hh&&D.mismatch(s.hh)&&s.hh.chairs[0]===s.code;
-        svg+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="4.6" fill="'+FILL[st]+'" stroke="'+(bad?'#a3392b':STROKE[st])+'" stroke-width="'+(bad?2:1)+'"'+(st==='spare'||st==='open'?' stroke-dasharray="2 1.6"':'')+'/>';
+        var a=(-90+40*k)*Math.PI/180,cx=p.x+31*Math.cos(a),cy=p.y+31*Math.sin(a),st=state(s);
+        svg+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="4.6" fill="'+FILL[st]+'" stroke="'+STROKE[st]+'" stroke-width="1"'+(st==='open'?' stroke-dasharray="2 1.6"':'')+'/>';
       });
-      svg+='<text x="'+p.x+'" y="'+(p.y+50)+'" text-anchor="middle" font-size="10.5" fill="#7c6a5f">'+esc(tableLabel(t))+'</text></g>';
+      svg+='<text x="'+p.x+'" y="'+(p.y+50)+'" text-anchor="middle" font-size="10.5" fill="#7c6a5f">'+esc(tableWho(t))+'</text></g>';
     }
     svg+='<text x="200" y="545" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="2" fill="#7c6a5f">ENTRANCE</text>';
     document.getElementById('map').innerHTML=svg;
-    var keys=night?['open','sent','confirmed','declined','arrived']:['open','sent','confirmed','declined'];
-    document.getElementById('legend').innerHTML=keys.map(function(k){return '<span><i class="'+k+'"></i>'+(k==='declined'?'Declined, replace':k==='arrived'?'In the room':LABEL[k])+'</span>';}).join('')+'<span><i class="check"></i>Number to check</span>';
+    var keys=night?[['open','Free'],['sent','Waiting'],['confirmed','Confirmed, not in yet'],['arrived','In the room']]:[['open','Free'],['sent','Waiting for an answer'],['confirmed','Confirmed']];
+    document.getElementById('legend').innerHTML=keys.map(function(k){return '<span><i class="'+k[0]+'"></i>'+k[1]+'</span>';}).join('');
   }
 
+  /* each host's seats, counted by invitation; a family host's own invitation counts as confirmed */
   function stats(){
-    var all={chairs:0,sent:0,confirmed:0,replace:0,open:0,arrived:0};
-    var per={};Object.keys(D.HOSTS).forEach(function(k){per[k]={chairs:0,sent:0,confirmed:0,replace:0,open:0,arrived:0};});
-    D.seats.forEach(function(s){
-      if(!s.host)return;
-      var st=D.seatState(s,true),o=per[s.host];
-      [all,o].forEach(function(x){
-        x.chairs++;
-        if(st==='open')x.open++;else if(st==='sent')x.sent++;else if(st==='declined'||st==='freed')x.replace++;
-        else{x.confirmed++;if(st==='arrived')x.arrived++;}
-      });
+    var per={},all={seats:0,invited:0,confirmed:0,waiting:0,back:0,left:0,arrived:0};
+    Object.keys(D.HOSTS).forEach(function(k){
+      var T=D.tally(k),own=T.own,o={seats:T.alloc,invited:T.invited,confirmed:T.confirmed,waiting:T.waiting,back:T.back,left:T.left,arrived:0,asked:0};
+      if(own){o.invited+=own.size;o.confirmed+=own.att;}
+      D.households.forEach(function(h){if(h.host===k){if(h.status==='confirmed')o.arrived+=h.arrived;if(h.status==='sent')o.asked++;}});
+      per[k]=o;
+      Object.keys(all).forEach(function(f){all[f]+=o[f];});
     });
-    return {all:all,per:per};
+    return {per:per,all:all};
   }
-  function issues(){
+  function followUps(S){
     var list=[];
-    D.households.forEach(function(h){if(D.mismatch(h))list.push({cls:'',t:'Numbers differ',m:esc(D.tableLabel(h.table))+' · '+esc(h.name)+' ('+esc(D.hostName(h.host))+'). Host entered '+D.fmtPhone(h.hostPhone)+'; the guest confirmed with '+D.fmtPhone(h.guestPhone)+'.'});});
-    var by={};D.households.forEach(function(h){if(h.status==='confirmed'){var k=D.last4(h);(by[k]=by[k]||[]).push(h);}});
-    Object.keys(by).forEach(function(k){if(by[k].length>1)list.push({cls:'',t:'Shared last four digits · '+k,m:by[k].map(function(h){return esc(D.tableLabel(h.table))+' · '+esc(h.name)+' ('+esc(D.hostName(h.host))+')';}).join('; ')+'. The gate will ask their names.'});});
-    var waiting={};D.households.forEach(function(h){if(h.status==='sent')waiting[h.host]=(waiting[h.host]||0)+1;});
-    Object.keys(waiting).forEach(function(k){list.push({cls:'warn',t:'Not answered yet',m:esc(D.hostName(k))+' has '+waiting[k]+' invitation'+(waiting[k]>1?'s':'')+' waiting for a reply.'});});
+    if(night){
+      var out=D.households.filter(function(h){return h.status==='confirmed'&&h.arrived<h.att;});
+      var people=out.reduce(function(a,h){return a+h.att-h.arrived;},0);
+      list.push({cls:'',t:'Still to come',m:plural(people,'guest')+' on '+plural(out.length,'number')+'. The gate lets each number in up to its seats, and calls the host for anyone more.'});
+      return list;
+    }
+    /* one line each, host by host, so it reads as a list of who to nudge */
+    function byHost(f){return Object.keys(D.HOSTS).filter(function(k){return S.per[k][f];}).map(function(k){return esc(D.HOSTS[k].name)+' '+S.per[k][f];}).join(', ');}
+    var a=S.all,asked=Object.keys(D.HOSTS).reduce(function(n,k){return n+S.per[k].asked;},0);
+    if(a.waiting)list.push({cls:'warn',t:'Waiting for an answer · '+plural(a.waiting,'seat'),m:plural(asked,'invitation')+' not answered: '+byHost('waiting')+'. Whatever is still unanswered on 10 December goes back to its host.'});
+    if(a.back)list.push({cls:'',t:'Back with the hosts · '+plural(a.back,'seat'),m:'From guests who can’t come, or fewer coming than invited: '+byHost('back')+'. Each host can invite again.'});
+    if(a.left)list.push({cls:'',t:'Left to invite · '+plural(a.left,'seat'),m:byHost('left')+'.'});
     return list;
   }
   function render(){
     var S=stats(),a=S.all;
-    var nIssues=issues();
-    var mism=D.households.filter(D.mismatch).length;
-    document.getElementById('chips').innerHTML='<span class="chip">'+a.chairs+' chairs</span><span class="chip">'+a.sent+' sent</span><span class="chip ok">'+a.confirmed+' confirmed</span>'+
-      (a.replace?'<span class="chip warn">'+a.replace+' to replace</span>':'')+'<span class="chip">'+a.open+' open</span>'+
-      (mism?'<span class="chip bad">'+mism+' number'+(mism>1?'s':'')+' to check</span>':'')+
-      (night?'<span class="chip ok">'+a.arrived+' of '+a.confirmed+' in</span>':'');
-    drawMap();
-    var rows='<tr><th>Host</th><th>Chairs</th><th>Sent</th><th>Confirmed</th><th>Replace</th><th>Open</th>'+(night?'<th>In</th>':'')+'</tr>';
-    Object.keys(D.HOSTS).forEach(function(k){var o=S.per[k];rows+='<tr><td><a href="./host.html?h='+k+'">'+esc(D.HOSTS[k].name)+'</a></td><td>'+o.chairs+'</td><td>'+o.sent+'</td><td>'+o.confirmed+'</td><td>'+o.replace+'</td><td>'+o.open+'</td>'+(night?'<td>'+o.arrived+'</td>':'')+'</tr>';});
+    document.getElementById('chips').innerHTML=night?
+      '<span class="chip ok">'+a.arrived+' of '+a.confirmed+' in</span><span class="chip">'+(a.confirmed-a.arrived)+' still to come</span>':
+      '<span class="chip">'+a.invited+' invited</span><span class="chip ok">'+a.confirmed+' confirmed</span>'+(a.waiting?'<span class="chip">'+a.waiting+' waiting</span>':'')+'<span class="chip">'+a.left+' left to invite</span>';
+    var cols=night?[['confirmed','Confirmed'],['arrived','In'],['tocome','To come']]:[['seats','Seats'],['invited','Invited'],['confirmed','Confirmed'],['waiting','Waiting'],['left','Left']];
+    function cells(o){return cols.map(function(c){return '<td>'+(c[0]==='tocome'?o.confirmed-o.arrived:o[c[0]])+'</td>';}).join('');}
+    var rows='<tr><th>Host</th>'+cols.map(function(c){return '<th>'+c[1]+'</th>';}).join('')+'</tr>';
+    Object.keys(D.HOSTS).forEach(function(k){rows+='<tr><td><a href="./host.html?h='+k+'">'+esc(D.HOSTS[k].name)+'</a></td>'+cells(S.per[k])+'</tr>';});
+    rows+='<tr class="all"><td>All</td>'+cells(a)+'</tr>';
     document.getElementById('hosts').innerHTML=rows;
-    document.getElementById('issueCount').textContent=nIssues.length+' item'+(nIssues.length===1?'':'s');
-    document.getElementById('issues').innerHTML=nIssues.map(function(i){return '<li class="'+i.cls+'"><b>'+i.t+'</b>'+i.m+'</li>';}).join('');
+    document.getElementById('hostsNote').textContent=night?'People':'Seats';
+    drawMap();
+    var f=followUps(S);
+    document.getElementById('issueCount').textContent=night?'':plural(f.length,'item');
+    document.getElementById('issues').innerHTML=f.map(function(i){return '<li class="'+i.cls+'"><b>'+i.t+'</b>'+i.m+'</li>';}).join('');
   }
 
   var trigger=null;
-  function openSheet(inner){trigger=document.activeElement;sheet.innerHTML=inner;sheet.inert=false;sheet.classList.add('show');veil.classList.add('show');var f=sheet.querySelector('button');if(f)f.focus({preventScroll:true});}
+  function openSheet(inner){if(!sheet.classList.contains('show'))trigger=document.activeElement;sheet.innerHTML=inner;sheet.inert=false;sheet.classList.add('show');veil.classList.add('show');var f=sheet.querySelector('button');if(f)f.focus({preventScroll:true});}
   function closeSheet(){sheet.classList.remove('show');veil.classList.remove('show');sheet.inert=true;if(trigger&&trigger.focus)trigger.focus();}
   veil.addEventListener('click',closeSheet);
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&sheet.classList.contains('show'))closeSheet();});
+
+  /* a table: who sits there, by number, and a way to move any of them */
   function tableSheet(t){
-    var row=D.seats.filter(function(s){return s.table===t;});
-    var html='<h3 id="sheetTitle">'+esc(D.tableLabel(t))+'</h3><div class="meta">'+esc(tableLabel(t))+'</div><ul class="seatlist">';
-    row.forEach(function(s){
-      var st=D.seatState(s,night),h=s.hh;
-      var who=!s.host?'Spare chair':h?esc(h.name)+(h.chairs[0]!==s.code?' <span style="color:var(--soft)">(household)</span>':''):'<span style="color:var(--soft)">Not yet invited</span>';
-      html+='<li><span class="c">'+s.chair+'</span><span class="nm">'+who+'<br><span style="font-size:11px;color:var(--soft)">'+(s.host?esc(D.hostName(s.host)):'')+(h&&h.status==='confirmed'?' · gate digits '+D.last4(h):'')+'</span></span><span class="st">'+LABEL[st]+'</span></li>';
+    var list=placed(t),free=freeAt(t);
+    var html='<h3 id="sheetTitle">'+esc(D.tableLabel(t))+'</h3><div class="meta">'+esc(tableWho(t))+' · '+(9-free)+' of 9 chairs taken</div><ul class="hh">';
+    list.forEach(function(h){
+      var st=h.status==='sent'?'Waiting for an answer':night?h.arrived+' of '+h.att+' in':h.att<h.size?'Confirmed '+h.att+' of '+h.size:'Confirmed';
+      html+='<li><span class="no">'+h.num+'</span><span class="d">'+plural(need(h),'seat')+' · '+esc(whose(h))+(h.kids?' · '+h.kids+' children, no chair':'')+'<small>'+st+'</small></span>'+
+        '<button class="btn" type="button" data-move="'+h.num+'" aria-label="Move '+h.num+'">Move</button></li>';
     });
+    if(free)html+='<li class="free">'+plural(free,'chair')+' free</li>';
     openSheet(html+'</ul><div class="stack"><button class="btn wide" id="tClose" type="button">Close</button></div>');
+    sheet.querySelectorAll('[data-move]').forEach(function(b){b.onclick=function(){moveSheet(D.byNum[+b.getAttribute('data-move')]);};});
     document.getElementById('tClose').onclick=closeSheet;
+  }
+  function moveSheet(h){
+    var n=need(h),opts=[];
+    for(var t=1;t<=20;t++)if(t!==h.table&&freeAt(t)>=n)opts.push(t);
+    var html='<h3 id="sheetTitle">Move '+h.num+'</h3><div class="meta">'+plural(n,'seat')+' · now at '+esc(D.tableLabel(h.table))+'</div>'+
+      (opts.length?'<ul class="pick">'+opts.map(function(t){return '<li><button type="button" data-to="'+t+'"><b>'+esc(D.tableLabel(t))+'</b><span>'+freeAt(t)+' free · '+esc(tableWho(t))+'</span></button></li>';}).join('')+'</ul>':
+        '<div class="banner warn">No other table has '+n+' chairs free together. Move someone else first.</div>')+
+      '<div class="stack"><button class="btn wide" id="mBack" type="button">Back</button></div>';
+    openSheet(html);
+    sheet.querySelectorAll('[data-to]').forEach(function(b){b.onclick=function(){moveTo(h,+b.getAttribute('data-to'));};});
+    document.getElementById('mBack').onclick=function(){tableSheet(h.table);};
+  }
+  /* the invitation leaves its chairs and takes the first free ones at the new table */
+  function moveTo(h,t){
+    var from=h.table,n=need(h);
+    h.chairs.forEach(function(code){var s=D.seats.filter(function(x){return x.code===code;})[0];if(s&&s.hh===h)s.hh=null;});
+    h.chairs=[];
+    chairs(t).filter(function(s){return !holder(s);}).slice(0,n).forEach(function(s){
+      if(s.hh&&s.hh!==h)s.hh.chairs=s.hh.chairs.filter(function(c){return c!==s.code;});
+      s.hh=h;h.chairs.push(s.code);
+    });
+    h.table=t;
+    closeSheet();render();
+    showToast(h.num+' moved from '+D.tableName(from)+' to '+D.tableLabel(t));
   }
   var map=document.getElementById('map');
   map.addEventListener('click',function(e){var g=e.target.closest('.tbl');if(g)tableSheet(+g.getAttribute('data-t'));});
@@ -183,7 +237,7 @@ table.hosts td a{color:var(--choc);font-weight:600;text-decoration:none}
   var vB=document.getElementById('vBefore'),vN=document.getElementById('vNight');
   function setView(n){night=n;vB.setAttribute('aria-pressed',String(!n));vN.setAttribute('aria-pressed',String(n));render();}
   vB.onclick=function(){setView(false);};vN.onclick=function(){setView(true);};
-  document.getElementById('export').onclick=function(){showToast('Preview: this downloads the list as a spreadsheet');};
+  document.getElementById('export').onclick=function(){showToast('Preview: this downloads every number with its seats, host, table and answer');};
   render();
 })();
 </script>
