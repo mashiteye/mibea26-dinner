@@ -83,8 +83,9 @@ create or replace function _state(i invitations) returns text language sql stabl
   select case when i.status='sent' and now()>i.expires_at then 'expired' else i.status end
 $$;
 
--- a table for n people from one host: first the host's own planned chairs, then any table with room
--- (never the family table). Null when nothing fits: the overall view shows them as not seated yet
+-- a table for n people from one host. First the host's own planned chairs, the table where the group fits most snugly
+-- first so chairs aren't stranded (the host's chair at the family table only when nothing else fits); then any other
+-- table with room, again the snuggest first. Null when nothing fits: the overall view shows them as not seated yet
 create or replace function _seat(p_host text, p_n int, p_skip uuid default null) returns int language sql stable set search_path=public as $$
   with held as (
     select table_num, host, count(*) c from invitations i
@@ -96,11 +97,11 @@ create or replace function _seat(p_host text, p_n int, p_skip uuid default null)
        join dinner_tables d on d.num=p.table_num
        left join held h on h.table_num=p.table_num and h.host=p.host
        left join tot t on t.table_num=p.table_num
-     where p.host=p_host and p.table_num<>18 and p.chairs-coalesce(h.c,0)>=p_n and d.chairs-coalesce(t.c,0)>=p_n
-     order by p.table_num limit 1),
+     where p.host=p_host and p.chairs-coalesce(h.c,0)>=p_n and d.chairs-coalesce(t.c,0)>=p_n
+     order by p.table_num=18, p.chairs-coalesce(h.c,0)-p_n, p.table_num limit 1),
     (select d.num from dinner_tables d left join tot t on t.table_num=d.num
      where d.num<>18 and d.chairs-coalesce(t.c,0)>=p_n
-     order by d.num limit 1))
+     order by d.chairs-coalesce(t.c,0)-p_n, d.num limit 1))
 $$;
 
 -- a fresh honoured-guest number nobody has had
@@ -194,6 +195,30 @@ begin
   return json_build_object('cancelled',n);
 end $$;
 
+-- what every host sees besides their own page: the room, and everyone's numbers. Other hosts' guests show only as
+-- chairs and counts, never their honoured-guest numbers
+create or replace function host_overview(p_token text) returns json language plpgsql stable security definer set search_path=public as $$
+declare h hosts; s settings;
+begin
+  select * into h from hosts where token=p_token;
+  if not found then return json_build_object('error','not_found'); end if;
+  select * into s from settings;
+  return json_build_object(
+    'me',h.key,'deadline',s.deadline,'at',now(),
+    'hosts',(select json_agg(json_build_object('key',x.key,'name',x.name,'role',x.role,'seats',x.seats,
+        'own',(select count(*) from invitations i where i.host=x.key and i.family and i.status<>'cancelled'),
+        'confirmed',(select count(*) from invitations i where i.host=x.key and not i.family and i.status='confirmed'),
+        'waiting',(select count(*) from invitations i where i.host=x.key and not i.family and i.status='sent' and now()<=i.expires_at))
+      order by array_position(array['mike','bea','mum','dad','joshua','isaac','benjamin'],x.key)) from hosts x),
+    'tables',(select json_agg(json_build_object('num',num,'name',name,'chairs',chairs) order by num) from dinner_tables),
+    'plan',(select json_agg(json_build_object('table',table_num,'host',host,'chairs',chairs)) from plan),
+    'invitations',(select coalesce(json_agg(json_build_object('num',case when i.host=h.key then i.num end,'host',i.host,'grp',i.grp,'pos',i.pos,
+        'family',i.family,'own',i.own,'kids',case when i.host=h.key then i.kids else 0 end,'status',_state(i),'table',i.table_num)
+        order by i.table_num, i.created_at, i.grp, i.pos),'[]'::json) from invitations i where _holds(i)),
+    'today',(select count(*) from invitations i where i.status='confirmed' and not i.family and i.confirmed_at>=date_trunc('day',now())),
+    'last',(select max(confirmed_at) from invitations i where i.status='confirmed' and not i.family));
+end $$;
+
 -- ---------- the gate: the whole list (kept on the phone for no-signal moments) and Let in ----------
 create or replace function gate_list(p_token text) returns json language plpgsql stable security definer set search_path=public as $$
 begin
@@ -246,9 +271,9 @@ end $$;
 
 -- the web may call these, and only these. They run as the database owner (security definer) on purpose: the tables
 -- themselves stay closed, and each function checks the code in the link before it reads or changes anything
-revoke execute on function guest_get(text), guest_confirm(text), host_get(text), host_invite(text,int), host_undo(text,uuid),
+revoke execute on function guest_get(text), guest_confirm(text), host_get(text), host_invite(text,int), host_undo(text,uuid), host_overview(text),
   gate_list(text), gate_admit(text,int[],timestamptz), admin_get(text), admin_move(text,uuid,int) from public;
-grant execute on function guest_get(text), guest_confirm(text), host_get(text), host_invite(text,int), host_undo(text,uuid),
+grant execute on function guest_get(text), guest_confirm(text), host_get(text), host_invite(text,int), host_undo(text,uuid), host_overview(text),
   gate_list(text), gate_admit(text,int[],timestamptz), admin_get(text), admin_move(text,uuid,int) to anon, authenticated;
 
 -- ---------- the people, the room and the family table (only added once) ----------

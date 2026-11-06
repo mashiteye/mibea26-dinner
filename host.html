@@ -36,6 +36,44 @@
 .links a,.see a{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--choc)}
 .see{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:12px;color:var(--soft)}
 [hidden]{display:none!important}
+/* three views: the host's own page, the room, and everyone's numbers */
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);margin-top:12px;border:1px solid var(--line-strong);border-radius:999px;padding:3px;background:#fff}
+.tabs button{min-height:36px;padding:0 6px;border:0;border-radius:999px;background:transparent;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--choc);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs button[aria-selected="true"]{background:var(--choc);color:var(--ivory)}
+.tabs button:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px}
+#map{display:block;width:100%;height:auto;margin-top:6px}
+#map .tbl{cursor:pointer}
+#map .tbl:focus{outline:none}
+#map .tbl:focus-visible circle.t{stroke:var(--gold-deep);stroke-width:2}
+#map text{font-family:var(--sans)}
+.legend .mine{background:#6f432f;border-color:#6f432f}
+.legend .minew{background:#e9d7b5;border-color:#a8823f}
+.legend .other{background:#d8cbbb;border-color:#c4b39e}
+.legend .open{background:#fff;border-style:dashed}
+.where{list-style:none;margin:10px 0 0;padding:0}
+.where li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:13px;color:var(--choc-deep)}
+.where li span{color:var(--soft)}
+.tlist{list-style:none;margin:12px 0 0;padding:0}
+.tlist li{padding:9px 0;border-top:1px solid var(--line);font-size:13px;color:var(--choc-deep)}
+.tlist li b{font-family:var(--serif);font-weight:500;font-size:19px;margin-right:6px;font-variant-numeric:lining-nums}
+.tlist li small{display:block;font-size:11.5px;color:var(--soft)}
+.total{text-align:center}
+.ring{display:block;width:190px;height:190px;margin:4px auto 0}
+.ring text{font-family:var(--serif);font-variant-numeric:lining-nums}
+.total .line{margin:6px 0 0;font-size:13px;color:var(--soft)}
+.total .when{margin:10px auto 0;display:inline-block;padding:6px 12px;border-radius:999px;background:var(--cream);font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--choc)}
+.rows{list-style:none;margin:6px 0 0;padding:0}
+.rows li{padding:11px 0;border-top:1px solid var(--line)}
+.rows .top2{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.rows b{font-family:var(--serif);font-weight:500;font-size:19px;color:var(--choc-deep)}
+.rows .you{margin-left:6px;padding:2px 7px;border-radius:999px;background:var(--choc);color:var(--ivory);font-family:var(--sans);font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;vertical-align:3px}
+.rows .num{font-size:13px;color:var(--choc-deep);font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.rows .num span{color:var(--soft)}
+.rows .bar{margin-top:7px;height:7px}
+.rows small{display:block;margin-top:5px;font-size:11.5px;color:var(--soft)}
+.legend .c{background:var(--choc);border-color:var(--choc)}
+.legend .w{background:var(--gold);border-color:var(--gold)}
+.legend .l{background:var(--cream);border-color:var(--cream)}
 </style>
 </head>
 <body>
@@ -48,8 +86,14 @@
 <header class="top"><div class="in">
   <h1 id="title">Your invitations</h1>
   <div class="sub">Dinner Night · Sunday 20 December</div>
+  <nav class="tabs" role="tablist" aria-label="Views">
+    <button type="button" role="tab" id="tMine" aria-selected="true" aria-controls="pMine">Your page</button>
+    <button type="button" role="tab" id="tRoom" aria-selected="false" aria-controls="pRoom">The room</button>
+    <button type="button" role="tab" id="tAll" aria-selected="false" aria-controls="pAll">Everyone</button>
+  </nav>
 </div></header>
 <main class="wrap">
+ <div id="pMine" role="tabpanel" aria-labelledby="tMine">
   <p class="intro" id="intro">Tap Invite and WhatsApp opens with the invitation. Pick the contact and send. Nothing to type.</p>
 
   <section class="card own" id="own" hidden>
@@ -79,6 +123,36 @@
     <p class="note" id="returns">Places not confirmed by 10 December come back to you.</p>
     <p class="note" id="helper" hidden></p>
   </section>
+ </div>
+
+ <!-- the whole room, the high table at the front: where this host's guests sit, and how full every table is -->
+ <div id="pRoom" role="tabpanel" aria-labelledby="tRoom" hidden>
+  <section class="card">
+    <div class="card-head"><h2>The room</h2><span>Tap a table</span></div>
+    <svg id="map" viewBox="0 0 400 560" role="img" aria-label="Twenty tables of nine, with your guests’ chairs marked"></svg>
+    <div class="legend"><span><i class="mine"></i>Your guests, confirmed</span><span><i class="minew"></i>Yours, not confirmed yet</span><span><i class="other"></i>Other hosts’ guests</span><span><i class="open"></i>Free</span></div>
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>Where your guests sit</h2><span id="whereCount"></span></div>
+    <ul class="where" id="where"></ul>
+    <p class="note">Tables can still change before the day. Guests find out theirs at the gate.</p>
+  </section>
+ </div>
+
+ <!-- everyone's numbers: the whole dinner, then each host -->
+ <div id="pAll" role="tabpanel" aria-labelledby="tAll" hidden>
+  <section class="card total">
+    <svg class="ring" id="ring" viewBox="0 0 200 200" role="img"></svg>
+    <p class="line" id="totLine"></p>
+    <span class="when" id="when"></span>
+    <p class="line" id="pulse"></p>
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>Every host</h2><span>People, not names</span></div>
+    <ul class="rows" id="rows"></ul>
+    <div class="legend"><span><i class="c"></i>Confirmed</span><span><i class="w"></i>Not confirmed yet</span><span><i class="l"></i>Left to invite</span></div>
+  </section>
+ </div>
 </main>
 
 <div class="veil" id="veil"></div>
@@ -89,11 +163,13 @@
   <div class="see" id="see"></div>
   <div class="stack"><a class="btn green wide" id="send" href="#" target="_blank" rel="noopener" hidden>Send on WhatsApp</a><button class="btn primary wide" id="done" type="button">Back to your page</button></div>
 </section>
+<section class="sheet" id="tsheet" role="dialog" aria-modal="true" aria-labelledby="tsTitle" inert></section>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="./config.js"></script>
 <script src="./api.js"></script>
 <script src="./live.js"></script>
+<script src="./room.js"></script>
 <script src="./demo-data.js"></script>
 <script>
 (function(){
@@ -134,6 +210,7 @@
     $('ownLinks').innerHTML=wife?'<a href="'+link(you)+'">Open yours</a><a href="'+link(wife)+'">Open your wife’s</a>':'<a href="'+link(you)+'">Open your invitation</a>';
   }
   function start(){
+    $('tMine').textContent=H.name;   /* the first view carries the host's name */
     $('title').textContent=H.name+'’s invitations';
     document.title=H.name+'’s invitations · Dinner Night';
     ownCard();
@@ -222,6 +299,112 @@
   });
 
   function refresh(){return API.rpc('host_get',{p_token:L.token}).then(function(r){if(r&&!r.error){fromServer(r);render();}});}
+
+  /* ---------- the three views ---------- */
+  var tabs=['Mine','Room','All'],view='Mine';
+  function showView(v){
+    view=v;
+    tabs.forEach(function(t){$('t'+t).setAttribute('aria-selected',String(t===v));$('p'+t).hidden=t!==v;});
+    if(v!=='Mine')overview().then(function(O){if(view==='Room')room(O);if(view==='All')everyone(O);});
+    window.scrollTo(0,0);
+  }
+  tabs.forEach(function(t){$('t'+t).addEventListener('click',function(){showView(t);});});
+  document.querySelector('.tabs').addEventListener('keydown',function(e){   /* arrow keys move between the views */
+    var i=tabs.indexOf(view);if(e.key==='ArrowRight')i=(i+1)%3;else if(e.key==='ArrowLeft')i=(i+2)%3;else return;
+    e.preventDefault();showView(tabs[i]);$('t'+tabs[i]).focus();
+  });
+
+  /* O: the room and everyone's numbers. On a real page they come from the database (other hosts' guests without their
+     numbers); in the preview, from the sample */
+  var cache=null;
+  function overview(){
+    if(!L.on)return Promise.resolve(cache||(cache=fromSample()));
+    if(cache&&Date.now()-cache.t<30000)return Promise.resolve(cache);
+    return API.rpc('host_overview',{p_token:L.token}).then(function(r){
+      if(!r||r.error)throw r;
+      var B=L.build(r);
+      cache={t:Date.now(),me:r.me,D:B,hosts:r.hosts.map(function(x){return {key:x.key,name:x.name,role:x.role,seats:x.seats,confirmed:+x.confirmed+(+x.own),waiting:+x.waiting};}),
+        deadline:r.deadline,now:r.at,today:+r.today,last:r.last};
+      return cache;
+    }).catch(function(){showToast('No connection. Try again.');return cache||{me:me,D:null,hosts:[]};});
+  }
+  function fromSample(){
+    return {t:Date.now(),me:me,D:D,hosts:Object.keys(D.HOSTS).map(function(k){var T2=D.tally(k);return {key:k,name:D.HOSTS[k].name,role:D.HOSTS[k].role,seats:T2.alloc,confirmed:T2.confirmed+T2.own.length,waiting:T2.waiting};}),
+      deadline:'2026-12-10T23:59:59Z',now:new Date().toISOString(),today:5,last:new Date(Date.now()-12*60000).toISOString()};
+  }
+  function chairsAt(B,t){return B.seats.filter(function(s){return s.table===t;});}
+  function whoAt(B,t){
+    if(t===18)return 'Family';
+    var hs=chairsAt(B,t).filter(function(s){return s.inv;}).map(function(s){return s.inv.host;});
+    if(!hs.length)hs=chairsAt(B,t).map(function(s){return s.host;}).filter(Boolean);
+    var u=hs.filter(function(v,i,a){return a.indexOf(v)===i;});
+    return !u.length?'Free':u.length>1?'Shared':B.hostName(u[0]);
+  }
+  function room(O){
+    var B=O.D;if(!B)return;
+    $('map').innerHTML=ROOM.svg({chairs:function(t){return chairsAt(B,t);},label:function(t){return whoAt(B,t);},
+      aria:function(t){var c=chairsAt(B,t),mine=c.filter(function(s){return s.inv&&s.inv.host===O.me;}).length;return B.tableLabel(t)+', '+c.filter(function(s){return s.inv;}).length+' of '+c.length+' taken'+(mine?', '+mine+' yours':'');},
+      paint:function(s){var v=s.inv;
+        if(!v)return {fill:'#fff',stroke:'#b7a58c',dashed:true};
+        if(v.host===O.me)return v.status==='confirmed'?{fill:'#6f432f',stroke:'#6f432f'}:{fill:'#e9d7b5',stroke:'#a8823f',width:1.4};
+        return {fill:'#d8cbbb',stroke:'#c4b39e'};}});
+    /* where this host's guests sit, table by table */
+    var mine=B.invites.filter(function(v){return v.host===O.me&&v.status!=='expired';}),by={},order=[];
+    mine.forEach(function(v){var k=v.table||0;if(!by[k]){by[k]=[];order.push(k);}by[k].push(v);});
+    order.sort(function(a,b){return (a||99)-(b||99);});
+    $('whereCount').textContent=mine.length?plural(mine.length,'person','people'):'';
+    $('where').innerHTML=mine.length?order.map(function(k){var l=by[k],c=l.filter(function(v){return v.status==='confirmed';}).length;
+      return '<li>'+(k?esc(B.tableLabel(k)):'Not seated yet')+'<span>'+l.length+(c<l.length?' · '+c+' confirmed':'')+'</span></li>';}).join(''):'<li>None yet<span>Invite from your page</span></li>';
+  }
+  /* a table, without moving anything: this host's guests by number, the others as counts */
+  var ts=$('tsheet'),tsTrigger=null;
+  function tableSheet(t){
+    overview().then(function(O){
+      var B=O.D;if(!B)return;
+      var c=chairsAt(B,t),taken=c.filter(function(s){return s.inv;}),groups=[],others={};
+      taken.forEach(function(s){var v=s.inv;
+        if(v.host===O.me){if(!groups.some(function(g){return g[0].group===v.group;}))groups.push(B.group(v).filter(function(x){return x.table===t;}));}
+        else{var k=v.family?'Family':B.hostName(v.host)+'’s guests';others[k]=(others[k]||0)+1;}});
+      var html='<h3 id="tsTitle">'+esc(B.tableLabel(t))+'</h3><div class="meta">'+esc(whoAt(B,t))+' · '+taken.length+' of '+c.length+' chairs taken</div><ul class="tlist">';
+      groups.forEach(function(g){var conf=g.filter(function(v){return v.status==='confirmed';}).length;
+        html+='<li><b>'+g.map(function(v){return v.num;}).join(' and ')+'</b>'+(g[0].family?(g.length>1?'You and your wife':'You'):g.length>1?'Your guests':'Your guest')+'<small>'+(conf===g.length?(g.length>1?'All confirmed':'Confirmed'):!conf?'Not confirmed yet':conf+' confirmed, '+(g.length-conf)+' not yet')+'</small></li>';});
+      Object.keys(others).forEach(function(k){html+='<li>'+esc(k)+'<small>'+plural(others[k],'seat')+'</small></li>';});
+      if(c.length>taken.length)html+='<li>'+plural(c.length-taken.length,'chair')+' free</li>';
+      ts.innerHTML=html+'</ul><div class="stack"><button class="btn wide" id="tsClose" type="button">Close</button></div>';
+      tsTrigger=document.activeElement;ts.inert=false;ts.classList.add('show');veil.classList.add('show');
+      $('tsClose').onclick=closeTable;$('tsClose').focus({preventScroll:true});
+    });
+  }
+  function closeTable(){ts.classList.remove('show');veil.classList.remove('show');ts.inert=true;if(tsTrigger&&tsTrigger.focus)tsTrigger.focus();}
+  veil.addEventListener('click',function(){if(ts.classList.contains('show'))closeTable();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&ts.classList.contains('show'))closeTable();});
+  ROOM.onTable($('map'),tableSheet);
+
+  /* everyone: the whole dinner as a ring, the days left to confirm, today's confirmations, then every host */
+  function ago(iso,now){var m=Math.max(0,Math.round((new Date(now)-new Date(iso))/60000));
+    return m<1?'just now':m<60?plural(m,'minute')+' ago':m<1440?plural(Math.round(m/60),'hour')+' ago':plural(Math.round(m/1440),'day')+' ago';}
+  function everyone(O){
+    var seats=0,conf=0,wait=0;O.hosts.forEach(function(x){seats+=x.seats;conf+=x.confirmed;wait+=x.waiting;});
+    var R=78,C=2*Math.PI*R,a=seats?conf/seats:0,b=seats?wait/seats:0;
+    $('ring').setAttribute('aria-label',conf+' of '+seats+' confirmed, '+wait+' not confirmed yet');
+    $('ring').innerHTML='<circle cx="100" cy="100" r="'+R+'" fill="none" stroke="#efe2cc" stroke-width="14"/>'+
+      '<circle cx="100" cy="100" r="'+R+'" fill="none" stroke="#c9a45e" stroke-width="14" stroke-dasharray="'+((a+b)*C).toFixed(1)+' '+C.toFixed(1)+'" transform="rotate(-90 100 100)"/>'+
+      '<circle cx="100" cy="100" r="'+R+'" fill="none" stroke="#6f432f" stroke-width="14" stroke-dasharray="'+(a*C).toFixed(1)+' '+C.toFixed(1)+'" transform="rotate(-90 100 100)"/>'+
+      '<text x="100" y="104" text-anchor="middle" font-size="46" fill="#4c2f25">'+conf+'</text>'+
+      '<text x="100" y="130" text-anchor="middle" font-size="14" font-style="italic" fill="#7c6a5f">of '+seats+' confirmed</text>';
+    $('totLine').textContent=wait+' not confirmed yet · '+Math.max(0,seats-conf-wait)+' left to invite';
+    var days=Math.ceil((new Date(O.deadline)-new Date(O.now))/86400000);
+    $('when').textContent=days>1?days+' days left to confirm · 10 December':days===1?'Last day to confirm · 10 December':'Confirmations closed on 10 December';
+    $('pulse').textContent=O.today?plural(O.today,'confirmation')+' today'+(O.last?' · latest '+ago(O.last,O.now):''):O.last?'Latest confirmation '+ago(O.last,O.now):'No confirmations yet';
+    $('rows').innerHTML=O.hosts.map(function(x){
+      var left=Math.max(0,x.seats-x.confirmed-x.waiting);
+      return '<li><div class="top2"><span><b>'+esc(x.name)+'</b>'+(x.key===O.me?'<span class="you">You</span>':'')+'</span><span class="num">'+x.confirmed+' <span>of '+x.seats+' confirmed</span></span></div>'+
+        '<div class="bar" aria-hidden="true"><i class="c" style="width:'+(100*x.confirmed/x.seats)+'%"></i><i class="w" style="width:'+(100*x.waiting/x.seats)+'%"></i></div>'+
+        '<small>'+x.waiting+' not confirmed yet · '+left+' left to invite</small></li>';}).join('');
+  }
+  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function plural(n,one,many){return n+' '+(n===1?one:(many||one+'s'));}
+
   if(L.on){
     $('intro').textContent='Loading your invitations…';
     API.rpc('host_get',{p_token:L.token}).then(function(r){
