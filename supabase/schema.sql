@@ -69,23 +69,23 @@ alter table invitations enable row level security;
 revoke all on settings, hosts, dinner_tables, plan, invitations from anon, authenticated;
 
 -- ---------- helpers (not callable from the web) ----------
-create or replace function _token() returns text language sql volatile as $$
+create or replace function _token() returns text language sql volatile set search_path=public as $$
   select substr(replace(gen_random_uuid()::text,'-','')||replace(gen_random_uuid()::text,'-',''),1,24)
 $$;
 
 -- an invitation still holds its place: confirmed, or waiting and not past its date
-create or replace function _holds(i invitations) returns boolean language sql stable as $$
+create or replace function _holds(i invitations) returns boolean language sql stable set search_path=public as $$
   select i.status='confirmed' or (i.status='sent' and now()<=i.expires_at)
 $$;
 
 -- the state a guest, host or the gate sees
-create or replace function _state(i invitations) returns text language sql stable as $$
+create or replace function _state(i invitations) returns text language sql stable set search_path=public as $$
   select case when i.status='sent' and now()>i.expires_at then 'expired' else i.status end
 $$;
 
 -- a table for n people from one host: first the host's own planned chairs, then any table with room
 -- (never the family table). Null when nothing fits: the overall view shows them as not seated yet
-create or replace function _seat(p_host text, p_n int, p_skip uuid default null) returns int language sql stable as $$
+create or replace function _seat(p_host text, p_n int, p_skip uuid default null) returns int language sql stable set search_path=public as $$
   with held as (
     select table_num, host, count(*) c from invitations i
     where table_num is not null and _holds(i) and grp is distinct from p_skip
@@ -104,7 +104,7 @@ create or replace function _seat(p_host text, p_n int, p_skip uuid default null)
 $$;
 
 -- a fresh honoured-guest number nobody has had
-create or replace function _fresh_num() returns int language plpgsql volatile as $$
+create or replace function _fresh_num() returns int language plpgsql volatile set search_path=public as $$
 declare n int;
 begin
   loop
@@ -115,7 +115,7 @@ begin
 end $$;
 
 -- make n invitations for one host as one group, at one table
-create or replace function _make(p_host text, p_n int, p_family boolean, p_table int, p_expires timestamptz) returns uuid language plpgsql volatile as $$
+create or replace function _make(p_host text, p_n int, p_family boolean, p_table int, p_expires timestamptz) returns uuid language plpgsql volatile set search_path=public as $$
 declare g uuid := gen_random_uuid(); k int;
 begin
   for k in 0..p_n-1 loop
@@ -244,7 +244,8 @@ begin
   return json_build_object('moved',n,'table',p_table);
 end $$;
 
--- the web may call these, and only these
+-- the web may call these, and only these. They run as the database owner (security definer) on purpose: the tables
+-- themselves stay closed, and each function checks the code in the link before it reads or changes anything
 revoke execute on function guest_get(text), guest_confirm(text), host_get(text), host_invite(text,int), host_undo(text,uuid),
   gate_list(text), gate_admit(text,int[],timestamptz), admin_get(text), admin_move(text,uuid,int) from public;
 grant execute on function guest_get(text), guest_confirm(text), host_get(text), host_invite(text,int), host_undo(text,uuid),
