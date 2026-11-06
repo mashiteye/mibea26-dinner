@@ -333,17 +333,16 @@
       '<dl class="kv"><dt>Code</dt><dd>'+v.num+'</dd><dt>WhatsApp</dt><dd>'+tel+'</dd>'+(ADMIN?'<dt>Host</dt><dd>'+esc(hostLabel(v.host))+'</dd>':'')+familyOf(v)+
         '<dt>Seats</dt><dd>'+v.seats+'</dd><dt>Answer</dt><dd>'+esc(statusWords(v))+'</dd>'+
         (v.status==='confirmed'&&v.arrived?'<dt>In</dt><dd>'+Math.min(v.arrived,v.att)+' of '+v.att+(v.arrivedAt?', the last at '+esc(v.arrivedAt):'')+'</dd>':'')+'</dl>'+
-      (holds?'<div class="pair"><button class="btn" type="button" id="dEdit">Edit only</button><button class="btn primary" type="button" id="dRe">Reassign</button></div>'+
+      (holds&&v.table?'<div class="pair"><button class="btn" type="button" id="dEdit">Edit only</button><button class="btn primary" type="button" id="dRe">Reassign</button></div>'+
         '<p class="hint">Edit only fixes the name, number or seats; nothing is sent. Reassign gives the seats to someone else, with a new number.</p>':
+       holds?'<div class="stack"><button class="btn" type="button" id="dEdit">Edit only</button></div><p class="hint">Edit only fixes the name or number; nothing is sent. Once it has a table, its seats can change or go to someone else.</p>':
         '<p class="hint">Its seats went back to '+(ADMIN?esc(B.hostName(v.host)):'you')+'. To have them after all, invite them again from a table.</p>')+
       '<div class="linkrow">'+(again?(L.on?'<a class="linkbtn" id="dAgain" href="'+waUrl(v)+'" target="_blank" rel="noopener">Send the invitation again</a>':'<button class="linkbtn" type="button" id="dAgain">Send the invitation again</button>'):'')+
         (move?'<button class="linkbtn" type="button" id="dMove">'+(v.table?'Move to another table':'Give it a table')+'</button>':'')+(again||move?'':'<span></span>')+
         '<button class="linkbtn danger" type="button" id="dCancel">Cancel invitation</button></div>'+
       '<div class="stack"><button class="btn wide" type="button" data-close>Close</button></div>',holds?'#dEdit':null);
-    if($('dEdit')){
-      $('dEdit').onclick=function(){form('edit',v.table,v.chairs&&v.chairs[0],v);};
-      $('dRe').onclick=function(){form('reassign',v.table,v.chairs&&v.chairs[0],v);};
-    }
+    if($('dEdit'))$('dEdit').onclick=function(){form('edit',v.table,v.chairs&&v.chairs[0],v);};
+    if($('dRe'))$('dRe').onclick=function(){form('reassign',v.table,v.chairs&&v.chairs[0],v);};
     if($('dMove'))$('dMove').onclick=function(){moveSheet(v);};
     $('dCancel').onclick=function(){cancelSheet(v);};
     if(!L.on&&$('dAgain'))$('dAgain').onclick=function(){showToast('Preview: WhatsApp would open in their chat');};
@@ -548,7 +547,7 @@
     [].forEach.call(sheet.querySelectorAll('[data-to]'),function(b){b.disabled=true;});
     API.rpc('admin_move',{p_token:L.token,p_grp:v.group,p_table:t}).then(function(r){
       closeSheet();
-      showToast(!r||r.error?(r&&r.error==='full'?'That table just filled up':'Something went wrong. Try again.'):what);
+      showToast(!r||r.error?(r&&r.error==='full'?'That table just filled up':r&&r.error==='gone'?'That invitation has changed. Look again.':'Something went wrong. Try again.'):what);
       return load();
     }).catch(function(){closeSheet();showToast('No connection. Try again.');});
   }
@@ -574,9 +573,11 @@
     }).sort(function(a,b){return (a.table||99)-(b.table||99)||(((a.chairs||[])[0]||0)-((b.chairs||[])[0]||0))||a.num-b.num;});
   }
   function list(){
-    var items=listItems(),seats=0,conf=0,sent=0;
-    items.forEach(function(v){seats+=v.seats;if(v.status==='confirmed')conf+=v.att;else if(v.status==='sent')sent+=v.seats;});
-    $('lSum').textContent=items.length?plural(items.length,'invitation')+' · '+plural(seats,'seat')+' · '+conf+' confirmed · '+sent+' sent':'';
+    if(!B)return;
+    var items=listItems(),conf=0,sent=0,late=0;
+    items.forEach(function(v){if(v.status==='confirmed')conf+=v.att;else if(v.status==='sent')sent+=v.seats;else late++;});
+    /* people: confirmed, and sent but not confirmed yet (seats that came back are no longer counted) */
+    $('lSum').textContent=items.length?plural(items.length,'invitation')+' · '+conf+' confirmed · '+sent+' sent'+(late?' · '+late+' not confirmed in time':''):'';
     $('lRows').innerHTML=items.length?items.map(function(v){
       var pill=v.family?['fam','Family']:v.status==='confirmed'?['conf','Confirmed']:v.status==='sent'?['sent','Sent']:['gone','Not in time'];
       var where=v.table?'Table '+v.table+' '+B.tableName(v.table)+(v.chairs&&v.chairs.length?' · '+L.seatWords(v.chairs):''):'Not seated yet';
@@ -596,17 +597,25 @@
   });
   $('lRows').addEventListener('click',function(e){var b=e.target.closest('button[data-n]'),v=b&&B.byNum[+b.getAttribute('data-n')];if(v){if(v.family)ownSheet(v);else details(v);}});
   /* a spreadsheet of the list shown: a host's own columns, and on the overall view the host, children and the gate's count too */
+  /* a WhatsApp number for a spreadsheet: Ghana's as 024 123 4567; one from abroad with its country code apart, (+44) 7700900123,
+     so the plus and the digits stay as typed instead of turning into a sum or a number */
+  var CC2=[20,27,30,31,32,33,34,36,39,40,41,43,44,45,46,47,48,49,51,52,53,54,55,56,57,58,60,61,62,63,64,65,66,81,82,84,86,90,91,92,93,94,95,98];
+  function csvPhone(d){
+    if(!d)return '';if(/^233\d{9}$/.test(d))return L.showPhone(d);
+    var n=/^[17]/.test(d)?1:CC2.indexOf(+d.slice(0,2))>=0?2:3;
+    return '(+'+d.slice(0,n)+') '+d.slice(n);
+  }
   function csvOf(items){
     var head=['Code','Name','WhatsApp'].concat(ADMIN?['Host']:[]).concat(['Seats','Confirmed for','Answer','Table','Table name','Seat numbers']).concat(ADMIN?['Children','In','Last in at']:[]);
     var rows=[head].concat(items.map(function(v){
-      var r=[v.num,listName(v),v.phone?L.showPhone(v.phone):''];
+      var r=[v.num,listName(v),csvPhone(v.phone)];
       if(ADMIN)r.push(B.hostName(v.host)+(v.family?' (family)':''));
       r=r.concat([v.seats,v.status==='confirmed'?v.att:'',shortAnswer(v),v.table||'',v.table?B.tableName(v.table):'',(v.chairs||[]).join(' ')]);
       if(ADMIN)r=r.concat([v.kids||'',v.arrived||0,v.arrivedAt||'']);
       return r;
     }));
     /* a name typed like a formula stays text in a spreadsheet */
-    return rows.map(function(r){return r.map(function(c){c=String(c);if(/^[=+\-@]/.test(c)&&!/^\+\d+$/.test(c))c="'"+c;return '"'+c.replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
+    return rows.map(function(r){return r.map(function(c){c=String(c);if(/^[=+\-@]/.test(c))c="'"+c;return '"'+c.replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
   }
   function listTitle(){return (isAll()?'Every guest':B.hostName(me)+'’s guests')+' · Dinner Night, Sunday 20 December';}
   function shareText(items){
@@ -616,14 +625,14 @@
     }).join('\n');
   }
   $('lDown').addEventListener('click',function(){
-    var items=listItems();if(!items.length)return;
+    if(!B)return;var items=listItems();if(!items.length)return;
     var name='dinner-night-'+(isAll()?'every-guest':(B.hostName(me)||'guests').toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-guests')+'.csv';
     var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csvOf(items)],{type:'text/csv;charset=utf-8'}));a.download=name;
     document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href);},10000);
     showToast('Downloaded: '+plural(items.length,'invitation'));
   });
   $('lShare').addEventListener('click',function(){
-    var items=listItems();if(!items.length)return;
+    if(!B)return;var items=listItems();if(!items.length)return;
     var text=shareText(items);
     if(navigator.share){navigator.share({title:listTitle(),text:text}).catch(function(){});return;}
     copy(text,'List copied. Paste it anywhere',true);
@@ -673,6 +682,7 @@
       '<text x="100" y="130" text-anchor="middle" font-size="14" font-style="italic" fill="#7c6a5f">'+esc(small)+'</text>';
   }
   function everyone(){
+    if(!B)return;
     $('map').innerHTML=ROOM.svg({chairs:function(t){return B.chairsAt(t);},label:tableWho,
       aria:function(t){var c=B.chairsAt(t);return B.tableLabel(t)+', '+c.filter(function(s){return s.inv;}).length+' of '+c.length+' taken';},
       paint:function(s){var st=seatState(s);return {fill:FILL[st],stroke:STROKE[st],dashed:st==='open'};}});
