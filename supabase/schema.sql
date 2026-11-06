@@ -296,3 +296,6 @@ begin
     update invitations set status='confirmed', confirmed_at=now() where family and status='sent';
   end if;
 end $$;
+
+-- Michael's overall view: open this link and keep it to yourself. Each host's link, and the gate's, are inside it
+select 'https://mashiteye.github.io/mibea26-dinner/admin.html?k='||admin_token as your_overall_view_link from settings;
