@@ -86,6 +86,9 @@ html:not(.js) .hero-photo-full{clip-path:none!important}
 .copy{margin:6px auto 0;max-width:330px;font-family:var(--serif);font-style:italic;font-size:clamp(15px,4.2vw,17px);line-height:1.35;color:var(--ink)}
 .couple{margin:4px 0 0;font-family:var(--serif);font-weight:500;font-size:clamp(19px,5.6vw,23px);line-height:1.15;color:var(--choc)}
 .couple i{font-style:italic;font-weight:400}
+/* the couple are named as the couple, not as the hosts of the evening */
+.couple-label{margin:10px 0 0;font-size:10px;font-weight:600;letter-spacing:.32em;padding-left:.32em;text-transform:uppercase;color:var(--choc)}
+.couple-label+.couple{margin-top:3px}
 /* as big as the phone allows while "Sunday, 20 December 2026" stays on one line (its width is about 12.2 times the font size) */
 .date,.time,.venue{font-family:var(--serif);font-weight:500;font-size:min(31px,calc((100vw - 44px) / 12.5));line-height:1.12;color:var(--choc-deep)}
 .date,.time{font-variant-numeric:lining-nums}
@@ -325,7 +328,8 @@ html:not(.js) .needs-js{display:none}
 
   <div class="invite" id="invite">
     <h1 class="line names">You are cordially invited</h1>
-    <p class="line copy">to Dinner Night with</p>
+    <p class="line copy">to Dinner Night</p>
+    <p class="line couple-label">The couple</p>
     <p class="line couple">Michael <i>&amp;</i> Beatrice</p>
     <div class="line date">Sunday, 20 December 2026</div>
     <div class="line time">4:00 pm</div>

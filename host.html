@@ -137,7 +137,7 @@
   /* a new invitation: its own number, its own link, the seats chosen */
   function freshNumber(){var n;do{n=101+Math.floor(Math.random()*799);}while(n===950||D.byNum[n]||made.some(function(m){return m.num===n;}));return n;}
   function message(m){
-    return 'Hello, you are invited to Dinner Night with Michael & Beatrice, hosted by the Ashiteye and Laryea families.\n'+
+    return 'Hello, you are cordially invited to Dinner Night, hosted by the Ashiteye and Laryea families.\nThe couple: Michael & Beatrice\n'+
       (m.size>1?'This invitation is for '+m.size+'.\n':'')+
       'Sunday 20 December 2026, 4:00 pm\nEvents Rising Sun, Teshie\n\n'+
       'Your honoured-guest number is '+m.num+'.\n\n'+
