@@ -21,9 +21,9 @@
 #map .tbl:focus-visible circle.t{stroke:var(--gold-deep);stroke-width:2}
 #map text{font-family:var(--sans)}
 .legend .open{background:#fff;border-style:dashed}
-.legend .sent{background:#e9d7b5}
-.legend .confirmed{background:#6f432f;border-color:#6f432f}
-.legend .arrived{background:#3e7a4f;border-color:#3e7a4f}
+.legend .sent{background:#f2c94c;border-color:#b8901e}
+.legend .confirmed{background:#3e8e5a;border-color:#2c6b42}
+.legend .arrived{background:#2f6690;border-color:#24506f}
 .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table.hosts{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;font-variant-numeric:lining-nums tabular-nums}
 table.hosts th{font-size:11px;font-weight:600;color:var(--soft);text-align:right;padding:6px 3px;border-bottom:1px solid var(--line)}
@@ -40,6 +40,8 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
 .hh .no{min-width:52px;font-family:var(--serif);font-size:26px;line-height:1;color:var(--choc-deep);font-variant-numeric:lining-nums tabular-nums}
 .hh .d{flex:1;font-size:13px;color:var(--choc-deep)}
 .hh .d small{display:block;margin-top:2px;font-size:11.5px;color:var(--soft)}
+.hh .d b{font-weight:600}
+.hh .d a{color:var(--choc)}
 .hh .btn{min-height:38px;padding:0 14px}
 .hh li.free{font-size:12.5px;color:var(--soft)}
 .pick{list-style:none;margin:12px 0 0;padding:0;max-height:46vh;overflow:auto}
@@ -107,16 +109,18 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
   function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function showToast(m){toast.textContent=m;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){toast.classList.remove('show');},2600);}
   function plural(n,one,many){return n+' '+(n===1?one:(many||one+'s'));}
-  var FILL={open:'#fff',sent:'#e9d7b5',confirmed:'#6f432f',arrived:'#3e7a4f'};
-  var STROKE={open:'#b7a58c',sent:'#cdb68d',confirmed:'#6f432f',arrived:'#3e7a4f'};
+  function cap1(t){return t?t.charAt(0).toUpperCase()+t.slice(1):'';}
+  /* the same colours as the host pages: yellow sent, green confirmed; on the night, blue once they're in */
+  var FILL={open:'#fff',sent:'#f2c94c',confirmed:'#3e8e5a',arrived:'#2f6690'};
+  var STROKE={open:'#b7a58c',sent:'#b8901e',confirmed:'#2c6b42',arrived:'#24506f'};
 
-  /* every chair holds one invitation (one person) or none. Invitations a host made together (a couple, a family)
-     form a group: they sit together and move together */
-  function state(s){var v=s.inv;if(!v)return 'open';if(v.status!=='confirmed')return 'sent';return night&&v.arrived?'arrived':'confirmed';}
+  /* an invitation is one number for one to four people (a person, a couple, a family): they sit together and move
+     together. It takes a chair for each seat it holds; on the night a chair turns green as each of them comes in */
+  function state(s){var v=s.inv;if(!v)return 'open';if(v.status!=='confirmed')return 'sent';return night&&s.k<(v.arrived||0)?'arrived':'confirmed';}
   function chairs(t){return D.seats.filter(function(s){return s.table===t;});}
-  function groupsAt(t){var seen=[],out=[];chairs(t).forEach(function(s){var v=s.inv;if(v&&seen.indexOf(v.group)<0){seen.push(v.group);out.push(D.groups[v.group]);}});return out;}
+  function at(t){var out=[];chairs(t).forEach(function(s){if(s.inv&&out.indexOf(s.inv)<0)out.push(s.inv);});return out;}
   function freeAt(t){return chairs(t).filter(function(s){return !s.inv;}).length;}
-  function whose(g){var v=g[0],h=D.hostName(v.host);return v.family?h+(g.length>1?' and wife':'')+', family':h+'’s guests';}
+  function whose(v){var h=D.hostName(v.host);return v.family?h+(v.own==='wife'?'’s wife':v.seats>1?' and wife':'')+', family':h+'’s guest'+(v.seats>1?'s':'');}
   /* the line under a table: whose guests sit there, Shared, or Family */
   function tableWho(t){
     if(t===18)return 'Family';
@@ -130,7 +134,7 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     document.getElementById('map').innerHTML=ROOM.svg({chairs:chairs,label:tableWho,
       aria:function(t){return D.tableLabel(t)+', '+(9-freeAt(t))+' of 9 chairs taken';},
       paint:function(s){var st=state(s);return {fill:FILL[st],stroke:STROKE[st],dashed:st==='open'};}});
-    var keys=night?[['open','Free'],['sent','Not confirmed'],['confirmed','Confirmed, not in yet'],['arrived','In the room']]:[['open','Free'],['sent','Not confirmed yet'],['confirmed','Confirmed']];
+    var keys=night?[['open','Free'],['sent','Not confirmed'],['confirmed','Confirmed, not in yet'],['arrived','In the room']]:[['open','Free'],['sent','Sent'],['confirmed','Confirmed']];
     document.getElementById('legend').innerHTML=keys.map(function(k){return '<span><i class="'+k[0]+'"></i>'+k[1]+'</span>';}).join('');
   }
 
@@ -138,8 +142,8 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
   function stats(){
     var per={},all={seats:0,invited:0,confirmed:0,waiting:0,left:0,arrived:0};
     Object.keys(D.HOSTS).forEach(function(k){
-      var T=D.tally(k),o={seats:T.alloc,invited:T.invited+T.own.length,confirmed:T.confirmed+T.own.length,waiting:T.waiting,left:T.left,arrived:0};
-      D.invites.forEach(function(v){if(v.host===k&&v.arrived)o.arrived++;});
+      var T=D.tally(k),o={seats:T.alloc,invited:T.invited+T.ownSeats,confirmed:T.confirmed+T.ownSeats,waiting:T.waiting,left:T.left,arrived:0};
+      D.invites.forEach(function(v){if(v.host===k&&v.status==='confirmed')o.arrived+=Math.min(v.att||v.seats,v.arrived||0);});
       per[k]=o;
       Object.keys(all).forEach(function(f){all[f]+=o[f];});
     });
@@ -149,15 +153,15 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     var list=[],a=S.all;
     function byHost(f){return Object.keys(D.HOSTS).filter(function(k){return S.per[k][f];}).map(function(k){return esc(D.HOSTS[k].name)+' '+S.per[k][f];}).join(', ');}
     if(night){
-      list.push({cls:'',t:'Still to come · '+plural(a.confirmed-a.arrived,'guest'),m:'Each number lets in one person. The gate calls the host for anyone it doesn’t know.'});
+      list.push({cls:'',t:'Still to come · '+plural(a.confirmed-a.arrived,'guest'),m:'Each number lets in only as many people as it confirmed. The gate calls the host for anyone it doesn’t know.'});
       return list;
     }
     if(a.waiting)list.push({cls:'warn',t:'Not confirmed yet · '+plural(a.waiting,'person','people'),m:byHost('waiting')+'. Whatever isn’t confirmed by 10 December goes back to its host.'});
     if(a.left)list.push({cls:'',t:'Left to invite · '+plural(a.left,'person','people'),m:byHost('left')+'.'});
     if(D.unseated&&D.unseated.length){
-      var gs=[];D.unseated.forEach(function(v){if(gs.indexOf(v.group)<0)gs.push(v.group);});
-      list.unshift({cls:'warn',t:'Not seated yet · '+plural(D.unseated.length,'person','people'),m:'No table had room when they were invited. Tap one to give it a table.<br>'+
-        gs.map(function(g){var m=D.groups[g];return '<button class="btn seat" type="button" data-seat="'+g+'">'+m.map(function(v){return v.num;}).join(' and ')+' · '+esc(D.hostName(m[0].host))+'</button>';}).join('')});
+      var people=D.unseated.reduce(function(n,v){return n+D.held(v);},0);
+      list.unshift({cls:'warn',t:'Not seated yet · '+plural(people,'person','people'),m:'No table had room when they were invited. Tap one to give it a table.<br>'+
+        D.unseated.map(function(v){var n=D.held(v);return '<button class="btn seat" type="button" data-seat="'+v.num+'">'+v.num+' · '+esc(D.hostName(v.host))+(n>1?' · '+n:'')+'</button>';}).join('')});
     }
     return list;
   }
@@ -177,7 +181,7 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     var f=followUps(S);
     document.getElementById('issueCount').textContent=night?'':plural(f.length,'item');
     document.getElementById('issues').innerHTML=f.map(function(i){return '<li class="'+i.cls+'"><b>'+i.t+'</b>'+i.m+'</li>';}).join('');
-    document.querySelectorAll('#issues [data-seat]').forEach(function(b){b.onclick=function(){moveSheet(D.groups[b.getAttribute('data-seat')]);};});
+    document.querySelectorAll('#issues [data-seat]').forEach(function(b){b.onclick=function(){moveSheet(D.byNum[b.getAttribute('data-seat')]);};});
   }
 
   var trigger=null;
@@ -186,64 +190,66 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
   veil.addEventListener('click',closeSheet);
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&sheet.classList.contains('show'))closeSheet();});
 
-  /* a table: who sits there, by number, a group to a row, and a way to move any group */
-  function status(g){
-    var c=g.filter(function(v){return v.status==='confirmed';}),n=g.length;
+  /* a table: who sits there, an invitation to a row, and a way to move any of them */
+  function status(v){
+    var n=v.att||v.seats,inn=Math.min(n,v.arrived||0);
     if(night){
-      if(!c.length)return 'Not confirmed';
-      var inn=c.filter(function(v){return v.arrived;});
-      return n===1?(inn.length?'In at '+inn[0].arrivedAt:'Not in yet'):inn.length+' of '+c.length+' in'+(c.length<n?' · '+(n-c.length)+' not confirmed':'');
+      if(v.status!=='confirmed')return 'Not confirmed';
+      return n===1?(inn?'In at '+v.arrivedAt:'Not in yet'):inn+' of '+n+' in'+(inn&&v.arrivedAt?' · last at '+v.arrivedAt:'');
     }
-    return c.length===n?(n>1?'All confirmed':'Confirmed'):!c.length?'Not confirmed yet':c.length+' confirmed, '+(n-c.length)+' not yet';
+    return v.status!=='confirmed'?'Not confirmed yet':v.att<v.seats?'Confirmed '+v.att+' of '+v.seats:'Confirmed';
   }
   function tableSheet(t){
-    var list=groupsAt(t),free=freeAt(t);
+    var list=at(t),free=freeAt(t);
     var html='<h3 id="sheetTitle">'+esc(D.tableLabel(t))+'</h3><div class="meta">'+esc(tableWho(t))+' · '+(9-free)+' of 9 chairs taken</div><ul class="hh">';
-    list.forEach(function(g){
-      var kids=g.reduce(function(a,v){return a+v.kids;},0),nums=g.map(function(v){return v.num;});
-      html+='<li><span class="no">'+nums.join('<br>')+'</span><span class="d">'+plural(g.length,'seat')+' · '+esc(whose(g))+(kids?' · '+kids+' children, no chair':'')+'<small>'+status(g)+'</small></span>'+
-        '<button class="btn" type="button" data-move="'+g[0].group+'" aria-label="Move '+nums.join(' and ')+'">Move</button></li>';
+    list.forEach(function(v){
+      var tel=v.phone?(L.on?' · <a href="tel:+'+v.phone+'">'+esc(L.showPhone(v.phone))+'</a>':' · '+esc(L.showPhone(v.phone))):'';
+      html+='<li><span class="no">'+v.num+'</span><span class="d">'+(v.name?'<b>'+esc(v.name)+'</b> · ':'')+plural(D.held(v),'seat')+' · '+esc(whose(v))+(v.kids?' · '+v.kids+' children, no chair':'')+
+        '<small>'+cap1(L.seatWords(v.chairs))+' · '+status(v)+tel+'</small></span>'+
+        '<button class="btn" type="button" data-move="'+v.num+'" aria-label="Move '+v.num+'">Move</button></li>';
     });
     if(free)html+='<li class="free">'+plural(free,'chair')+' free</li>';
     openSheet(html+'</ul><div class="stack"><button class="btn wide" id="tClose" type="button">Close</button></div>');
-    sheet.querySelectorAll('[data-move]').forEach(function(b){b.onclick=function(){moveSheet(D.groups[b.getAttribute('data-move')]);};});
+    sheet.querySelectorAll('[data-move]').forEach(function(b){b.onclick=function(){moveSheet(D.byNum[b.getAttribute('data-move')]);};});
     document.getElementById('tClose').onclick=closeSheet;
   }
-  function moveSheet(g){
-    var n=g.length,from=g[0].table,opts=[],nums=g.map(function(v){return v.num;}).join(' and ');
+  function moveSheet(v){
+    var n=D.held(v),from=v.table,opts=[];
     for(var t=1;t<=20;t++)if(t!==from&&freeAt(t)>=n)opts.push(t);
-    var html='<h3 id="sheetTitle">Move '+nums+'</h3><div class="meta">'+plural(n,'seat')+' · now at '+esc(D.tableLabel(from))+(n>1?' · they move together':'')+'</div>'+
+    var html='<h3 id="sheetTitle">Move '+v.num+'</h3><div class="meta">'+plural(n,'seat')+' · now at '+esc(D.tableLabel(from))+(n>1?' · they move together':'')+'</div>'+
       (opts.length?'<ul class="pick">'+opts.map(function(t){return '<li><button type="button" data-to="'+t+'"><b>'+esc(D.tableLabel(t))+'</b><span>'+freeAt(t)+' free · '+esc(tableWho(t))+'</span></button></li>';}).join('')+'</ul>':
         '<div class="banner warn">No other table has '+plural(n,'free chair')+'. Move someone else first.</div>')+
       '<div class="stack"><button class="btn wide" id="mBack" type="button">Back</button></div>';
     openSheet(html);
-    sheet.querySelectorAll('[data-to]').forEach(function(b){b.onclick=function(){moveTo(g,+b.getAttribute('data-to'));};});
+    sheet.querySelectorAll('[data-to]').forEach(function(b){b.onclick=function(){moveTo(v,+b.getAttribute('data-to'));};});
     document.getElementById('mBack').onclick=function(){if(from)tableSheet(from);else closeSheet();};
   }
-  /* the group leaves its chairs and takes the first free ones at the new table */
-  function moveTo(g,t){
-    var from=g[0].table,what=g.map(function(v){return v.num;}).join(' and ')+(from?' moved from '+D.tableName(from)+' to ':' seated at ')+D.tableLabel(t);
+  /* the invitation leaves its chairs and takes the first free ones at the new table */
+  function moveTo(v,t){
+    var from=v.table,what=v.num+(from?' moved from '+D.tableName(from)+' to ':' seated at ')+D.tableLabel(t);
     if(L.on){
-      API.rpc('admin_move',{p_token:L.token,p_grp:g[0].group,p_table:t}).then(function(r){
+      API.rpc('admin_move',{p_token:L.token,p_grp:v.group,p_table:t}).then(function(r){
         if(!r||r.error){showToast(r&&r.error==='full'?'That table just filled up':'Something went wrong. Try again.');return reload();}
         closeSheet();showToast(what);return reload();
       }).catch(function(){showToast('No connection. Try again.');});
       return;
     }
-    D.seats.forEach(function(s){if(s.inv&&g.indexOf(s.inv)>=0)s.inv=null;});
+    D.seats.forEach(function(s){if(s.inv===v){s.inv=null;s.k=0;}});
     var free=chairs(t).filter(function(s){return !s.inv;});
-    g.forEach(function(v,k){var s=free[k];s.inv=v;v.table=t;v.chair=s.code;});
+    v.chairs=[];for(var k=0;k<D.held(v);k++){free[k].inv=v;free[k].k=k;v.chairs.push(free[k].chair);}
+    v.table=t;if(D.unseated)D.unseated=D.unseated.filter(function(x){return x!==v;});
     closeSheet();render();showToast(what);
   }
   ROOM.onTable(document.getElementById('map'),tableSheet);
   var vB=document.getElementById('vBefore'),vN=document.getElementById('vNight');
   function setView(n){night=n;vB.setAttribute('aria-pressed',String(!n));vN.setAttribute('aria-pressed',String(n));render();}
   vB.onclick=function(){setView(false);};vN.onclick=function(){setView(true);};
-  /* a spreadsheet of every number: host, group, answer, table, and when they came in */
+  /* a spreadsheet of every number: host, seats, answer, table, and how many came in */
   function exportList(){
-    var gid={},rows=[['Number','Host','Group','Answer','Table','Table name','In at']];
-    D.invites.forEach(function(v){if(!gid[v.group])gid[v.group]=Object.keys(gid).length+1;
-      rows.push([v.num,D.hostName(v.host)+(v.family?' (family)':''),gid[v.group],v.status==='confirmed'?'Confirmed':v.status==='sent'?'Not confirmed yet':'Not confirmed by the date',v.table||'',v.table?D.tableName(v.table):'',v.arrivedAt||'']);});
+    var rows=[['Number','Name','WhatsApp','Host','Seats','Confirmed for','Answer','Table','Table name','Seat numbers','In','Last in at']];
+    D.invites.forEach(function(v){
+      rows.push([v.num,v.name||'',v.phone?L.showPhone(v.phone):'',D.hostName(v.host)+(v.family?' (family)':''),v.seats,v.status==='confirmed'?v.att:'',
+        v.status==='confirmed'?'Confirmed':v.status==='sent'?'Not confirmed yet':'Not confirmed by the date',v.table||'',v.table?D.tableName(v.table):'',(v.chairs||[]).join(' '),v.arrived||0,v.arrivedAt||'']);});
     var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
     var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download='dinner-night-guests.csv';
     document.body.appendChild(a);a.click();a.remove();
