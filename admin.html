@@ -48,6 +48,12 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
 .pick button b{font-family:var(--serif);font-weight:500;font-size:20px}
 .pick button span{font-size:12px;color:var(--soft)}
 .export{margin-top:16px}
+.links{list-style:none;margin:8px 0 0;padding:0}
+.links li{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:13px;color:var(--choc-deep)}
+.links li b{flex:1;font-weight:600}
+.links li b small{display:block;font-weight:400;font-size:11.5px;color:var(--soft)}
+.links .btn{min-height:36px;padding:0 12px;font-size:10.5px}
+.issues .seat{margin:6px 6px 0 0;min-height:34px;padding:0 12px;font-size:11px}
 </style>
 </head>
 <body>
@@ -76,6 +82,10 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     <div class="card-head"><h2>To follow up</h2><span id="issueCount"></span></div>
     <ul class="issues" id="issues"></ul>
   </section>
+  <section class="card" id="links" hidden>
+    <div class="card-head"><h2>Links</h2><span>Each one is private: send it only to that person</span></div>
+    <ul class="links" id="linkList"></ul>
+  </section>
   <button class="btn wide export" id="export" type="button">Export the list</button>
 </main>
 
@@ -83,11 +93,15 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
 <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" inert></section>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="./config.js"></script>
+<script src="./api.js"></script>
+<script src="./live.js"></script>
 <script src="./demo-data.js"></script>
 <script>
 (function(){
   'use strict';
-  var D=window.DEMO,night=false;
+  /* two modes: the design preview with sample data, or Michael's real overall view (?k=his code) from the database */
+  var L=window.LIVE,D=window.DEMO,night=false;
   var sheet=document.getElementById('sheet'),veil=document.getElementById('veil'),toast=document.getElementById('toast');
   function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function showToast(m){toast.textContent=m;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){toast.classList.remove('show');},2600);}
@@ -155,6 +169,11 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     }
     if(a.waiting)list.push({cls:'warn',t:'Not confirmed yet · '+plural(a.waiting,'person','people'),m:byHost('waiting')+'. Whatever isn’t confirmed by 10 December goes back to its host.'});
     if(a.left)list.push({cls:'',t:'Left to invite · '+plural(a.left,'person','people'),m:byHost('left')+'.'});
+    if(D.unseated&&D.unseated.length){
+      var gs=[];D.unseated.forEach(function(v){if(gs.indexOf(v.group)<0)gs.push(v.group);});
+      list.unshift({cls:'warn',t:'Not seated yet · '+plural(D.unseated.length,'person','people'),m:'No table had room when they were invited. Tap one to give it a table.<br>'+
+        gs.map(function(g){var m=D.groups[g];return '<button class="btn seat" type="button" data-seat="'+g+'">'+m.map(function(v){return v.num;}).join(' and ')+' · '+esc(D.hostName(m[0].host))+'</button>';}).join('')});
+    }
     return list;
   }
   function render(){
@@ -165,7 +184,7 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     var cols=night?[['confirmed','Confirmed'],['arrived','In'],['tocome','To come']]:[['seats','Seats'],['invited','Invited'],['confirmed','Confirmed'],['waiting','Waiting'],['left','Left']];
     function cells(o){return cols.map(function(c){return '<td>'+(c[0]==='tocome'?o.confirmed-o.arrived:o[c[0]])+'</td>';}).join('');}
     var rows='<tr><th>Host</th>'+cols.map(function(c){return '<th>'+c[1]+'</th>';}).join('')+'</tr>';
-    Object.keys(D.HOSTS).forEach(function(k){rows+='<tr><td><a href="./host.html?h='+k+'">'+esc(D.HOSTS[k].name)+'</a></td>'+cells(S.per[k])+'</tr>';});
+    Object.keys(D.HOSTS).forEach(function(k){rows+='<tr><td><a href="'+(L.on?L.pageLink('host.html',D.HOSTS[k].token):'./host.html?h='+k)+'">'+esc(D.HOSTS[k].name)+'</a></td>'+cells(S.per[k])+'</tr>';});
     rows+='<tr class="all"><td>All</td>'+cells(a)+'</tr>';
     document.getElementById('hosts').innerHTML=rows;
     document.getElementById('hostsNote').textContent='People';
@@ -173,6 +192,7 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     var f=followUps(S);
     document.getElementById('issueCount').textContent=night?'':plural(f.length,'item');
     document.getElementById('issues').innerHTML=f.map(function(i){return '<li class="'+i.cls+'"><b>'+i.t+'</b>'+i.m+'</li>';}).join('');
+    document.querySelectorAll('#issues [data-seat]').forEach(function(b){b.onclick=function(){moveSheet(D.groups[b.getAttribute('data-seat')]);};});
   }
 
   var trigger=null;
@@ -201,7 +221,7 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     });
     if(free)html+='<li class="free">'+plural(free,'chair')+' free</li>';
     openSheet(html+'</ul><div class="stack"><button class="btn wide" id="tClose" type="button">Close</button></div>');
-    sheet.querySelectorAll('[data-move]').forEach(function(b){b.onclick=function(){moveSheet(D.groups[+b.getAttribute('data-move')]);};});
+    sheet.querySelectorAll('[data-move]').forEach(function(b){b.onclick=function(){moveSheet(D.groups[b.getAttribute('data-move')]);};});
     document.getElementById('tClose').onclick=closeSheet;
   }
   function moveSheet(g){
@@ -213,16 +233,22 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
       '<div class="stack"><button class="btn wide" id="mBack" type="button">Back</button></div>';
     openSheet(html);
     sheet.querySelectorAll('[data-to]').forEach(function(b){b.onclick=function(){moveTo(g,+b.getAttribute('data-to'));};});
-    document.getElementById('mBack').onclick=function(){tableSheet(from);};
+    document.getElementById('mBack').onclick=function(){if(from)tableSheet(from);else closeSheet();};
   }
   /* the group leaves its chairs and takes the first free ones at the new table */
   function moveTo(g,t){
-    var from=g[0].table;
+    var from=g[0].table,what=g.map(function(v){return v.num;}).join(' and ')+(from?' moved from '+D.tableName(from)+' to ':' seated at ')+D.tableLabel(t);
+    if(L.on){
+      API.rpc('admin_move',{p_token:L.token,p_grp:g[0].group,p_table:t}).then(function(r){
+        if(!r||r.error){showToast(r&&r.error==='full'?'That table just filled up':'Something went wrong. Try again.');return reload();}
+        closeSheet();showToast(what);return reload();
+      }).catch(function(){showToast('No connection. Try again.');});
+      return;
+    }
     D.seats.forEach(function(s){if(s.inv&&g.indexOf(s.inv)>=0)s.inv=null;});
     var free=chairs(t).filter(function(s){return !s.inv;});
     g.forEach(function(v,k){var s=free[k];s.inv=v;v.table=t;v.chair=s.code;});
-    closeSheet();render();
-    showToast(g.map(function(v){return v.num;}).join(' and ')+' moved from '+D.tableName(from)+' to '+D.tableLabel(t));
+    closeSheet();render();showToast(what);
   }
   var map=document.getElementById('map');
   map.addEventListener('click',function(e){var g=e.target.closest('.tbl');if(g)tableSheet(+g.getAttribute('data-t'));});
@@ -230,8 +256,41 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
   var vB=document.getElementById('vBefore'),vN=document.getElementById('vNight');
   function setView(n){night=n;vB.setAttribute('aria-pressed',String(!n));vN.setAttribute('aria-pressed',String(n));render();}
   vB.onclick=function(){setView(false);};vN.onclick=function(){setView(true);};
-  document.getElementById('export').onclick=function(){showToast('Preview: this downloads every number with its host, table and answer');};
-  render();
+  /* a spreadsheet of every number: host, group, answer, table, and when they came in */
+  function exportList(){
+    var gid={},rows=[['Number','Host','Group','Answer','Table','Table name','In at']];
+    D.invites.forEach(function(v){if(!gid[v.group])gid[v.group]=Object.keys(gid).length+1;
+      rows.push([v.num,D.hostName(v.host)+(v.family?' (family)':''),gid[v.group],v.status==='confirmed'?'Confirmed':v.status==='sent'?'Not confirmed yet':'Not confirmed by the date',v.table||'',v.table?D.tableName(v.table):'',v.arrivedAt||'']);});
+    var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download='dinner-night-guests.csv';
+    document.body.appendChild(a);a.click();a.remove();
+  }
+  document.getElementById('export').onclick=function(){if(L.on)exportList();else showToast('Preview: this downloads every number with its host, table and answer');};
+
+  /* the private links Michael sends: one per host, and the gate's */
+  function links(raw){
+    var base=function(page,t){return L.pageLink(page,t);};
+    var items=Object.keys(D.HOSTS).map(function(k){var h=D.HOSTS[k];return {who:h.name+(h.role?' · '+h.role:''),note:'Their invitations page',url:base('host.html',h.token),
+      text:'Hello '+h.name+', this is your private link for inviting guests to Dinner Night. Tap Invite, then send the message on WhatsApp. Please keep this link to yourself.\n'+base('host.html',h.token)};});
+    items.push({who:'Gate',note:'For the phone at the gate',url:base('gate.html',raw.gate_token),text:'Dinner Night gate. Open this on the gate phone before guests arrive:\n'+base('gate.html',raw.gate_token)});
+    document.getElementById('linkList').innerHTML=items.map(function(it,i){return '<li><b>'+esc(it.who)+'<small>'+esc(it.note)+'</small></b><button class="btn" type="button" data-copy="'+i+'">Copy</button><a class="btn" href="https://wa.me/?text='+encodeURIComponent(it.text)+'" target="_blank" rel="noopener">WhatsApp</a></li>';}).join('');
+    document.querySelectorAll('#linkList [data-copy]').forEach(function(b){b.onclick=function(){
+      var u=items[+b.getAttribute('data-copy')].url;
+      (navigator.clipboard&&window.isSecureContext?navigator.clipboard.writeText(u):Promise.reject()).then(function(){showToast('Link copied');},function(){window.prompt('Copy this link',u);});
+    };});
+    document.getElementById('links').hidden=false;
+  }
+  function reload(){
+    return API.rpc('admin_get',{p_token:L.token}).then(function(r){
+      if(!r||r.error){document.getElementById('chips').innerHTML='<span class="chip bad">This link isn’t working</span>';return;}
+      D=L.build(r);if(!sheet.classList.contains('show'))render();links(r);
+    });
+  }
+  if(L.on){
+    document.getElementById('chips').innerHTML='<span class="chip">Loading…</span>';
+    reload().catch(function(){document.getElementById('chips').innerHTML='<span class="chip warn">No connection. Pull down to try again.</span>';});
+    setInterval(function(){if(!sheet.classList.contains('show'))reload().catch(function(){});},60000);
+  }else render();
 })();
 </script>
 </body>

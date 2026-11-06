@@ -379,6 +379,7 @@ html:not(.js) .needs-js{display:none}
   <div class="stack">
     <button class="btn primary" id="yesBtn" type="button">Confirm</button>
   </div>
+  <p class="closed" id="closedNote" hidden></p>
   <button class="close" id="rsvpClose" type="button">Close</button>
 </section>
 
@@ -402,6 +403,8 @@ html:not(.js) .needs-js{display:none}
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="./config.js"></script>
+<script src="./api.js"></script>
 <script>
 (function(){
   'use strict';
@@ -415,12 +418,15 @@ html:not(.js) .needs-js{display:none}
   var sheetTrigger=null;
 
   /* the invitation this link belongs to: one person and their honoured-guest number.
-     Until the links come from the database, ?g= (number) previews it */
+     A real link carries ?i= (the invitation's private code), checked with the database. ?g= (a number) or ?review
+     previews it with nothing saved anywhere. A bare link is the invitation alone, with no Confirm */
   var Q=new URLSearchParams(location.search);
-  var G=parseInt(Q.get('g'),10);
-  var GUEST={num:G>=100&&G<=999?G:418};
-  var STORE='mibea26-dinner-'+GUEST.num;   /* one answer per invitation, so two invitations opened on one phone stay apart */
+  var TOKEN=Q.get('i'),LIVE=!!(TOKEN&&window.API&&API.ready);
+  var G=parseInt(Q.get('g'),10),PREVIEW=!LIVE&&(G>=100&&G<=999||Q.has('review'));
+  var GUEST={num:G>=100&&G<=999?G:418,closed:false,by:'10 December'};
+  var STORE=LIVE?'mibea26-i-'+TOKEN:'mibea26-dinner-'+GUEST.num;   /* one answer per invitation, so two invitations opened on one phone stay apart */
   var state=(function(){var v=null;try{v=localStorage.getItem(STORE);}catch(e){}if(!v)return {};try{v=JSON.parse(v)||{};}catch(e){return {};}return v.s==='yes'?v:{};})();   /* only a confirmation is kept: there is no declining */
+  if(LIVE)GUEST.num=state.num||0;   /* the real number comes from the database in a moment */
   function saveState(){try{localStorage.setItem(STORE,JSON.stringify(state));}catch(e){}}
   (function(){var h=new Date().getHours();if(h>=18||h<6)hero.classList.add('evening');else if(h<11)hero.classList.add('morning');})();
   var DINNER_AT=Date.UTC(2026,11,20,16,0,0); /* Sunday 20 Dec 2026, 4:00 pm GMT (Accra) */
@@ -461,6 +467,7 @@ html:not(.js) .needs-js{display:none}
   var yesBtn=document.getElementById('yesBtn');
   function updateActions(){
     var yes=state.s==='yes';
+    rsvpBtn.hidden=!LIVE&&!PREVIEW||!!GUEST.invalid;   /* no invitation behind this link: Directions and Help only */
     rsvpBtn.textContent=yes?'Guest '+GUEST.num:'Confirm';              /* one button: it asks first, then it is the guest's card */
     rsvpBtn.setAttribute('aria-label',yes?'Honoured guest '+GUEST.num+', see your card':'Confirm attendance');
     rsvpBtn.classList.toggle('pulse',!state.s);   /* pulses until this phone has answered */
@@ -519,12 +526,37 @@ html:not(.js) .needs-js{display:none}
     });
   });
   updateActions();
-  yesBtn.addEventListener('click',function(){
-    state={s:'yes'};
+  function confirmed(){
+    state={s:'yes',num:GUEST.num};
     saveState();updateActions();
     closeSheet();celebrate();showToast('Attendance confirmed');
     setTimeout(revealTable,2400);                              /* the cork pops, then the honoured-guest card */
+  }
+  /* past the date on the invitation, the place has gone back to the host */
+  function closedNow(){
+    GUEST.closed=true;yesBtn.hidden=true;
+    var n=document.getElementById('closedNote');n.hidden=false;
+    n.textContent='Confirmations closed on '+GUEST.by+'. Please speak to the person who invited you.';
+  }
+  function day(iso){var d=new Date(iso);return d.getUTCDate()+' '+['January','February','March','April','May','June','July','August','September','October','November','December'][d.getUTCMonth()];}
+  yesBtn.addEventListener('click',function(){
+    if(!LIVE){confirmed();return;}
+    yesBtn.disabled=true;yesBtn.textContent='Confirming…';
+    API.rpc('guest_confirm',{p_token:TOKEN}).then(function(r){
+      yesBtn.disabled=false;yesBtn.textContent='Confirm';
+      if(r&&r.status==='confirmed'){GUEST.num=r.num;confirmed();}
+      else if(r&&r.status==='expired')closedNow();
+      else showToast('This invitation isn’t valid any more');
+    }).catch(function(){yesBtn.disabled=false;yesBtn.textContent='Confirm';showToast('No connection. Please try again.');});
   });
+  /* a real link: the number and the answer come from the database; the answer saved on this phone shows at once meanwhile */
+  if(LIVE)API.rpc('guest_get',{p_token:TOKEN}).then(function(r){
+    if(!r){GUEST.invalid=true;state={};updateActions();return;}
+    GUEST.num=r.num;if(r.confirm_by)GUEST.by=day(r.confirm_by);
+    if(r.status==='confirmed'){state={s:'yes',num:r.num};saveState();}
+    else if(r.status==='expired'){state={};closedNow();}
+    updateActions();
+  }).catch(function(){});
   document.addEventListener('keydown',function(e){
     var active=openEl;
     if(!active)return;
