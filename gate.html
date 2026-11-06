@@ -31,6 +31,9 @@
 .match .t{flex:1}
 .match .t b{display:block;font-family:var(--serif);font-weight:500;font-size:22px;color:var(--choc-deep)}
 .match .t span{font-size:12px;color:var(--soft)}
+.mates{list-style:none;margin:12px auto 0;padding:0;max-width:320px;font-size:13px;color:var(--soft);text-align:center}
+.mates li{padding:3px 0}
+.mates b{font-family:var(--serif);font-weight:500;font-size:18px;color:var(--choc-deep);margin-right:4px;font-variant-numeric:lining-nums}
 .sheet h3{text-align:center}
 .sheet .meta{text-align:center}
 </style>
@@ -74,7 +77,7 @@
   function clock(){var d=new Date(),hr=d.getHours(),mi=d.getMinutes();return (hr%12||12)+':'+(mi<10?'0':'')+mi+(hr<12?' am':' pm');}
   function showToast(m){toast.textContent=m;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){toast.classList.remove('show');},2400);}
   function counts(){
-    var conf=0,inn=0;D.households.forEach(function(h){if(h.status==='confirmed'){conf+=h.att;inn+=h.arrived;}});
+    var conf=0,inn=0;D.invites.forEach(function(v){if(v.status==='confirmed'){conf++;if(v.arrived)inn++;}});
     document.getElementById('inCount').textContent=inn+' of '+conf+' in';
   }
   function draw(){digits.forEach(function(d,i){d.textContent=entry.charAt(i);d.classList.toggle('on',i===entry.length);});}
@@ -97,51 +100,52 @@
   function closeSheet(){sheet.classList.remove('show');veil.classList.remove('show');sheet.inert=true;entry='';draw();if(trigger&&trigger.focus)trigger.focus();}
   veil.addEventListener('click',closeSheet);
 
-  /* a number is one invitation: confirmed, never confirmed, or not one of ours */
+  /* a number is one person: confirmed, never confirmed, or not one of ours */
   function lookup(code){
-    var h=D.byNum[+code];
-    if(!h){
+    var v=D.byNum[+code];
+    if(!v){
       openSheet('<h3 id="sheetTitle">No invitation with '+code+'</h3><div class="meta">Check the number with them</div>'+
         '<div class="stack"><button class="btn primary wide" id="gBack" type="button">Try again</button><button class="btn wide" id="gHelp" type="button">They don’t have a number</button></div>');
       document.getElementById('gBack').onclick=closeSheet;document.getElementById('gHelp').onclick=noNumber;return;
     }
-    var host=D.hostName(h.host);
-    if(h.status==='confirmed')return guest(h);
-    var head='<h3 id="sheetTitle">Honoured guest '+h.num+'</h3><div class="meta">'+esc(host)+'’s guests · '+h.size+(h.size>1?' seats':' seat')+'</div>';
-    var why='<div class="banner warn">Invited, but they never confirmed. Call '+esc(host)+' before letting them in.</div>';
-    openSheet(head+why+'<div class="stack"><button class="btn primary wide" id="gCall" type="button">Call '+esc(host)+'</button><button class="btn wide" id="gNext" type="button">Next guest</button></div>');
+    var host=D.hostName(v.host);
+    if(v.status==='confirmed')return guest(v);
+    openSheet('<h3 id="sheetTitle">Honoured guest '+v.num+'</h3><div class="meta">'+esc(host)+'’s guest</div>'+
+      '<div class="banner warn">Invited, but they never confirmed. Call '+esc(host)+' before letting them in.</div>'+
+      '<div class="stack"><button class="btn primary wide" id="gCall" type="button">Call '+esc(host)+'</button><button class="btn wide" id="gNext" type="button">Next guest</button></div>');
     document.getElementById('gCall').onclick=function(){showToast('Preview: this would call '+host);};
     document.getElementById('gNext').onclick=closeSheet;
   }
+  function list(nums){return nums.length<2?String(nums[0]):nums.slice(0,-1).join(', ')+' and '+nums[nums.length-1];}
 
-  function guest(h){
-    var left=h.att-h.arrived,host=D.hostName(h.host);
-    var html='<div class="meta" id="sheetTitle">Honoured guest '+h.num+' · your table is</div><div class="big-table">'+esc(D.tableName(h.table))+'</div><div class="table-no">Table '+h.table+'</div>'+
-      '<div class="who">'+(h.family?esc(host)+(h.size>1?' and wife':'')+' · family':esc(host)+'’s guests')+'</div>'+(h.kids?'<div class="who">With '+h.kids+' children, who take no chair</div>':'')+
-      '<div class="count">'+h.arrived+' of '+h.att+' in'+(h.arrived&&left>0?' · '+left+(left>1?' seats':' seat')+' left':'')+'</div>';
-    if(left<=0){
-      html+='<div class="banner bad">All '+h.att+' already in'+(h.arrivedAt?', the last at '+esc(h.arrivedAt):'')+'. Nobody else comes in on '+h.num+'. If something looks wrong, call '+esc(host)+'.</div>'+
+  /* a confirmed number: the table, who invited them, and anyone invited with them (a couple, a family),
+     so people who arrive together can come in together */
+  function guest(v){
+    var host=D.hostName(v.host),mates=D.group(v).filter(function(x){return x!==v;});
+    var html='<div class="meta" id="sheetTitle">Honoured guest '+v.num+' · your table is</div><div class="big-table">'+esc(D.tableName(v.table))+'</div><div class="table-no">Table '+v.table+'</div>'+
+      '<div class="who">'+(v.family?esc(host)+(v.own==='wife'?'’s wife':'')+' · family table':'Check who invited them: <b>'+esc(host)+'</b>')+'</div>'+
+      (v.kids?'<div class="who">With '+v.kids+' children, who take no chair</div>':'');
+    if(v.arrived){
+      html+='<div class="banner bad">Already in at '+esc(v.arrivedAt)+'. Nobody else comes in on '+v.num+'. If something looks wrong, call '+esc(host)+'.</div>'+
         '<div class="stack"><button class="btn primary wide" id="gCall" type="button">Call '+esc(host)+'</button><button class="btn wide" id="gNext" type="button">Next guest</button></div>';
     }else{
-      html+='<div class="field"><span class="lab" id="nLab">How many are here now?</span><div class="stepper" role="group" aria-labelledby="nLab"><button type="button" id="nM" aria-label="One fewer">−</button><output id="nO">'+left+'</output><button type="button" id="nP" aria-label="One more">+</button></div></div>'+
-        '<div class="stack"><button class="btn green wide" id="gAdmit" type="button">Let in '+left+'</button><button class="btn wide" id="gNext" type="button">Cancel</button></div>';
+      var ready=mates.filter(function(x){return x.status==='confirmed'&&!x.arrived;});
+      if(mates.length)html+='<ul class="mates">'+mates.map(function(x){return '<li><b>'+x.num+'</b> '+(x.arrived?'in at '+esc(x.arrivedAt):x.status==='confirmed'?'confirmed, not in yet':'not confirmed')+'</li>';}).join('')+'</ul>';
+      html+='<div class="stack"><button class="btn green wide" id="gAdmit" type="button">Let in '+v.num+'</button>'+
+        (ready.length?'<button class="btn green wide" id="gAll" type="button">Let in '+list([v.num].concat(ready.map(function(x){return x.num;})))+'</button>':'')+
+        '<button class="btn wide" id="gNext" type="button">Cancel</button></div>';
     }
     openSheet(html);
     document.getElementById('gNext').onclick=closeSheet;
     var call=document.getElementById('gCall');if(call)call.onclick=function(){showToast('Preview: this would call '+host);};
-    var admit=document.getElementById('gAdmit');
-    if(admit){
-      var n=left,o=document.getElementById('nO'),m=document.getElementById('nM'),p=document.getElementById('nP');
-      function upd(){o.textContent=n;m.disabled=n<=1;p.disabled=n>=left;admit.textContent='Let in '+n;}
-      m.onclick=function(){n=Math.max(1,n-1);upd();};p.onclick=function(){n=Math.min(left,n+1);upd();};upd();
-      admit.onclick=function(){
-        h.arrived+=n;h.arrivedAt=clock();counts();
-        var rest=h.att-h.arrived;
-        sheet.innerHTML='<div class="meta" id="sheetTitle">Let in · honoured guest '+h.num+'</div><div class="big-table">'+esc(D.tableName(h.table))+'</div><div class="table-no">Table '+h.table+'</div>'+
-          '<div class="banner ok" style="text-align:center">Show them to '+esc(D.tableLabel(h.table))+(rest>0?'. '+rest+(rest>1?' more':' more')+' can still come in on '+h.num+'.':'')+'</div>';
-        setTimeout(closeSheet,2400);
-      };
+    function admit(people){
+      var at=clock();people.forEach(function(x){x.arrived=true;x.arrivedAt=at;});counts();
+      sheet.innerHTML='<div class="meta" id="sheetTitle">Let in · '+list(people.map(function(x){return x.num;}))+'</div><div class="big-table">'+esc(D.tableName(v.table))+'</div><div class="table-no">Table '+v.table+'</div>'+
+        '<div class="banner ok" style="text-align:center">Show them to '+esc(D.tableLabel(v.table))+'.</div>';
+      setTimeout(closeSheet,2400);
     }
+    var one=document.getElementById('gAdmit');if(one)one.onclick=function(){admit([v]);};
+    var all=document.getElementById('gAll');if(all)all.onclick=function(){admit([v].concat(mates.filter(function(x){return x.status==='confirmed'&&!x.arrived;})));};
   }
 
   /* a guest with no number: it is in their host's WhatsApp message, or the host can say */

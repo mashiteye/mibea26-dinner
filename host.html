@@ -32,7 +32,9 @@
 .note{margin:10px 2px 0;font-size:12.5px;line-height:1.5;color:var(--soft)}
 .own .num{font-family:var(--serif);font-size:30px;line-height:1.1;color:var(--choc-deep)}
 .own .num small{display:block;font-family:var(--sans);font-size:12px;color:var(--soft)}
-.own a,.see{display:inline-block;margin-top:10px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--choc)}
+.links{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px}
+.links a,.see a{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--choc)}
+.see{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:12px;color:var(--soft)}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -51,14 +53,14 @@
   <p class="intro" id="intro">Tap Invite and WhatsApp opens with the invitation. Pick the contact and send. Nothing to type.</p>
 
   <section class="card own" id="own" hidden>
-    <span class="lab">Your own invitation</span>
+    <span class="lab" id="ownLab">Your own invitation</span>
     <div class="num" id="ownNum"></div>
     <p class="note" id="ownNote"></p>
-    <a id="ownLink" href="./index.html">Open your invitation</a>
+    <div class="links" id="ownLinks"></div>
   </section>
 
   <section class="card" aria-live="polite">
-    <div class="count"><span class="n" id="invited">0</span><span class="of" id="of">of 0 seats invited</span></div>
+    <div class="count"><span class="n" id="invited">0</span><span class="of" id="of">of 0 people invited</span></div>
     <div class="bar" aria-hidden="true"><i class="c" id="barC"></i><i class="w" id="barW"></i></div>
     <div class="chips" id="chips"></div>
   </section>
@@ -72,9 +74,9 @@
       <p class="undo">Didn’t send it? <button type="button" id="undo">Undo</button></p>
     </div>
     <div class="banner warn" id="full" hidden>Everyone you can invite has an invitation. Places not confirmed by 10 December come back here.</div>
-    <p class="note">One invitation is for one person. Choose 2 to 4 only for a couple or family coming together on one number.</p>
-    <p class="note">Each invitation has its own number. If someone forwards theirs, it still lets in only the people it was made for.</p>
-    <p class="note" id="returns">Places not confirmed by 10 December come back to you, and so do any left over when a guest confirms for fewer people.</p>
+    <p class="note">Each person gets their own invitation and number. For a couple or family, choose 2 to 4: their invitations come in one message, and they sit together.</p>
+    <p class="note">A forwarded invitation still lets in only one person.</p>
+    <p class="note" id="returns">Places not confirmed by 10 December come back to you.</p>
     <p class="note" id="helper" hidden></p>
   </section>
 </main>
@@ -84,7 +86,7 @@
   <h3 id="sheetTitle">WhatsApp opens</h3>
   <div class="meta">On the real page, WhatsApp opens here. They pick the contact and send.</div>
   <div class="msg" id="msg"></div>
-  <a class="see" id="see" href="./index.html" target="_blank" rel="noopener">See the invitation they open</a>
+  <div class="see" id="see"></div>
   <div class="stack"><button class="btn primary wide" id="done" type="button">Back to your page</button></div>
 </section>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -100,49 +102,53 @@
   who.addEventListener('change',function(){location.search='?h='+who.value;});
   function $(id){return document.getElementById(id);}
   function showToast(m){var t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){t.classList.remove('show');},2600);}
-  var WORDS=['','one','two','three','four','five','six','seven','eight','nine'];
+  function list(nums){return nums.length<2?String(nums[0]):nums.slice(0,-1).join(', ')+' and '+nums[nums.length-1];}
 
   /* the host's numbers, from the sample; invitations made on this page are added on top */
   var T=D.tally(me),made=[],seats=1;
   $('title').textContent=H.name+'’s invitations';
-  if(T.own){
-    var o=T.own;
-    $('own').hidden=false;
-    $('ownNum').innerHTML='Honoured guest '+o.num+'<small>For '+(o.size>1?WORDS[o.size]:'one')+' at the family table, out of your '+T.alloc+'</small>';
-    $('ownNote').textContent='At the gate you give your number like every guest.'+(o.kidsNote?' '+o.kidsNote:'');
-    $('ownLink').href='./index.html?g='+o.num+'&n='+o.size;
+  if(T.own.length){
+    var you=T.own[0],wife=T.own[1];
+    $('own').hidden=false;if(wife)$('ownLab').textContent='Your own invitations';
+    $('ownNum').innerHTML=wife?'Honoured guests '+you.num+' and '+wife.num+'<small>You ('+you.num+') and your wife ('+wife.num+') at the family table, out of your '+T.alloc+'</small>':
+      'Honoured guest '+you.num+'<small>For you at the family table, out of your '+T.alloc+'</small>';
+    $('ownNote').textContent=(wife?'At the gate each of you gives your own number, like every guest.':'At the gate you give your number like every guest.')+(you.kidsNote?' '+you.kidsNote:'');
+    $('ownLinks').innerHTML=wife?'<a href="./index.html?g='+you.num+'">Open yours</a><a href="./index.html?g='+wife.num+'">Open your wife’s</a>':'<a href="./index.html?g='+you.num+'">Open your invitation</a>';
   }
   if(H.role){$('helper').hidden=false;$('helper').textContent='If someone helps '+H.name+' with this, they open this same link.';}
 
-  function invited(){return T.invited+made.reduce(function(a,m){return a+m.size;},0);}
+  function invited(){return T.invited+made.reduce(function(a,m){return a+m.nums.length;},0);}
   function left(){return Math.max(0,T.guestAlloc-invited());}
   function render(){
-    var inv=invited(),waiting=T.waiting+made.reduce(function(a,m){return a+m.size;},0),L=left();
+    var inv=invited(),waiting=T.waiting+made.reduce(function(a,m){return a+m.nums.length;},0),L=left();
     $('invited').textContent=inv;
-    $('of').textContent='of '+T.guestAlloc+' people invited'+(T.own?(T.own.size>1?', besides you and your wife':', besides you'):'');
+    $('of').textContent='of '+T.guestAlloc+' people invited'+(T.own.length?(T.own.length>1?', besides you and your wife':', besides you'):'');
     $('barC').style.width=(100*T.confirmed/T.guestAlloc)+'%';
     $('barW').style.width=(100*(inv-T.confirmed)/T.guestAlloc)+'%';
     $('chips').innerHTML='<span class="chip ok">'+T.confirmed+' confirmed</span>'+
       (waiting?'<span class="chip">'+waiting+' not confirmed yet</span>':'')+
-      (T.back?'<span class="chip">'+T.back+' not coming, back to you</span>':'')+
       '<span class="chip">'+L+' left to invite</span>';
     if(seats>L)seats=Math.max(1,L);
-    $('seg').innerHTML=[1,2,3,4].map(function(n){return '<button type="button" data-n="'+n+'" aria-pressed="'+(n===seats&&L>0)+'"'+(n>L?' disabled':'')+'>'+n+'</button>';}).join('');
+    $('seg').innerHTML=[1,2,3,4].map(function(n){return '<button type="button" data-n="'+n+'" aria-pressed="'+(n===seats&&L>0)+'"'+(n>L?' disabled':'')+' aria-label="'+n+(n>1?' people':' person')+'">'+n+'</button>';}).join('');
     $('full').hidden=L>0;
     $('invite').disabled=L<=0;
     $('invite').textContent=L>0?'Invite on WhatsApp':'All '+T.guestAlloc+' invited';
   }
   $('seg').addEventListener('click',function(e){var b=e.target.closest('button[data-n]');if(!b||b.disabled)return;seats=+b.getAttribute('data-n');render();});
 
-  /* a new invitation: its own number, its own link, the seats chosen */
-  function freshNumber(){var n;do{n=101+Math.floor(Math.random()*799);}while(n===950||D.byNum[n]||made.some(function(m){return m.num===n;}));return n;}
+  /* one tap: an invitation per person, each with its own number and link, kept together as one group */
+  function freshNumber(){var n;do{n=101+Math.floor(Math.random()*799);}while(n===950||D.byNum[n]||made.some(function(m){return m.nums.indexOf(n)>=0;}));return n;}
   function message(m){
-    return 'Hello, you are cordially invited to Dinner Night, hosted by the Ashiteye and Laryea families.\nThe couple: Michael & Beatrice\n'+
-      (m.size>1?'This invitation is for '+m.size+'.\n':'')+
-      'Sunday 20 December 2026, 4:00 pm\nEvents Rising Sun, Teshie\n\n'+
-      'Your honoured-guest number is '+m.num+'.\n\n'+
-      'Please open your invitation and confirm by 10 December:\n'+D.link(m.num)+'\n\n'+
+    var head='Hello, you are cordially invited to Dinner Night, hosted by the Ashiteye and Laryea families.\nThe couple: Michael & Beatrice\n'+
+      'Sunday 20 December 2026, 4:00 pm\nEvents Rising Sun, Teshie\n\n';
+    if(m.nums.length===1)return head+
+      'Your honoured-guest number is '+m.nums[0]+'.\n\n'+
+      'Please open your invitation and confirm by 10 December:\n'+D.link(m.nums[0])+'\n\n'+
       'At the gate, give your number and you will be shown to your table.';
+    return head+
+      'This message has '+m.nums.length+' invitations, one for each guest. Please forward one to '+(m.nums.length===2?'the person':'each person')+' coming with you.\n\n'+
+      m.nums.map(function(n){return 'Honoured guest '+n+':\n'+D.link(n);}).join('\n\n')+'\n\n'+
+      'Each guest opens their own invitation and confirms by 10 December. At the gate, each gives their number and you will be shown to your table.';
   }
   var sheet=$('sheet'),veil=$('veil'),trigger=null;
   function openSheet(){trigger=document.activeElement;sheet.inert=false;sheet.classList.add('show');veil.classList.add('show');$('done').focus({preventScroll:true});}
@@ -152,19 +158,20 @@
 
   $('invite').addEventListener('click',function(){
     if(left()<=0)return;
-    var m={num:freshNumber(),size:Math.min(seats,left())};
+    var m={nums:[]},n=Math.min(seats,left());
+    while(m.nums.length<n)m.nums.push(freshNumber());
     made.push(m);
     $('msg').innerHTML='<b>The message they’ll receive</b>';$('msg').appendChild(document.createTextNode(message(m)));
-    $('see').href='./index.html?g='+m.num+'&n='+m.size;
-    $('afterMsg').textContent='Invitation for '+(m.size>1?WORDS[m.size]:'one')+' ready · number '+m.num;
+    $('see').innerHTML='See the invitation'+(n>1?'s':'')+' they open:'+m.nums.map(function(x){return ' <a href="./index.html?g='+x+'" target="_blank" rel="noopener">'+x+'</a>';}).join('');
+    $('afterMsg').textContent=(n>1?n+' invitations ready, to sit together · numbers ':'Invitation ready · number ')+list(m.nums);
     $('after').hidden=false;
-    seats=1;                               /* back to one person, so the next tap can't send a family invitation by mistake */
+    seats=1;                               /* back to one person, so the next tap can't send a family's invitations by mistake */
     render();openSheet();
   });
   $('undo').addEventListener('click',function(){
     var m=made.pop();if(!m)return;
     $('after').hidden=true;render();
-    showToast('Invitation '+m.num+' cancelled');
+    showToast((m.nums.length>1?'Invitations ':'Invitation ')+list(m.nums)+' cancelled');
   });
   render();
 })();

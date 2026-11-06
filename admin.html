@@ -64,7 +64,7 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
 </div></header>
 <main class="wrap">
   <section class="card">
-    <div class="card-head"><h2>By host</h2><span id="hostsNote">Seats</span></div>
+    <div class="card-head"><h2>By host</h2><span id="hostsNote">People</span></div>
     <div class="tablewrap"><table class="hosts" id="hosts"></table></div>
   </section>
   <section class="card">
@@ -95,23 +95,17 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
   var FILL={open:'#fff',sent:'#e9d7b5',confirmed:'#6f432f',arrived:'#3e7a4f'};
   var STROKE={open:'#b7a58c',sent:'#cdb68d',confirmed:'#6f432f',arrived:'#3e7a4f'};
 
-  /* who holds a chair: an invitation not confirmed yet, or a confirmed one for as many as are coming.
-     A chair is free when fewer are coming than were invited */
-  function holder(s){
-    var h=s.hh;if(!h)return null;
-    if(h.status==='confirmed'&&h.chairs.indexOf(s.code)>=h.att)return null;
-    return h;
-  }
-  function state(s){var h=holder(s);if(!h)return 'open';if(h.status==='sent')return 'sent';return night&&h.chairs.indexOf(s.code)<h.arrived?'arrived':'confirmed';}
+  /* every chair holds one invitation (one person) or none. Invitations a host made together (a couple, a family)
+     form a group: they sit together and move together */
+  function state(s){var v=s.inv;if(!v)return 'open';if(v.status!=='confirmed')return 'sent';return night&&v.arrived?'arrived':'confirmed';}
   function chairs(t){return D.seats.filter(function(s){return s.table===t;});}
-  function placed(t){var seen=[];chairs(t).forEach(function(s){var h=holder(s);if(h&&seen.indexOf(h)<0)seen.push(h);});return seen;}
-  function freeAt(t){return chairs(t).filter(function(s){return !holder(s);}).length;}
-  function need(h){return h.status==='confirmed'?h.att:h.size;}
-  function whose(h){return D.hostName(h.host)+(h.family?(h.size>1?' and wife':'')+', family':'’s guests');}
+  function groupsAt(t){var seen=[],out=[];chairs(t).forEach(function(s){var v=s.inv;if(v&&seen.indexOf(v.group)<0){seen.push(v.group);out.push(D.groups[v.group]);}});return out;}
+  function freeAt(t){return chairs(t).filter(function(s){return !s.inv;}).length;}
+  function whose(g){var v=g[0],h=D.hostName(v.host);return v.family?h+(g.length>1?' and wife':'')+', family':h+'’s guests';}
   /* the line under a table: whose guests sit there, Shared, or Family */
   function tableWho(t){
     if(t===18)return 'Family';
-    var hosts=placed(t).map(function(h){return h.host;});
+    var hosts=chairs(t).filter(function(s){return s.inv;}).map(function(s){return s.inv.host;});
     if(!hosts.length)hosts=chairs(t).map(function(s){return s.host;}).filter(Boolean);
     var u=hosts.filter(function(v,i,a){return a.indexOf(v)===i;});
     return !u.length?'Free':u.length>1?'Shared':D.hostName(u[0]);
@@ -137,36 +131,30 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     }
     svg+='<text x="200" y="545" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="2" fill="#7c6a5f">ENTRANCE</text>';
     document.getElementById('map').innerHTML=svg;
-    var keys=night?[['open','Free'],['sent','Waiting'],['confirmed','Confirmed, not in yet'],['arrived','In the room']]:[['open','Free'],['sent','Not confirmed yet'],['confirmed','Confirmed']];
+    var keys=night?[['open','Free'],['sent','Not confirmed'],['confirmed','Confirmed, not in yet'],['arrived','In the room']]:[['open','Free'],['sent','Not confirmed yet'],['confirmed','Confirmed']];
     document.getElementById('legend').innerHTML=keys.map(function(k){return '<span><i class="'+k[0]+'"></i>'+k[1]+'</span>';}).join('');
   }
 
-  /* each host's seats, counted by invitation; a family host's own invitation counts as confirmed */
+  /* each host's people; a family host's own invitations count as confirmed */
   function stats(){
-    var per={},all={seats:0,invited:0,confirmed:0,waiting:0,back:0,left:0,arrived:0};
+    var per={},all={seats:0,invited:0,confirmed:0,waiting:0,left:0,arrived:0};
     Object.keys(D.HOSTS).forEach(function(k){
-      var T=D.tally(k),own=T.own,o={seats:T.alloc,invited:T.invited,confirmed:T.confirmed,waiting:T.waiting,back:T.back,left:T.left,arrived:0,asked:0};
-      if(own){o.invited+=own.size;o.confirmed+=own.att;}
-      D.households.forEach(function(h){if(h.host===k){if(h.status==='confirmed')o.arrived+=h.arrived;if(h.status==='sent')o.asked++;}});
+      var T=D.tally(k),o={seats:T.alloc,invited:T.invited+T.own.length,confirmed:T.confirmed+T.own.length,waiting:T.waiting,left:T.left,arrived:0};
+      D.invites.forEach(function(v){if(v.host===k&&v.arrived)o.arrived++;});
       per[k]=o;
       Object.keys(all).forEach(function(f){all[f]+=o[f];});
     });
     return {per:per,all:all};
   }
   function followUps(S){
-    var list=[];
+    var list=[],a=S.all;
+    function byHost(f){return Object.keys(D.HOSTS).filter(function(k){return S.per[k][f];}).map(function(k){return esc(D.HOSTS[k].name)+' '+S.per[k][f];}).join(', ');}
     if(night){
-      var out=D.households.filter(function(h){return h.status==='confirmed'&&h.arrived<h.att;});
-      var people=out.reduce(function(a,h){return a+h.att-h.arrived;},0);
-      list.push({cls:'',t:'Still to come',m:plural(people,'guest')+' on '+plural(out.length,'number')+'. The gate lets each number in up to its seats, and calls the host for anyone more.'});
+      list.push({cls:'',t:'Still to come · '+plural(a.confirmed-a.arrived,'guest'),m:'Each number lets in one person. The gate calls the host for anyone it doesn’t know.'});
       return list;
     }
-    /* one line each, host by host, so it reads as a list of who to nudge */
-    function byHost(f){return Object.keys(D.HOSTS).filter(function(k){return S.per[k][f];}).map(function(k){return esc(D.HOSTS[k].name)+' '+S.per[k][f];}).join(', ');}
-    var a=S.all,asked=Object.keys(D.HOSTS).reduce(function(n,k){return n+S.per[k].asked;},0);
-    if(a.waiting)list.push({cls:'warn',t:'Not confirmed yet · '+plural(a.waiting,'seat'),m:plural(asked,'invitation')+': '+byHost('waiting')+'. Whatever isn’t confirmed by 10 December goes back to its host.'});
-    if(a.back)list.push({cls:'',t:'Back with the hosts · '+plural(a.back,'seat'),m:'From guests confirming for fewer people than invited: '+byHost('back')+'. Each host can invite again.'});
-    if(a.left)list.push({cls:'',t:'Left to invite · '+plural(a.left,'seat'),m:byHost('left')+'.'});
+    if(a.waiting)list.push({cls:'warn',t:'Not confirmed yet · '+plural(a.waiting,'person','people'),m:byHost('waiting')+'. Whatever isn’t confirmed by 10 December goes back to its host.'});
+    if(a.left)list.push({cls:'',t:'Left to invite · '+plural(a.left,'person','people'),m:byHost('left')+'.'});
     return list;
   }
   function render(){
@@ -180,7 +168,7 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     Object.keys(D.HOSTS).forEach(function(k){rows+='<tr><td><a href="./host.html?h='+k+'">'+esc(D.HOSTS[k].name)+'</a></td>'+cells(S.per[k])+'</tr>';});
     rows+='<tr class="all"><td>All</td>'+cells(a)+'</tr>';
     document.getElementById('hosts').innerHTML=rows;
-    document.getElementById('hostsNote').textContent=night?'People':'Seats';
+    document.getElementById('hostsNote').textContent='People';
     drawMap();
     var f=followUps(S);
     document.getElementById('issueCount').textContent=night?'':plural(f.length,'item');
@@ -193,43 +181,48 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
   veil.addEventListener('click',closeSheet);
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&sheet.classList.contains('show'))closeSheet();});
 
-  /* a table: who sits there, by number, and a way to move any of them */
+  /* a table: who sits there, by number, a group to a row, and a way to move any group */
+  function status(g){
+    var c=g.filter(function(v){return v.status==='confirmed';}),n=g.length;
+    if(night){
+      if(!c.length)return 'Not confirmed';
+      var inn=c.filter(function(v){return v.arrived;});
+      return n===1?(inn.length?'In at '+inn[0].arrivedAt:'Not in yet'):inn.length+' of '+c.length+' in'+(c.length<n?' · '+(n-c.length)+' not confirmed':'');
+    }
+    return c.length===n?(n>1?'All confirmed':'Confirmed'):!c.length?'Not confirmed yet':c.length+' confirmed, '+(n-c.length)+' not yet';
+  }
   function tableSheet(t){
-    var list=placed(t),free=freeAt(t);
+    var list=groupsAt(t),free=freeAt(t);
     var html='<h3 id="sheetTitle">'+esc(D.tableLabel(t))+'</h3><div class="meta">'+esc(tableWho(t))+' · '+(9-free)+' of 9 chairs taken</div><ul class="hh">';
-    list.forEach(function(h){
-      var st=h.status==='sent'?'Not confirmed yet':night?h.arrived+' of '+h.att+' in':h.att<h.size?'Confirmed '+h.att+' of '+h.size:'Confirmed';
-      html+='<li><span class="no">'+h.num+'</span><span class="d">'+plural(need(h),'seat')+' · '+esc(whose(h))+(h.kids?' · '+h.kids+' children, no chair':'')+'<small>'+st+'</small></span>'+
-        '<button class="btn" type="button" data-move="'+h.num+'" aria-label="Move '+h.num+'">Move</button></li>';
+    list.forEach(function(g){
+      var kids=g.reduce(function(a,v){return a+v.kids;},0),nums=g.map(function(v){return v.num;});
+      html+='<li><span class="no">'+nums.join('<br>')+'</span><span class="d">'+plural(g.length,'seat')+' · '+esc(whose(g))+(kids?' · '+kids+' children, no chair':'')+'<small>'+status(g)+'</small></span>'+
+        '<button class="btn" type="button" data-move="'+g[0].group+'" aria-label="Move '+nums.join(' and ')+'">Move</button></li>';
     });
     if(free)html+='<li class="free">'+plural(free,'chair')+' free</li>';
     openSheet(html+'</ul><div class="stack"><button class="btn wide" id="tClose" type="button">Close</button></div>');
-    sheet.querySelectorAll('[data-move]').forEach(function(b){b.onclick=function(){moveSheet(D.byNum[+b.getAttribute('data-move')]);};});
+    sheet.querySelectorAll('[data-move]').forEach(function(b){b.onclick=function(){moveSheet(D.groups[+b.getAttribute('data-move')]);};});
     document.getElementById('tClose').onclick=closeSheet;
   }
-  function moveSheet(h){
-    var n=need(h),opts=[];
-    for(var t=1;t<=20;t++)if(t!==h.table&&freeAt(t)>=n)opts.push(t);
-    var html='<h3 id="sheetTitle">Move '+h.num+'</h3><div class="meta">'+plural(n,'seat')+' · now at '+esc(D.tableLabel(h.table))+'</div>'+
+  function moveSheet(g){
+    var n=g.length,from=g[0].table,opts=[],nums=g.map(function(v){return v.num;}).join(' and ');
+    for(var t=1;t<=20;t++)if(t!==from&&freeAt(t)>=n)opts.push(t);
+    var html='<h3 id="sheetTitle">Move '+nums+'</h3><div class="meta">'+plural(n,'seat')+' · now at '+esc(D.tableLabel(from))+(n>1?' · they move together':'')+'</div>'+
       (opts.length?'<ul class="pick">'+opts.map(function(t){return '<li><button type="button" data-to="'+t+'"><b>'+esc(D.tableLabel(t))+'</b><span>'+freeAt(t)+' free · '+esc(tableWho(t))+'</span></button></li>';}).join('')+'</ul>':
         '<div class="banner warn">No other table has '+plural(n,'free chair')+'. Move someone else first.</div>')+
       '<div class="stack"><button class="btn wide" id="mBack" type="button">Back</button></div>';
     openSheet(html);
-    sheet.querySelectorAll('[data-to]').forEach(function(b){b.onclick=function(){moveTo(h,+b.getAttribute('data-to'));};});
-    document.getElementById('mBack').onclick=function(){tableSheet(h.table);};
+    sheet.querySelectorAll('[data-to]').forEach(function(b){b.onclick=function(){moveTo(g,+b.getAttribute('data-to'));};});
+    document.getElementById('mBack').onclick=function(){tableSheet(from);};
   }
-  /* the invitation leaves its chairs and takes the first free ones at the new table */
-  function moveTo(h,t){
-    var from=h.table,n=need(h);
-    h.chairs.forEach(function(code){var s=D.seats.filter(function(x){return x.code===code;})[0];if(s&&s.hh===h)s.hh=null;});
-    h.chairs=[];
-    chairs(t).filter(function(s){return !holder(s);}).slice(0,n).forEach(function(s){
-      if(s.hh&&s.hh!==h)s.hh.chairs=s.hh.chairs.filter(function(c){return c!==s.code;});
-      s.hh=h;h.chairs.push(s.code);
-    });
-    h.table=t;
+  /* the group leaves its chairs and takes the first free ones at the new table */
+  function moveTo(g,t){
+    var from=g[0].table;
+    D.seats.forEach(function(s){if(s.inv&&g.indexOf(s.inv)>=0)s.inv=null;});
+    var free=chairs(t).filter(function(s){return !s.inv;});
+    g.forEach(function(v,k){var s=free[k];s.inv=v;v.table=t;v.chair=s.code;});
     closeSheet();render();
-    showToast(h.num+' moved from '+D.tableName(from)+' to '+D.tableLabel(t));
+    showToast(g.map(function(v){return v.num;}).join(' and ')+' moved from '+D.tableName(from)+' to '+D.tableLabel(t));
   }
   var map=document.getElementById('map');
   map.addEventListener('click',function(e){var g=e.target.closest('.tbl');if(g)tableSheet(+g.getAttribute('data-t'));});
@@ -237,7 +230,7 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
   var vB=document.getElementById('vBefore'),vN=document.getElementById('vNight');
   function setView(n){night=n;vB.setAttribute('aria-pressed',String(!n));vN.setAttribute('aria-pressed',String(n));render();}
   vB.onclick=function(){setView(false);};vN.onclick=function(){setView(true);};
-  document.getElementById('export').onclick=function(){showToast('Preview: this downloads every number with its seats, host, table and answer');};
+  document.getElementById('export').onclick=function(){showToast('Preview: this downloads every number with its host, table and answer');};
   render();
 })();
 </script>
