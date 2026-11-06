@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./staff.css?v=26">
+<link rel="stylesheet" href="./staff.css?v=27">
 <style>
 .offline-note{margin-top:12px}
 .offline-note[hidden]{display:none}
@@ -34,6 +34,28 @@
 .sheet .field{max-width:300px;margin:16px auto 0}
 .sheet .field .lab{text-align:center}
 .sheet h3{text-align:center}
+/* three ways to find a guest: their code, the phone number the invitation went to, or their name under their host */
+.ways{display:grid;grid-template-columns:repeat(3,1fr);margin-top:16px;border:1px solid var(--line-strong);border-radius:999px;padding:3px;background:#fff}
+.ways button{min-height:38px;border:0;border-radius:999px;background:transparent;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--choc);cursor:pointer}
+.ways button[aria-selected="true"]{background:var(--choc);color:var(--ivory)}
+.ways button:focus-visible{outline:2px solid var(--gold-deep);outline-offset:2px}
+.way[hidden]{display:none}
+.find{display:block;width:100%;min-height:52px;margin-top:12px;padding:0 16px;border:1.5px solid var(--line-strong);border-radius:14px;background:#fff;font-size:20px;color:var(--choc-deep);outline:none;-webkit-appearance:none;appearance:none}
+.find:focus{border-color:var(--gold-deep);box-shadow:0 0 0 3px rgba(197,154,82,.18)}
+.find.small{min-height:46px;font-size:16px}
+select.find{padding-right:38px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%236f432f' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 16px center;cursor:pointer}
+.hint{margin:8px 2px 0;font-size:13px;line-height:1.45;color:var(--soft);text-align:center}
+.found{list-style:none;margin:10px 0 0;padding:0}
+.found li{border-top:1px solid var(--line)}
+.found button{display:flex;align-items:center;gap:12px;width:100%;padding:12px 2px;border:0;background:none;text-align:left;font:inherit;color:var(--choc-deep);cursor:pointer}
+.found .no{flex:none;min-width:48px;font-family:var(--serif);font-size:24px;line-height:1;font-variant-numeric:lining-nums tabular-nums}
+.found .d{flex:1;min-width:0;font-size:14px}
+.found .d b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.found .d small{display:block;margin-top:2px;font-size:12px;color:var(--soft)}
+.found .st{flex:none;padding:3px 8px;border-radius:999px;border:1px solid;font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.st.conf{background:#e3f1e7;border-color:#9fcdb0;color:#2f6f46}
+.st.in{background:#e1ebf3;border-color:#9dbad2;color:#24506f}
+.st.sent{background:#fdf3d3;border-color:#ecd38a;color:#7a5c0c}
 .sheet .meta{text-align:center}
 </style>
 </head>
@@ -51,13 +73,33 @@
 </div></header>
 <main class="wrap">
   <div class="banner warn offline-note" id="offlineNote" hidden>No signal. The full list is saved on this phone, so the gate works as normal. Admissions sync when the signal returns.</div>
-  <p class="ask">Ask for their honoured-guest number</p>
-  <div class="digits" id="digits" aria-live="polite"><span></span><span></span><span></span></div>
-  <div class="pad" id="pad">
-    <button type="button">1</button><button type="button">2</button><button type="button">3</button>
-    <button type="button">4</button><button type="button">5</button><button type="button">6</button>
-    <button type="button">7</button><button type="button">8</button><button type="button">9</button>
-    <button type="button" class="fn" data-k="help">No number?</button><button type="button">0</button><button type="button" class="fn" data-k="back" aria-label="Delete">Delete</button>
+  <nav class="ways" role="tablist" aria-label="Find a guest by">
+    <button type="button" role="tab" id="wCode" aria-selected="true" aria-controls="pCode">Code</button>
+    <button type="button" role="tab" id="wPhone" aria-selected="false" aria-controls="pPhone">Phone</button>
+    <button type="button" role="tab" id="wName" aria-selected="false" aria-controls="pName">Name</button>
+  </nav>
+  <div class="way" id="pCode" role="tabpanel" aria-labelledby="wCode">
+    <p class="ask">Ask for their honoured-guest number</p>
+    <div class="digits" id="digits" aria-live="polite"><span></span><span></span><span></span></div>
+    <div class="pad" id="pad">
+      <button type="button">1</button><button type="button">2</button><button type="button">3</button>
+      <button type="button">4</button><button type="button">5</button><button type="button">6</button>
+      <button type="button">7</button><button type="button">8</button><button type="button">9</button>
+      <button type="button" class="fn" data-k="help">No number?</button><button type="button">0</button><button type="button" class="fn" data-k="back" aria-label="Delete">Delete</button>
+    </div>
+  </div>
+  <div class="way" id="pPhone" role="tabpanel" aria-labelledby="wPhone" hidden>
+    <p class="ask">Ask for the phone number their invitation came to</p>
+    <input class="find" id="phoneIn" type="tel" inputmode="tel" autocomplete="off" placeholder="024 123 4567" aria-label="Their phone number">
+    <p class="hint" id="phoneMsg" aria-live="polite">Type the whole number. A number from abroad needs its country code, like +44.</p>
+    <ul class="found" id="phoneList"></ul>
+  </div>
+  <div class="way" id="pName" role="tabpanel" aria-labelledby="wName" hidden>
+    <p class="ask">Who invited them?</p>
+    <select class="find small" id="hostIn" aria-label="Their host"></select>
+    <input class="find small" id="nameIn" type="search" autocomplete="off" placeholder="Find a name" aria-label="Find a name">
+    <p class="hint" id="nameMsg" aria-live="polite"></p>
+    <ul class="found" id="nameList"></ul>
   </div>
 </main>
 
@@ -66,10 +108,10 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- ?v= changes with every update, so a phone never mixes a new page with scripts it kept from before -->
-<script src="./config.js?v=26"></script>
-<script src="./api.js?v=26"></script>
-<script src="./live.js?v=26"></script>
-<script src="./demo-data.js?v=26"></script>
+<script src="./config.js?v=27"></script>
+<script src="./api.js?v=27"></script>
+<script src="./live.js?v=27"></script>
+<script src="./demo-data.js?v=27"></script>
 <script>
 (function(){
   'use strict';
@@ -103,6 +145,7 @@
     D=LIVE.build(json);savedAt=json.at||new Date().toISOString();
     queue().forEach(function(a){var v=D.byNum[a.num];if(v){v.arrived=Math.min(att(v),(v.arrived||0)+a.n);v.arrivedAt=LIVE.clock(a.at);}});
     counts();netChip();
+    if(typeof way!=='undefined'&&way==='Name'){fillHosts();nameFind();}   /* a fresh list redraws an open Name tab */
   }
   /* admissions waiting to be sent: one number, how many came in, when, and an id so a resend is never counted twice */
   function queue(){return load(QUEUE,[]).filter(function(a){return a&&a.num&&a.n;});}
@@ -131,12 +174,14 @@
   document.getElementById('pad').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;press(b.getAttribute('data-k')||b.textContent);});
   document.addEventListener('keydown',function(e){
     if(sheet.classList.contains('show')){if(e.key==='Escape')closeSheet();return;}
+    if(way!=='Code'||e.target.closest('input,select,textarea'))return;   /* the keypad listens only on the Code tab */
     if(/^[0-9]$/.test(e.key))press(e.key);else if(e.key==='Backspace')press('back');
   });
 
   var trigger=null;
   function openSheet(inner){trigger=document.activeElement;sheet.innerHTML=inner;sheet.inert=false;sheet.classList.add('show');veil.classList.add('show');var f=sheet.querySelector('#gAdmit')||sheet.querySelector('input,button');if(f)f.focus({preventScroll:true});}
-  function closeSheet(){sheet.classList.remove('show');veil.classList.remove('show');sheet.inert=true;entry='';draw();if(trigger&&trigger.focus)trigger.focus();}
+  function closeSheet(){sheet.classList.remove('show');veil.classList.remove('show');sheet.inert=true;entry='';draw();if(trigger&&trigger.focus)trigger.focus();if(fresh)fresh();}
+  var fresh=null;   /* after a guest is let in from Phone or Name, the box is cleared for the next one */
   veil.addEventListener('click',closeSheet);
 
   /* a number is one invitation, for one to four people: confirmed, never confirmed, or not one of ours */
@@ -199,6 +244,7 @@
       var rest=n-v.arrived;
       sheet.innerHTML='<div class="meta" id="sheetTitle">Let in · honoured guest '+v.num+'</div>'+where(v)+
         '<div class="banner ok" style="text-align:center">'+(v.table?'Show them to '+esc(D.tableLabel(v.table))+'.':'Ask '+esc(host)+' where they sit.')+(rest>0?' '+rest+' more can still come in on '+v.num+'.':'')+'</div>';
+      fresh=function(){fresh=null;if(way==='Phone'){$('phoneIn').value='';phoneFind();}if(way==='Name'){$('nameIn').value='';nameFind();}};
       setTimeout(closeSheet,rest>0?3200:2400);
     };
   }
@@ -206,14 +252,81 @@
   /* a guest with no number: it is in their host's WhatsApp message, or the host can say */
   function noNumber(){
     var keys=Object.keys(D.HOSTS);
-    openSheet('<h3 id="sheetTitle">No number?</h3><div class="meta">Most guests can find it in a few seconds</div>'+
-      '<div class="banner warn">Ask them to open the WhatsApp message from their host: the number is in it. Or to open the invitation, which shows it once confirmed.</div>'+
-      '<p class="meta" style="margin-top:14px;text-align:left">Still nothing? Ask who invited them and call that host.</p>'+
+    openSheet('<h3 id="sheetTitle">No number?</h3><div class="meta">Find them another way</div>'+
+      '<div class="pair" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px"><button class="btn primary" type="button" id="gByPhone">By phone</button><button class="btn primary" type="button" id="gByName">By name</button></div>'+
+      '<p class="meta" style="margin-top:16px;text-align:left">Still nothing? Ask who invited them and call that host.</p>'+
       '<div style="margin-top:6px">'+keys.map(function(k){return '<div class="match"><div class="t"><b>'+esc(D.HOSTS[k].name)+'</b><span>'+(D.HOSTS[k].role?D.HOSTS[k].role+' · ':'')+'host</span></div><button class="btn" type="button" data-k="'+k+'">Call</button></div>';}).join('')+'</div>'+
       '<div class="stack"><button class="btn wide" id="gBack" type="button">Back</button></div>');
     sheet.querySelectorAll('button[data-k]').forEach(function(b){b.onclick=function(){callHost(b.getAttribute('data-k'));};});
     document.getElementById('gBack').onclick=closeSheet;
+    document.getElementById('gByPhone').onclick=function(){closeSheet();showWay('Phone');};
+    document.getElementById('gByName').onclick=function(){closeSheet();showWay('Name');};
   }
+
+  /* ---------- Phone and Name: the same guest sheet as the code, reached another way ---------- */
+  function $(id){return document.getElementById(id);}
+  var ways=['Code','Phone','Name'],way='Code';
+  function showWay(w){
+    way=w;
+    ways.forEach(function(x){$('w'+x).setAttribute('aria-selected',String(x===w));$('p'+x).hidden=x!==w;});
+    if(w==='Phone'){$('phoneIn').focus();phoneFind();}
+    if(w==='Name'){fillHosts();nameFind();}
+  }
+  ways.forEach(function(x){$('w'+x).addEventListener('click',function(){showWay(x);});});
+  /* one guest, one line: their number, name, whose guest, table, and whether they're in */
+  function label(v){var h=D.hostName(v.host);return v.name||(v.family?h+(v.own==='wife'?'’s wife':v.seats>1?' and wife':''):'No name given');}
+  function line(v){
+    var n=att(v),inn=Math.min(n,v.arrived||0);
+    var st=v.status!=='confirmed'?['sent','Not confirmed']:inn>=n?['in','In']:inn?['in',inn+' of '+n+' in']:['conf','Confirmed'];
+    return '<li><button type="button" data-n="'+v.num+'"><span class="no">'+v.num+'</span><span class="d"><b>'+esc(label(v))+'</b>'+
+      '<small>'+esc(D.hostName(v.host))+(v.family?', family':'’s guest')+(v.table?' · Table '+v.table:'')+' · '+plural(v.status==='confirmed'?n:v.seats,'seat')+'</small></span>'+
+      '<span class="st '+st[0]+'">'+st[1]+'</span></button></li>';
+  }
+  function pickFrom(list){list.addEventListener('click',function(e){var b=e.target.closest('button[data-n]');if(b)lookup(b.getAttribute('data-n'));});}
+  pickFrom($('phoneList'));pickFrom($('nameList'));
+  /* the number a guest gives, matched against each invitation's fingerprint of its number (the sample has the numbers) */
+  function hex(buf){return [].map.call(new Uint8Array(buf),function(b){return (b<16?'0':'')+b.toString(16);}).join('');}
+  function fingerprint(p){
+    if(!L.on)return Promise.resolve(p);
+    if(!window.crypto||!crypto.subtle)return Promise.reject();
+    return crypto.subtle.digest('SHA-256',new TextEncoder().encode(L.token+':'+p)).then(hex);
+  }
+  var asked='';
+  function phoneFind(){
+    var raw=$('phoneIn').value,p=L.phone(raw),msg=$('phoneMsg'),out=$('phoneList'),digitsN=raw.replace(/\D/g,'').length;
+    asked=p;out.innerHTML='';
+    if(!p){msg.textContent=digitsN>=10?'Check the number. A number from abroad needs its country code, like +44.':'Type the whole number. A number from abroad needs its country code, like +44.';return;}
+    fingerprint(p).then(function(f){
+      if(asked!==p)return;
+      var hits=D.invites.filter(function(v){return (L.on?v.ph:v.phone)===f;});
+      if(!hits.length){msg.textContent='No invitation came to '+L.showPhone(p)+'. Try their name, or ask for the number again.';return;}
+      if(hits.length===1&&!sheet.classList.contains('show'))return lookup(String(hits[0].num));
+      msg.textContent=hits.length+' invitations came to '+L.showPhone(p)+'. Tap theirs.';
+      out.innerHTML=hits.map(line).join('');
+    },function(){msg.textContent='This phone can’t search by number. Use the code or the name.';});
+  }
+  $('phoneIn').addEventListener('input',phoneFind);
+  /* by name: choose their host, then find the name or scroll their list */
+  function fillHosts(){
+    var s=$('hostIn'),keys=Object.keys(D.HOSTS);
+    if(s.options.length===keys.length+2)return;
+    var keep=s.value;
+    s.innerHTML='<option value="">Choose their host</option>'+keys.map(function(k){var h=D.HOSTS[k];return '<option value="'+k+'">'+esc(h.name+(h.role?' ('+h.role+')':''))+'</option>';}).join('')+'<option value="*">Every host</option>';
+    s.value=keep;
+  }
+  function nameFind(){
+    var k=$('hostIn').value,q=$('nameIn').value.trim().toLowerCase(),msg=$('nameMsg'),out=$('nameList');
+    if(!k&&!q){msg.textContent='Their list shows once you choose. You can also type a name straight away.';out.innerHTML='';return;}
+    var hits=D.invites.filter(function(v){
+      if(v.num==null)return false;
+      if(k&&k!=='*'&&v.host!==k)return false;
+      return !q||(label(v)+' '+v.num).toLowerCase().indexOf(q)>=0;
+    }).sort(function(a,b){return label(a).localeCompare(label(b));});
+    msg.textContent=hits.length?plural(hits.length,'invitation')+(k&&k!=='*'?' from '+D.hostName(k):'')+(q?' matching “'+$('nameIn').value.trim()+'”':''):(q?'Nobody matches “'+$('nameIn').value.trim()+'”'+(k&&k!=='*'?' among '+D.hostName(k)+'’s guests':'')+'.':'No invitations yet.');
+    out.innerHTML=hits.map(line).join('');
+  }
+  $('hostIn').addEventListener('change',nameFind);
+  $('nameIn').addEventListener('input',nameFind);
 
   var off=document.getElementById('offline'),net=document.getElementById('net'),note=document.getElementById('offlineNote');
   off.addEventListener('change',function(){
