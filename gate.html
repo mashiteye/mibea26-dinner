@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./staff.css?v=25">
+<link rel="stylesheet" href="./staff.css?v=26">
 <style>
 .offline-note{margin-top:12px}
 .offline-note[hidden]{display:none}
@@ -66,10 +66,10 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- ?v= changes with every update, so a phone never mixes a new page with scripts it kept from before -->
-<script src="./config.js?v=25"></script>
-<script src="./api.js?v=25"></script>
-<script src="./live.js?v=25"></script>
-<script src="./demo-data.js?v=25"></script>
+<script src="./config.js?v=26"></script>
+<script src="./api.js?v=26"></script>
+<script src="./live.js?v=26"></script>
+<script src="./demo-data.js?v=26"></script>
 <script>
 (function(){
   'use strict';
@@ -162,8 +162,8 @@
     showToast(L.on?'No number saved for '+(h.name||'this host'):'Preview: this would call '+(h.name||''));
   }
   function rid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
-  /* the table, and the seats there so the ushers can take them straight to them */
-  function where(v){return v.table?'<div class="big-table">'+esc(D.tableName(v.table))+'</div><div class="table-no">Table '+v.table+(v.chairs&&v.chairs.length?' · '+L.seatWords(v.chairs):'')+'</div>':
+  /* the table number, big, then its name and the seats there so the ushers can take them straight to them */
+  function where(v){return v.table?'<div class="big-table">Table '+v.table+'</div><div class="table-no">'+esc(D.tableName(v.table))+(v.chairs&&v.chairs.length?' · '+L.seatWords(v.chairs):'')+'</div>':
     '<div class="big-table">No table yet</div><div class="table-no">Call the host</div>';}
 
   /* a confirmed number: the table, who invited them, and how many of its people are in. A household may come in
@@ -188,8 +188,10 @@
     var k=left;
     if(left>1){
       var o=document.getElementById('nO'),m=document.getElementById('nM'),p=document.getElementById('nP');
-      var upd=function(){o.textContent=k;m.disabled=k<=1;p.disabled=k>=left;btn.textContent='Let in '+plural(k,'person','people');};
-      m.onclick=function(){k=Math.max(1,k-1);upd();};p.onclick=function(){k=Math.min(left,k+1);upd();};upd();
+      var upd=function(){o.textContent=k;m.disabled=k<=1;p.setAttribute('aria-disabled',String(k>=left));btn.textContent='Let in '+plural(k,'person','people');};
+      /* more than the number still has: say so, rather than a button that does nothing */
+      m.onclick=function(){k=Math.max(1,k-1);upd();};
+      p.onclick=function(){if(k>=left){showToast(v.num+' can let in '+plural(left,'more person','more people')+'. For anyone else, call the host.');return;}k=Math.min(left,k+1);upd();};upd();
     }
     btn.onclick=function(){
       v.arrived=Math.min(n,(v.arrived||0)+k);v.arrivedAt=clock();counts();

@@ -26,8 +26,8 @@
 .slide .card{margin-top:0;padding:14px 10px 14px}
 .tsvg{display:block;width:100%;max-width:420px;height:auto;margin:2px auto 0}
 .tsvg text{font-family:var(--sans);pointer-events:none}
-.tsvg .tname{font-family:var(--serif);font-size:21px;fill:var(--choc-deep)}
-.tsvg .tno{font-size:10px;font-weight:600;letter-spacing:2px;fill:var(--gold-deep)}
+.tsvg .tname{font-family:var(--serif);font-size:27px;fill:var(--choc-deep)}   /* the table number: the most important line */
+.tsvg .tno{font-size:9.5px;font-weight:600;letter-spacing:1.8px;fill:var(--gold-deep)}
 .tsvg .add rect{fill:var(--choc)}
 .tsvg .add text{font-size:12px;font-weight:600;letter-spacing:1px;fill:var(--ivory)}
 .tsvg .full{font-size:11px;font-weight:600;letter-spacing:1.5px;fill:var(--soft)}
@@ -63,7 +63,7 @@
 .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
 .seg button{min-height:50px;border-radius:12px;border:1px solid var(--line-strong);background:#fff;font-family:var(--serif);font-size:24px;color:var(--choc-deep);cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--choc);border-color:var(--choc);color:var(--ivory)}
-.seg button:disabled{opacity:.28;cursor:default}
+.seg button:disabled,.seg button[aria-disabled="true"]{opacity:.28;cursor:default}
 .phone-row{display:flex;gap:8px;align-items:flex-end}
 .phone-row input{flex:1;min-width:0}
 .phone-row .btn{flex:none;min-height:48px;padding:0 14px}

@@ -17,6 +17,7 @@
   function showToast(m){var t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){t.classList.remove('show');},2800);}
   function day(iso){var d=new Date(iso);return d.getUTCDate()+' '+['January','February','March','April','May','June','July','August','September','October','November','December'][d.getUTCMonth()];}
   function cap1(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
+  function byDay(){return day(O.deadline||'2026-12-12T23:59:59Z');}   /* the date to confirm by */
   function legend(keys){return '<div class="legend">'+keys.map(function(k){return '<span><i class="'+k[0]+'"></i>'+k[1]+'</span>';}).join('')+'</div>';}
   var BTN=' style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none"';
 
@@ -92,7 +93,7 @@
   /* each host's numbers, from the invitations themselves: the preview's, and the overall view's */
   function hostStats(){return Object.keys(B.HOSTS).map(function(k){var T=B.tally(k);return {key:k,name:B.HOSTS[k].name,role:B.HOSTS[k].role,seats:T.alloc,confirmed:T.confirmed+T.ownSeats,waiting:T.waiting};});}
   function sampleStats(){
-    return {hosts:hostStats(),deadline:'2026-12-10T23:59:59Z',late:'2026-12-19T23:59:59Z',now:new Date().toISOString(),today:5,last:new Date(Date.now()-12*60000).toISOString()};
+    return {hosts:hostStats(),deadline:'2026-12-12T23:59:59Z',late:'2026-12-19T23:59:59Z',now:new Date().toISOString(),today:5,last:new Date(Date.now()-12*60000).toISOString()};
   }
   function adminStats(r){
     var now=r.at||new Date().toISOString(),t0=new Date(now),today=0,last=null;t0.setUTCHours(0,0,0,0);   /* Accra keeps UTC */
@@ -101,7 +102,7 @@
       if(new Date(x.confirmed_at)>=t0)today+=x.att||x.seats;
       if(!last||new Date(x.confirmed_at)>new Date(last))last=x.confirmed_at;
     });
-    return {hosts:hostStats(),deadline:r.deadline||'2026-12-10T23:59:59Z',late:r.late_deadline||'2026-12-19T23:59:59Z',now:now,today:today,last:last};
+    return {hosts:hostStats(),deadline:r.deadline||'2026-12-12T23:59:59Z',late:r.late_deadline||'2026-12-19T23:59:59Z',now:now,today:today,last:last};
   }
   function broken(){
     $('title').textContent='This link isn’t working';
@@ -161,7 +162,7 @@
     $('title').textContent=H.name+'’s invitations';
     document.title=H.name+'’s invitations · Dinner Night';
     $('intro').textContent='Swipe to a table and tap it to invite. Tap a chair to see who sits there.';
-    $('returns').textContent='Seats not confirmed by 10 December come back to you.';
+    $('returns').textContent='Seats not confirmed by '+byDay()+' come back to you.';
     if(H.role){$('helper').hidden=false;$('helper').textContent='If someone helps '+H.name+' with this, they open this same link.';}
     $('sum').innerHTML=chips(T.guestAlloc+' seats to give',T.confirmed,T.waiting,T.left);
     var own=T.own;
@@ -179,7 +180,7 @@
     $('own').hidden=true;
     $('intro').textContent=me?'What '+B.hostName(me)+' sees, with your powers: invite, edit, move or cancel any of their guests.':
       'Every table, one per screen. Tap a free chair to invite for its host. Tap a guest to edit, move or cancel.';
-    $('returns').textContent='Seats not confirmed by 10 December go back to their host.';
+    $('returns').textContent='Seats not confirmed by '+byDay()+' go back to their host.';
     if(me){var T=B.tally(me);$('sum').innerHTML=chips(T.guestAlloc+' seats to give',T.confirmed,T.waiting,T.left);}
     else{
       var a={seats:0,conf:0,sent:0,free:0};
@@ -223,8 +224,8 @@
     var forYou=ADMIN?'':' for you';
     out+='<g class="tablebtn" role="button" tabindex="0" data-t="'+t+'" aria-label="'+(can?'Invite to '+esc(B.tableName(t))+', '+plural(room,'seat')+' free'+forYou:'No free seats'+forYou+' at '+esc(B.tableName(t)))+'">'+
       '<circle cx="'+C+'" cy="'+C+'" r="80" fill="#fffaf2" stroke="#c9b48f" stroke-width="1.5"/>'+(t===18?'<circle cx="'+C+'" cy="'+C+'" r="86" fill="none" stroke="#c9a45e" stroke-width="1.2"/>':'')+
-      '<text class="tname" x="'+C+'" y="'+(C-18)+'" text-anchor="middle">'+esc(B.tableName(t))+'</text>'+
-      '<text class="tno" x="'+C+'" y="'+(C+2)+'" text-anchor="middle">TABLE '+t+'</text>'+
+      '<text class="tname" x="'+C+'" y="'+(C-14)+'" text-anchor="middle">Table '+t+'</text>'+
+      '<text class="tno" x="'+C+'" y="'+(C+5)+'" text-anchor="middle">'+esc(B.tableName(t).toUpperCase())+'</text>'+
       (can?'<g class="add"><rect x="'+(C-50)+'" y="'+(C+16)+'" width="100" height="32" rx="16"/><text x="'+C+'" y="'+(C+36)+'" text-anchor="middle">+ INVITE</text></g>':
         '<text class="full" x="'+C+'" y="'+(C+36)+'" text-anchor="middle">'+(closed?'CLOSED':'FULL')+'</text>')+'</g>';
     row.forEach(function(s){
@@ -292,14 +293,11 @@
   }
   function canSeat(t,n,skip,start,k){return n<=4&&roomFor(k,t,skip)>=n&&B.tally(k).left+(skip?B.held(skip):0)>=n&&!!pick(t,n,skip,start);}
 
-  /* ---------- the message: one invitation, its number and seats, and the link ---------- */
+  /* ---------- the message: short. The seats in capitals, the date to confirm by, and the link (its preview carries the rest) ---------- */
   function linkOf(v){return L.on?L.guestLink(v.token):B.link(v.num);}
   function message(v){
     var n=B.held(v)||v.seats;
-    return 'Hello, you are cordially invited to Dinner Night, hosted by the Ashiteye and Laryea families.\nThe couple: Michael & Beatrice\n'+
-      'Sunday 20 December 2026, 4:00 pm\nEvents Rising Sun, Teshie\n\n'+
-      'Your honoured-guest number: '+v.num+' · '+n+(n>1?' DINNER SEATS':' DINNER SEAT')+'\n'+
-      'Please confirm by '+(v.confirmBy?day(v.confirmBy):'10 December')+':\n'+linkOf(v);
+    return n+(n>1?' DINNER SEATS':' DINNER SEAT')+'\nPlease confirm by '+(v.confirmBy?day(v.confirmBy):byDay())+':\n'+linkOf(v);
   }
   function waUrl(v){return 'https://wa.me/'+v.phone+'?text='+encodeURIComponent(message(v));}
 
@@ -319,7 +317,7 @@
   function family(v,p,t){return B.invites.filter(function(x){return p&&x.phone===p&&x.table===t&&B.held(x)>0&&!(v&&x.num===v.num);});}
   function familyOf(v){var f=family(v,v.phone,v.table);return f.length?'<dt>Family</dt><dd>'+f.map(function(x){return x.num+(x.name?' ('+esc(x.name)+')':'');}).join(', ')+'</dd>':'';}
   function statusWords(v){
-    if(v.status==='expired')return 'Not confirmed by '+(v.confirmBy?day(v.confirmBy):'10 December');
+    if(v.status==='expired')return 'Not confirmed by '+(v.confirmBy?day(v.confirmBy):byDay());
     if(v.status!=='confirmed')return 'Sent, not confirmed yet';
     return v.att<v.seats?'Confirmed '+v.att+' of '+v.seats+'; the other '+plural(v.seats-v.att,'seat')+' came back to '+(ADMIN?B.hostName(v.host):'you'):'Confirmed';
   }
@@ -382,7 +380,7 @@
       '<div class="field"><label for="fPhone">WhatsApp number</label><div class="phone-row"><input id="fPhone" type="tel" inputmode="tel" autocomplete="off" placeholder="024 123 4567" value="'+(kind==='edit'?esc(L.showPhone(v.phone)):'')+'">'+
         (picker?'<button class="btn" type="button" id="fPick">Contacts</button>':'')+'</div><p class="hint" id="fPhoneMsg" aria-live="polite"></p></div>'+
       '<div class="field"><span class="lab" id="fSeatsLab">Seats</span><div class="seg" id="fSeats" role="group" aria-labelledby="fSeatsLab">'+
-        [1,2,3,4].map(function(n){return '<button type="button" data-n="'+n+'"'+(ok(n)?'':' disabled')+' aria-pressed="false">'+n+'</button>';}).join('')+'</div>'+
+        [1,2,3,4].map(function(n){return '<button type="button" data-n="'+n+'"'+(ok(n)?'':' aria-disabled="true"')+' aria-pressed="false">'+n+'</button>';}).join('')+'</div>'+
         '<p class="hint" id="fSeatsMsg"></p></div>'+
       '<div class="stack"><button class="btn '+(kind==='edit'?'primary':'green')+' wide" type="button" id="fGo" disabled>'+(kind==='edit'?'Save':'Send on WhatsApp')+'</button><button class="btn wide" type="button" data-close>Cancel</button></div>','#fName');
     var st={n:ok(n0)?n0:0,phone:'',used:null,checked:''};
@@ -394,8 +392,16 @@
       var cap=B.chairsAt(t).length;return last%cap+1;
     }
     function chairs(){return !st.n?null:same()?(v.chairs||[]):pick(t,st.n,v||null,next());}
+    /* why a number of seats can't be given here, so a tap on it is never met with silence */
+    function why(n){
+      var room=roomFor(k,t,v||null),left=B.tally(k).left+(v?B.held(v):0),who=ADMIN?B.hostName(k):'you';
+      if(room<n)return room?'Only '+plural(room,'seat')+' '+(room>1?'are':'is')+' free for '+who+' at this table.':'No seats are free for '+who+' at this table.';
+      if(left<n)return (ADMIN?B.hostName(k)+' has':'You have')+' only '+plural(left,'seat')+' left to give.';
+      return 'There aren’t '+n+' free chairs at this table.';
+    }
     function seatsUi(){
       [].forEach.call($('fSeats').querySelectorAll('button'),function(b){b.setAttribute('aria-pressed',String(+b.getAttribute('data-n')===st.n));});
+      $('fSeatsMsg').className='hint';
       var c=chairs();$('fSeatsMsg').textContent=c&&c.length?cap1(L.seatWords(c))+' at '+B.tableLabel(t):same()?B.tableLabel(t):'No free seats '+(ADMIN?'for '+B.hostName(k):'for you')+' at this table';
     }
     function phoneUi(){
@@ -426,7 +432,11 @@
         'This number is already invited by '+u.host+(u.table?', at Table '+u.table:'')+'.';
     }
     function valid(){var c=chairs();$('fGo').disabled=!($('fName').value.trim()&&st.phone&&!st.used&&c&&(c.length||same()));}
-    $('fSeats').addEventListener('click',function(e){var b=e.target.closest('button[data-n]');if(!b||b.disabled)return;st.n=+b.getAttribute('data-n');seatsUi();valid();});
+    $('fSeats').addEventListener('click',function(e){
+      var b=e.target.closest('button[data-n]');if(!b)return;
+      if(b.getAttribute('aria-disabled')==='true'){var m=$('fSeatsMsg');m.className='hint warn';m.textContent=why(+b.getAttribute('data-n'));return;}
+      st.n=+b.getAttribute('data-n');seatsUi();valid();
+    });
     $('fName').addEventListener('input',valid);
     $('fPhone').addEventListener('input',phoneUi);
     if($('fPick'))$('fPick').onclick=function(){
@@ -697,7 +707,7 @@
       ring(conf,wait,seats,conf,'of '+seats+' confirmed','#3e8e5a',conf+' of '+seats+' confirmed, '+wait+' sent and not confirmed yet');
       $('totLine').textContent=wait+' sent, not confirmed yet · '+Math.max(0,seats-conf-wait)+' free';
       var days=Math.ceil((new Date(O.deadline)-new Date(O.now))/86400000);
-      $('when').textContent=days>1?days+' days left to confirm · 10 December':days===1?'Last day to confirm · 10 December':'Confirmations closed on 10 December';
+      $('when').textContent=days>1?days+' days left to confirm · '+byDay():days===1?'Last day to confirm · '+byDay():'Confirmations closed on '+byDay();
       $('pulse').textContent=O.today?plural(O.today,'person','people')+' confirmed today'+(O.last?' · latest '+ago(O.last,O.now):''):O.last?'Latest confirmation '+ago(O.last,O.now):'No confirmations yet';
     }
     if(ADMIN){adminTotals();return;}
@@ -729,7 +739,7 @@
         f.push({cls:'warn',t:'Not seated yet · '+plural(people,'person','people'),m:'No table had room when they were invited. Tap one to give it a table.<br>'+
           B.unseated.map(function(v){var n=B.held(v);return '<button class="btn" type="button" data-seat="'+v.num+'">'+v.num+' · '+esc(B.hostName(v.host))+(n>1?' · '+n:'')+'</button>';}).join('')});
       }
-      if(all.waiting)f.push({cls:'warn',t:'Not confirmed yet · '+plural(all.waiting,'person','people'),m:by('waiting')+'. Whatever isn’t confirmed by 10 December goes back to its host.'});
+      if(all.waiting)f.push({cls:'warn',t:'Not confirmed yet · '+plural(all.waiting,'person','people'),m:by('waiting')+'. Whatever isn’t confirmed by '+byDay()+' goes back to its host.'});
       if(all.late)f.push({cls:'',t:'Not confirmed in time · '+plural(all.late,'invitation'),m:by('late')+'. Their seats went back to their host. The list shows who they are.'});
       if(all.left)f.push({cls:'',t:'Left to invite · '+plural(all.left,'seat'),m:by('left')+'.'});
     }

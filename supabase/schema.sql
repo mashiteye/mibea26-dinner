@@ -11,8 +11,8 @@
 -- ---------- tables ----------
 create table if not exists settings (
   id boolean primary key default true check (id),
-  deadline timestamptz not null default '2026-12-10 23:59:59+00',   -- confirm by 10 December (Accra is UTC+0)
-  late_deadline timestamptz not null default '2026-12-19 23:59:59+00', -- invitations made after 10 December: confirm by the 19th
+  deadline timestamptz not null default '2026-12-12 23:59:59+00',   -- confirm by 12 December (Accra is UTC+0)
+  late_deadline timestamptz not null default '2026-12-19 23:59:59+00', -- invitations made after 12 December: confirm by the 19th
   admin_token text not null,
   gate_token text not null
 );
@@ -24,6 +24,7 @@ create table if not exists hosts (
   seats int not null check (seats > 0),
   token text not null unique
 );
+alter table settings alter column deadline set default '2026-12-12 23:59:59+00';
 alter table hosts add column if not exists phone text;
 
 create table if not exists dinner_tables (
@@ -79,6 +80,9 @@ revoke all on settings, hosts, dinner_tables, plan, invitations from anon, authe
 -- an older setup made one row per person. Each stays as it is, an invitation for one seat: its number may already be
 -- with a guest, and it may have confirmed. Its answer and arrival carry over to the seat counts
 update invitations set att=seats where status='confirmed' and att is null;
+-- the date to confirm by moved from 10 to 12 December: the setting, and every invitation that had the old date
+update settings set deadline='2026-12-12 23:59:59+00' where deadline='2026-12-10 23:59:59+00';
+update invitations set expires_at='2026-12-12 23:59:59+00' where expires_at='2026-12-10 23:59:59+00';
 update invitations set arrived=coalesce(att,seats) where arrived_at is not null and arrived=0;
 
 -- ---------- helpers (not callable from the web) ----------
@@ -259,9 +263,11 @@ end $$;
 update invitations set grp=gen_random_uuid(), pos=0 where pos>0;
 
 -- ---------- the guest: their own invitation, and Confirm (how many of the seats, for a household) ----------
+-- a cancelled invitation says so, with the first name and number of the host who invited them, so they can call
 create or replace function guest_get(p_token text) returns json language sql stable security definer set search_path=public as $$
-  select json_build_object('num',i.num,'status',_state(i),'seats',i.seats,'att',i.att,'confirm_by',i.expires_at)
-  from invitations i where i.token=p_token and i.status<>'cancelled'
+  select case when i.status='cancelled' then json_build_object('status','cancelled','host',h.name,'host_phone',_phone(h.phone))
+    else json_build_object('num',i.num,'status',_state(i),'seats',i.seats,'att',i.att,'confirm_by',i.expires_at) end
+  from invitations i join hosts h on h.key=i.host where i.token=p_token
 $$;
 
 -- a household that confirms fewer than its seats keeps the first of its seat numbers; the rest go back to the host

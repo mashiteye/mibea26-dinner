@@ -61,7 +61,7 @@ h1{margin:0;font-family:var(--serif);font-weight:500;font-size:28px;line-height:
 .err[hidden]{display:none}
 .stepper{display:flex;align-items:center;justify-content:space-between;margin-top:6px;border:1px solid var(--line-strong);border-radius:12px;background:#fff;padding:3px}
 .stepper button{width:46px;height:42px;border:0;border-radius:9px;background:rgba(111,67,47,.08);font-size:20px;color:var(--choc);cursor:pointer}
-.stepper button:disabled{opacity:.35;cursor:default}
+.stepper button:disabled,.stepper button[aria-disabled="true"]{opacity:.35;cursor:default}
 .stepper output{font-family:var(--serif);font-size:22px;color:var(--choc-deep)}
 .msg{margin-top:14px;padding:12px;border-radius:12px;background:#fff;border:1px dashed var(--line-strong);font-size:13px;line-height:1.5;color:var(--ink);white-space:pre-line}
 .msg b{display:block;margin-bottom:4px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}

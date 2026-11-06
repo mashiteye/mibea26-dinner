@@ -63,7 +63,7 @@
       group:function(v){return groups[v.group]||[v];},
       hostName:function(k){return k&&HOSTS[k]?HOSTS[k].name:'';},
       tableName:function(t){return names[t]?names[t].name:'';},
-      tableLabel:function(t){return names[t]?names[t].name+' · '+t:'Not seated yet';}};
+      tableLabel:function(t){return names[t]?'Table '+t+' · '+names[t].name:'Not seated yet';}};   /* the number first: it's what guests are shown to */
   }
   /* WhatsApp numbers: however they're typed, digits with the country code (Ghana's when there's none), and back again
      for reading. The same rules as the database's _phone() */
