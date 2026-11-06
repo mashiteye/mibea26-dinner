@@ -21,9 +21,9 @@
 #map .tbl:focus-visible circle.t{stroke:var(--gold-deep);stroke-width:2}
 #map text{font-family:var(--sans)}
 .legend .open{background:#fff;border-style:dashed}
-.legend .sent{background:#e9d7b5}
-.legend .confirmed{background:#6f432f;border-color:#6f432f}
-.legend .arrived{background:#3e7a4f;border-color:#3e7a4f}
+.legend .sent{background:#f2c94c;border-color:#b8901e}
+.legend .confirmed{background:#3e8e5a;border-color:#2c6b42}
+.legend .arrived{background:#2f6690;border-color:#24506f}
 .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table.hosts{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;font-variant-numeric:lining-nums tabular-nums}
 table.hosts th{font-size:11px;font-weight:600;color:var(--soft);text-align:right;padding:6px 3px;border-bottom:1px solid var(--line)}
@@ -40,6 +40,8 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
 .hh .no{min-width:52px;font-family:var(--serif);font-size:26px;line-height:1;color:var(--choc-deep);font-variant-numeric:lining-nums tabular-nums}
 .hh .d{flex:1;font-size:13px;color:var(--choc-deep)}
 .hh .d small{display:block;margin-top:2px;font-size:11.5px;color:var(--soft)}
+.hh .d b{font-weight:600}
+.hh .d a{color:var(--choc)}
 .hh .btn{min-height:38px;padding:0 14px}
 .hh li.free{font-size:12.5px;color:var(--soft)}
 .pick{list-style:none;margin:12px 0 0;padding:0;max-height:46vh;overflow:auto}
@@ -107,8 +109,10 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
   function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function showToast(m){toast.textContent=m;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(function(){toast.classList.remove('show');},2600);}
   function plural(n,one,many){return n+' '+(n===1?one:(many||one+'s'));}
-  var FILL={open:'#fff',sent:'#e9d7b5',confirmed:'#6f432f',arrived:'#3e7a4f'};
-  var STROKE={open:'#b7a58c',sent:'#cdb68d',confirmed:'#6f432f',arrived:'#3e7a4f'};
+  function cap1(t){return t?t.charAt(0).toUpperCase()+t.slice(1):'';}
+  /* the same colours as the host pages: yellow sent, green confirmed; on the night, blue once they're in */
+  var FILL={open:'#fff',sent:'#f2c94c',confirmed:'#3e8e5a',arrived:'#2f6690'};
+  var STROKE={open:'#b7a58c',sent:'#b8901e',confirmed:'#2c6b42',arrived:'#24506f'};
 
   /* an invitation is one number for one to four people (a person, a couple, a family): they sit together and move
      together. It takes a chair for each seat it holds; on the night a chair turns green as each of them comes in */
@@ -130,7 +134,7 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     document.getElementById('map').innerHTML=ROOM.svg({chairs:chairs,label:tableWho,
       aria:function(t){return D.tableLabel(t)+', '+(9-freeAt(t))+' of 9 chairs taken';},
       paint:function(s){var st=state(s);return {fill:FILL[st],stroke:STROKE[st],dashed:st==='open'};}});
-    var keys=night?[['open','Free'],['sent','Not confirmed'],['confirmed','Confirmed, not in yet'],['arrived','In the room']]:[['open','Free'],['sent','Not confirmed yet'],['confirmed','Confirmed']];
+    var keys=night?[['open','Free'],['sent','Not confirmed'],['confirmed','Confirmed, not in yet'],['arrived','In the room']]:[['open','Free'],['sent','Sent'],['confirmed','Confirmed']];
     document.getElementById('legend').innerHTML=keys.map(function(k){return '<span><i class="'+k[0]+'"></i>'+k[1]+'</span>';}).join('');
   }
 
@@ -199,7 +203,9 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     var list=at(t),free=freeAt(t);
     var html='<h3 id="sheetTitle">'+esc(D.tableLabel(t))+'</h3><div class="meta">'+esc(tableWho(t))+' · '+(9-free)+' of 9 chairs taken</div><ul class="hh">';
     list.forEach(function(v){
-      html+='<li><span class="no">'+v.num+'</span><span class="d">'+plural(D.held(v),'seat')+' · '+esc(whose(v))+(v.kids?' · '+v.kids+' children, no chair':'')+'<small>'+status(v)+'</small></span>'+
+      var tel=v.phone?(L.on?' · <a href="tel:+'+v.phone+'">'+esc(L.showPhone(v.phone))+'</a>':' · '+esc(L.showPhone(v.phone))):'';
+      html+='<li><span class="no">'+v.num+'</span><span class="d">'+(v.name?'<b>'+esc(v.name)+'</b> · ':'')+plural(D.held(v),'seat')+' · '+esc(whose(v))+(v.kids?' · '+v.kids+' children, no chair':'')+
+        '<small>'+cap1(L.seatWords(v.chairs))+' · '+status(v)+tel+'</small></span>'+
         '<button class="btn" type="button" data-move="'+v.num+'" aria-label="Move '+v.num+'">Move</button></li>';
     });
     if(free)html+='<li class="free">'+plural(free,'chair')+' free</li>';
@@ -230,7 +236,7 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
     }
     D.seats.forEach(function(s){if(s.inv===v){s.inv=null;s.k=0;}});
     var free=chairs(t).filter(function(s){return !s.inv;});
-    for(var k=0;k<D.held(v);k++){free[k].inv=v;free[k].k=k;}
+    v.chairs=[];for(var k=0;k<D.held(v);k++){free[k].inv=v;free[k].k=k;v.chairs.push(free[k].chair);}
     v.table=t;if(D.unseated)D.unseated=D.unseated.filter(function(x){return x!==v;});
     closeSheet();render();showToast(what);
   }
@@ -240,9 +246,10 @@ table.hosts tr.all td{border-bottom:0;font-weight:600}
   vB.onclick=function(){setView(false);};vN.onclick=function(){setView(true);};
   /* a spreadsheet of every number: host, seats, answer, table, and how many came in */
   function exportList(){
-    var rows=[['Number','Host','Seats','Confirmed for','Answer','Table','Table name','In','Last in at']];
+    var rows=[['Number','Name','WhatsApp','Host','Seats','Confirmed for','Answer','Table','Table name','Seat numbers','In','Last in at']];
     D.invites.forEach(function(v){
-      rows.push([v.num,D.hostName(v.host)+(v.family?' (family)':''),v.seats,v.status==='confirmed'?v.att:'',v.status==='confirmed'?'Confirmed':v.status==='sent'?'Not confirmed yet':'Not confirmed by the date',v.table||'',v.table?D.tableName(v.table):'',v.arrived||0,v.arrivedAt||'']);});
+      rows.push([v.num,v.name||'',v.phone?L.showPhone(v.phone):'',D.hostName(v.host)+(v.family?' (family)':''),v.seats,v.status==='confirmed'?v.att:'',
+        v.status==='confirmed'?'Confirmed':v.status==='sent'?'Not confirmed yet':'Not confirmed by the date',v.table||'',v.table?D.tableName(v.table):'',(v.chairs||[]).join(' '),v.arrived||0,v.arrivedAt||'']);});
     var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
     var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download='dinner-night-guests.csv';
     document.body.appendChild(a);a.click();a.remove();

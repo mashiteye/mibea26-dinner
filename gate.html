@@ -148,7 +148,7 @@
     }
     var host=D.hostName(v.host);
     if(v.status==='confirmed')return guest(v);
-    openSheet('<h3 id="sheetTitle">Honoured guest '+v.num+'</h3><div class="meta">'+esc(host)+'’s '+(v.seats>1?'guests · '+v.seats+' seats':'guest')+'</div>'+
+    openSheet('<h3 id="sheetTitle">Honoured guest '+v.num+'</h3><div class="meta">'+(v.name?esc(v.name)+' · ':'')+esc(host)+'’s '+(v.seats>1?'guests · '+v.seats+' seats':'guest')+'</div>'+
       '<div class="banner warn">Invited, but they never confirmed. Call '+esc(host)+' before letting them in.</div>'+
       '<div class="stack"><button class="btn primary wide" id="gCall" type="button">Call '+esc(host)+'</button><button class="btn wide" id="gNext" type="button">Next guest</button></div>');
     document.getElementById('gCall').onclick=function(){callHost(v.host);};
@@ -161,7 +161,8 @@
     showToast(L.on?'No number saved for '+(h.name||'this host'):'Preview: this would call '+(h.name||''));
   }
   function rid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
-  function where(v){return v.table?'<div class="big-table">'+esc(D.tableName(v.table))+'</div><div class="table-no">Table '+v.table+'</div>':
+  /* the table, and the seats there so the ushers can take them straight to them */
+  function where(v){return v.table?'<div class="big-table">'+esc(D.tableName(v.table))+'</div><div class="table-no">Table '+v.table+(v.chairs&&v.chairs.length?' · '+L.seatWords(v.chairs):'')+'</div>':
     '<div class="big-table">No table yet</div><div class="table-no">Call the host</div>';}
 
   /* a confirmed number: the table, who invited them, and how many of its people are in. A household may come in
@@ -169,7 +170,7 @@
   function guest(v){
     var host=D.hostName(v.host),n=att(v),left=n-Math.min(n,v.arrived||0);
     var html='<div class="meta" id="sheetTitle">Honoured guest '+v.num+' · your table is</div>'+where(v)+
-      '<div class="who">'+(v.family?esc(host)+(v.seats>1?' and wife':'')+' · family table':'Check who invited them: <b>'+esc(host)+'</b>')+'</div>'+
+      '<div class="who">'+(v.family?esc(host)+(v.seats>1?' and wife':'')+' · family table':(v.name?'<b>'+esc(v.name)+'</b> · ':'Check who invited them: ')+'<b>'+esc(host)+'</b>’s guest'+(v.seats>1?'s':''))+'</div>'+
       (v.kids?'<div class="who">With '+v.kids+' children, who take no chair</div>':'')+
       (n>1?'<div class="count">'+(n-left)+' of '+n+' in</div>':'');
     if(left<=0){
