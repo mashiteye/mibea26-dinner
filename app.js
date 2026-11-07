@@ -7,6 +7,13 @@
   'use strict';
   var ADMIN=window.MODE==='admin';
   var L=window.LIVE,DEMO=window.DEMO,Q=new URLSearchParams(location.search);
+  /* opened from the home-screen icon on a phone that doesn't remember whose page it is: ask for the link, once */
+  var standalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+  if(!L.on&&standalone&&!Q.has('h')){
+    document.getElementById('app').innerHTML='<header class="top"><div class="in"><h1>'+(ADMIN?'Overall view':'Your invitations')+'</h1><div class="sub">Dinner Night · Sunday 20 December</div></div></header>'+
+      '<main class="wrap"><section class="card"><div class="card-head"><h2>Open your link once</h2></div><p class="note" style="margin-top:8px">This phone doesn’t know whose page this is yet. Open the private link Michael sent you on WhatsApp, once, on this phone. After that, this icon opens your page.</p></section></main>';
+    return;
+  }
   /* whose page this is: the host's, or on the overall view the host it is viewing as (null: every host) */
   var me=ADMIN?(Q.get('as')||null):(DEMO.HOSTS[Q.get('h')]?Q.get('h'):'mike');
   var B=null,O={hosts:[]},RAW={},cur=0,ready=false,night=false;
@@ -44,6 +51,7 @@
       '<p class="note">The table’s seats show who sits where. Guests learn their table at the gate.</p>'+
       '<p class="note" id="returns"></p>'+
       '<p class="note" id="helper" hidden></p>'+
+      (L.on?'<p class="note">This phone remembers your page, so the home-screen icon opens it. Not your phone? <button class="linkbtn" type="button" id="forget" style="padding:0;font-size:12.5px">Forget it here</button>.</p>':'')+
      '</div>'+
      '<div id="pList" role="tabpanel" aria-labelledby="tList" hidden>'+
       '<input class="find" id="lFind" type="search" autocomplete="off" placeholder="Find a name, code or number" aria-label="Find a name, code or phone number">'+
@@ -865,6 +873,7 @@
     $('vBefore').onclick=function(){setNight(false);};$('vNight').onclick=function(){setNight(true);};
   }
 
+  if($('forget'))$('forget').onclick=function(){L.forget();showToast('This phone has forgotten the page');setTimeout(function(){location.href=location.pathname;},900);};
   if(L.on){
     $('intro').textContent=ADMIN?'Loading every table…':'Loading your tables…';
     load().catch(function(){$('intro').textContent='No connection. Pull down to try again.';});

@@ -78,3 +78,15 @@ h1{margin:0;font-family:var(--serif);font-weight:500;font-size:28px;line-height:
 .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:12px;font-size:12px;color:var(--soft)}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px;border:1px solid var(--line-strong)}
 @media(prefers-reduced-motion:reduce){.sheet,.veil,.toast{transition:none}}
+
+/* the invitation to put the page on the home screen: a strip at the foot of the page, until they do or say Not now */
+.install{position:fixed;left:50%;bottom:12px;z-index:15;transform:translateX(-50%);width:min(calc(100% - 24px),560px);display:grid;grid-template-columns:48px 1fr;gap:4px 12px;padding:12px 14px;border-radius:18px;background:#2c1c14;color:#f5e6cc;box-shadow:0 12px 40px rgba(49,32,24,.35)}
+.install img{grid-row:span 2;width:48px;height:48px;border-radius:12px}
+.install .t{font-size:13px;line-height:1.45}
+.install .t b{display:block;font-weight:600;color:#fff8ec}
+.install .t span{display:block;margin-top:2px;color:#e2cfae}
+.install .t span b{display:inline;color:#fff8ec}
+.install .ishare{width:13px;height:16px;vertical-align:-3px;margin:0 1px}
+.install .b{display:flex;gap:8px;margin-top:6px}
+.install .btn{min-height:38px;padding:0 14px;font-size:10.5px;border-color:rgba(231,205,152,.45);background:transparent;color:#f5e6cc}
+.install .btn.primary{background:#e7cd98;border-color:#e7cd98;color:#2c1c14}

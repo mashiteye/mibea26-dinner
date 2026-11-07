@@ -91,8 +91,17 @@
     if(run)return 'seats '+s[0]+' to '+s[s.length-1];
     return 'seats '+s.slice(0,-1).join(', ')+' and '+s[s.length-1];
   }
-  var token=Q.get('k');
-  window.LIVE={on:!!(token&&window.API&&API.ready),token:token,build:build,clock:clock,held:held,phone:phone,showPhone:showPhone,seatWords:seatWords,
+  /* whose page this is: the code in the link, or the one this phone remembered from the last time. The host page,
+     the overall view and the gate each remember their own, so the home-screen icon opens the page with no link */
+  var page=(location.pathname.match(/(host|admin|gate)\.html$/)||[])[1]||null,KEY='mibea26-key-'+page;
+  var token=Q.get('k'),remembered=false;
+  if(page){
+    if(token){try{localStorage.setItem(KEY,token);}catch(e){}}
+    else{try{token=localStorage.getItem(KEY)||null;remembered=!!token;}catch(e){}}
+  }
+  window.LIVE={on:!!(token&&window.API&&API.ready),token:token,page:page,remembered:remembered,
+    forget:function(){try{localStorage.removeItem(KEY);}catch(e){}},
+    build:build,clock:clock,held:held,phone:phone,showPhone:showPhone,seatWords:seatWords,
     /* the guest's link, on whatever address the site is served from */
     guestLink:function(t){return location.origin+location.pathname.replace(/[^\/]*$/,'')+'?i='+encodeURIComponent(t);},
     pageLink:function(page,t){return location.origin+location.pathname.replace(/[^\/]*$/,'')+page+'?k='+encodeURIComponent(t);}};
