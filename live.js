@@ -18,7 +18,7 @@
       var v={num:r.num,host:r.host,group:r.grp,family:!!r.family,own:r.own||null,kids:r.kids||0,name:r.name||'',phone:r.phone||'',token:r.token||null,
         status:r.status==='confirmed'?'confirmed':r.status==='sent'?'sent':'expired',
         seats:r.seats||1,att:r.att||null,arrived:r.arrived||0,arrivedAt:r.arrivedAt||clock(r.arrived_at),table:r.table||null,
-        chairs:Array.isArray(r.chairs)?r.chairs.slice():null,created:r.created_at||null,confirmBy:r.confirm_by||null,kidsNote:r.kidsNote||''};
+        chairs:Array.isArray(r.chairs)?r.chairs.slice():null,created:r.created_at||null,confirmBy:r.confirm_by||null,kidsNote:r.kidsNote||'',ph:r.ph||null};
       if(v.status==='confirmed'&&!v.att)v.att=v.seats;
       invites.push(v);if(v.num!=null)byNum[v.num]=v;groups[v.group]=[v];
     });

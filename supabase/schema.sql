@@ -370,13 +370,15 @@ begin
   select * into h from hosts where token=p_token for update;
   if not found then return json_build_object('error','not_found'); end if;
   if nullif(btrim(coalesce(p_name,'')),'') is null then return json_build_object('error','name'); end if;
-  v_phone := _phone(p_phone);
-  if v_phone is null then return json_build_object('error','phone'); end if;
-  perform pg_advisory_xact_lock(hashtext(v_phone));   -- the number before the invitation: the same order as admin_move
+  v_phone := _phone(p_phone);   -- empty: no number (an invitation saved without WhatsApp)
+  if v_phone is null and regexp_replace(coalesce(p_phone,''),'[^0-9]','','g')<>'' then return json_build_object('error','phone'); end if;
+  if v_phone is not null then perform pg_advisory_xact_lock(hashtext(v_phone)); end if;   -- the number before the invitation: the same order as admin_move
   select * into i from invitations where num=p_num and host=h.key and not family for update;
   if not found or not _holds(i) then return json_build_object('error','gone'); end if;
-  u := _used(v_phone,i.num,i.table_num);
-  if u.num is not null then return json_build_object('error','used','used',_usedjson(u,h)); end if;
+  if v_phone is not null then
+    u := _used(v_phone,i.num,i.table_num);
+    if u.num is not null then return json_build_object('error','used','used',_usedjson(u,h)); end if;
+  end if;
   if p_chairs is not null then p_chairs := array(select unnest(p_chairs)); end if;
   if p_chairs is not null and p_seen is not null and p_seen<>_held(i) then return json_build_object('error','gone'); end if;
   if p_chairs is not null and cardinality(p_chairs)<>_held(i) then
@@ -407,13 +409,15 @@ begin
   select * into s from settings;
   if now()>s.late_deadline then return json_build_object('error','closed'); end if;
   if nullif(btrim(coalesce(p_name,'')),'') is null then return json_build_object('error','name'); end if;
-  v_phone := _phone(p_phone);
-  if v_phone is null then return json_build_object('error','phone'); end if;
-  perform pg_advisory_xact_lock(hashtext(v_phone));   -- the number before the invitation: the same order as admin_move
+  v_phone := _phone(p_phone);   -- empty: no number (an invitation saved without WhatsApp)
+  if v_phone is null and regexp_replace(coalesce(p_phone,''),'[^0-9]','','g')<>'' then return json_build_object('error','phone'); end if;
+  if v_phone is not null then perform pg_advisory_xact_lock(hashtext(v_phone)); end if;   -- the number before the invitation: the same order as admin_move
   select * into i from invitations where num=p_num and host=h.key and not family for update;
   if not found or not _holds(i) then return json_build_object('error','gone'); end if;
-  u := _used(v_phone,i.num,i.table_num);
-  if u.num is not null then return json_build_object('error','used','used',_usedjson(u,h)); end if;
+  if v_phone is not null then
+    u := _used(v_phone,i.num,i.table_num);
+    if u.num is not null then return json_build_object('error','used','used',_usedjson(u,h)); end if;
+  end if;
   if i.table_num is null then return json_build_object('error','table'); end if;
   perform pg_advisory_xact_lock(4242,i.table_num);
   if p_seen is not null and p_seen is distinct from _held(i) then return json_build_object('error','gone'); end if;
@@ -481,6 +485,8 @@ begin
 end $$;
 
 -- ---------- the gate: the whole list (kept on the phone for no-signal moments) and Let in ----------
+-- For finding a guest by phone, each invitation carries a fingerprint of its number (sha256 of the gate's code and the
+-- number), never the number itself: the gate phone can match the number a guest gives, but holds nobody's number
 create or replace function gate_list(p_token text) returns json language plpgsql stable security definer set search_path=public as $$
 begin
   if not exists (select 1 from settings where gate_token=p_token) then return json_build_object('error','not_found'); end if;
@@ -488,7 +494,8 @@ begin
     'hosts',(select json_object_agg(key,json_build_object('name',name,'role',role,'phone',phone) order by array_position(array['mike','bea','mum','dad','joshua','isaac','benjamin'],key)) from hosts),
     'tables',(select json_object_agg(num,name) from dinner_tables),
     'invitations',(select coalesce(json_agg(json_build_object('num',i.num,'host',i.host,'grp',i.grp,'family',i.family,'own',i.own,'kids',i.kids,
-        'name',i.name,'status',_state(i),'table',i.table_num,'chairs',i.chairs[1:_held(i)],'seats',i.seats,'att',i.att,'arrived',i.arrived,'arrived_at',i.arrived_at)),'[]'::json)
+        'name',i.name,'status',_state(i),'table',i.table_num,'chairs',i.chairs[1:_held(i)],'seats',i.seats,'att',i.att,'arrived',i.arrived,'arrived_at',i.arrived_at,
+        'ph',case when i.phone is not null then encode(sha256(convert_to(p_token||':'||i.phone,'UTF8')),'hex') end)),'[]'::json)
       from invitations i where i.status<>'cancelled'),
     'at',now());
 end $$;

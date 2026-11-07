@@ -112,6 +112,9 @@ html:not(.js) .needs-js{display:none}
 }
 .btn.primary{background:var(--choc);color:var(--ivory);border-color:var(--choc)}
 .btn.cancelled{background:rgba(255,249,239,.75);color:#8b7b6d;border:1px dashed rgba(111,67,47,.45);cursor:default}
+/* Directions stays locked until the guest confirms */
+.btn.locked{color:rgba(111,67,47,.62)}
+.btn.locked::before{content:"";width:10px;height:12px;margin-right:7px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 12'%3E%3Cpath d='M2.5 5V3.6a2.5 2.5 0 015 0V5' fill='none' stroke='%236f432f' stroke-width='1.3' opacity='.7'/%3E%3Crect x='1' y='5' width='8' height='6.2' rx='1.3' fill='%236f432f' opacity='.7'/%3E%3C/svg%3E") no-repeat center/contain}
 .btn[hidden]{display:none}
 .btn:focus-visible{outline:2px solid var(--gold-deep);outline-offset:3px}
 
@@ -345,7 +348,7 @@ html:not(.js) .needs-js{display:none}
     <div class="line countdown" id="countdown"></div>
     <div class="actions" id="actions">
       <button class="btn primary needs-js" id="rsvpBtn" type="button" aria-haspopup="dialog" aria-label="Confirm attendance">Confirm</button>
-      <a class="btn" id="dirBtn" href="https://www.google.com/maps/dir/?api=1&amp;destination=5.600437%2C-0.103578" target="_blank" rel="noopener">Directions</a>
+      <a class="btn locked" id="dirBtn" role="button" tabindex="0" data-href="https://www.google.com/maps/dir/?api=1&amp;destination=5.600437%2C-0.103578" target="_blank" rel="noopener">Directions</a>
       <button class="btn needs-js" id="helpBtn" type="button" aria-haspopup="dialog">Help</button>
     </div>
   </div>
@@ -511,6 +514,10 @@ html:not(.js) .needs-js{display:none}
     /* cancelled: a quiet Cancelled in place of Confirm, no Directions, and Help becomes a call to the host who invited them */
     rsvpBtn.classList.toggle('primary',!off);rsvpBtn.classList.toggle('cancelled',off);
     dirBtn.hidden=off;
+    /* the location opens once they confirm: until then Directions is locked and says so */
+    var lock=!yes;dirBtn.classList.toggle('locked',lock);
+    if(lock){dirBtn.removeAttribute('href');dirBtn.setAttribute('role','button');dirBtn.setAttribute('tabindex','0');dirBtn.setAttribute('aria-label','Directions, open once you confirm');}
+    else{dirBtn.setAttribute('href',dirBtn.getAttribute('data-href'));dirBtn.removeAttribute('role');dirBtn.removeAttribute('tabindex');dirBtn.removeAttribute('aria-label');}
     var call=off&&GUEST.hostTel;
     helpBtn.textContent=call?'Call '+(GUEST.host||'your host'):'Help';
     helpBtn.setAttribute('aria-label',call?'Call '+(GUEST.host||'your host')+', who invited you':'Help');
@@ -546,6 +553,13 @@ html:not(.js) .needs-js{display:none}
     if(GUEST.cancelled){showToast('This invitation was cancelled.'+(GUEST.hostTel?' Call '+(GUEST.host||'your host')+' for help.':''));return;}
     if(state.s==='yes')revealTable();else openSheet();
   });
+  function lockedDirections(e){
+    if(!dirBtn.classList.contains('locked'))return;
+    e.preventDefault();
+    showToast(rsvpBtn.hidden?'The location opens once you confirm, from your own invitation link':'Please confirm to see the location');
+  }
+  dirBtn.addEventListener('click',lockedDirections);
+  dirBtn.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' ')lockedDirections(e);});
   helpBtn.addEventListener('click',function(){
     if(!(GUEST.cancelled&&GUEST.hostTel))return openHelp();
     if(GUEST.hostTel==='preview')showToast('Preview: this calls '+GUEST.host+', who invited them');else location.href='tel:+'+GUEST.hostTel;
