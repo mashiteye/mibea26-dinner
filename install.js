@@ -24,7 +24,7 @@
     if(box)return;
     box=document.createElement('div');box.className='install';box.setAttribute('role','region');box.setAttribute('aria-label','Add to your home screen');
     box.innerHTML='<img src="./icon-192.png" alt="" width="48" height="48"><div class="t"><b>Put '+esc(NAME)+' on your home screen</b>'+
-      (kind==='ios'?'<span>Tap Share '+SHARE+', then <b>Add to Home Screen</b>. One tap opens your page, with no link to find.</span>':
+      (kind==='ios'?'<span>In Safari, tap Share '+SHARE+', then <b>Add to Home Screen</b>. Opened from WhatsApp? First tap the compass at the bottom right to open in Safari. One tap then opens your page, with no link to find.</span>':
         '<span>One tap opens your page, with no link to find.</span>')+'</div>'+
       '<div class="b">'+(kind==='ios'?'<button class="btn primary" type="button" data-i="ok">Got it</button>':'<button class="btn primary" type="button" data-i="add">Add</button>')+
       '<button class="btn" type="button" data-i="later">Not now</button></div>';
