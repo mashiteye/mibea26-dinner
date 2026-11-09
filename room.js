@@ -2,7 +2,7 @@
    with the high table at the front and the family table (18) ringed in gold. Drawn by the overall view and the host pages */
 (function(){
   'use strict';
-  var COLS=[62,154,246,338],ROWS={1:470,2:380,3:290,4:200,5:110};
+  var COLS=[62,154,246,338],ROWS={1:510,2:410,3:310,4:210,5:110};   /* rows 100 apart: room for a two-line name under a table */
   function pos(t){var r=Math.ceil(t/4),c=(t-1)%4;return {x:COLS[c],y:ROWS[r]};}
   function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   /* o.chairs(t): the chairs at table t; o.paint(chair): {fill,stroke,dashed,width}; o.label(t): the line under the table;
@@ -20,9 +20,10 @@
         var a=(-90+40*k)*Math.PI/180,cx=p.x+31*Math.cos(a),cy=p.y+31*Math.sin(a),c=o.paint(s);
         out+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="4.6" fill="'+c.fill+'" stroke="'+c.stroke+'" stroke-width="'+(c.width||1)+'"'+(c.dashed?' stroke-dasharray="2 1.6"':'')+'/>';
       });
-      out+='<text x="'+p.x+'" y="'+(p.y+50)+'" text-anchor="middle" font-size="10.5" fill="#7c6a5f">'+esc(o.label(t))+'</text></g>';
+      var lab=String(o.label(t)).split('\n');   /* a long name comes in two lines */
+      out+='<text x="'+p.x+'" y="'+(p.y+50)+'" text-anchor="middle" font-size="10.5" fill="#7c6a5f">'+lab.map(function(s,i){return '<tspan x="'+p.x+'"'+(i?' dy="11"':'')+'>'+esc(s)+'</tspan>';}).join('')+'</text></g>';
     }
-    return out+'<text x="200" y="545" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="2" fill="#7c6a5f">ENTRANCE</text>';
+    return out+'<text x="200" y="588" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="2" fill="#7c6a5f">ENTRANCE</text>';
   }
   /* tap or Enter on a table */
   function onTable(el,fn){
