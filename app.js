@@ -177,7 +177,7 @@
     if(own.length){
       var two=own.length>1||own[0].seats>1;
       $('own').hidden=false;
-      $('own').innerHTML='<div class="t"><b>Honoured guest'+(own.length>1?'s ':' ')+own.map(function(o){return o.num;}).join(' and ')+'</b>Your own invitation'+(own.length>1?'s':'')+': for you'+(two?' and your wife':'')+' at the family table</div>'+
+      $('own').innerHTML='<div class="t"><b>Honoured guest'+(own.length>1?'s ':' ')+own.map(function(o){return o.num;}).join(' and ')+'</b>Your own invitation'+(own.length>1?'s':'')+': '+(own.every(function(o){return o.name;})?own.map(function(o){return esc(o.name);}).join(' and '):'for you'+(two?' and your wife':''))+' at the family table</div>'+
         '<a href="#" id="ownOpen">See</a>';
       $('ownOpen').onclick=function(e){e.preventDefault();ownSheet(own[0]);};
     }
@@ -367,7 +367,7 @@
     v=B.byNum[v.num]||v;
     var h=B.hostName(v.host),title,note;
     if(ADMIN){
-      title=h+(v.own==='wife'?'’s wife':v.seats>1?' and wife':'');
+      title=v.name||h+(v.own==='wife'?'’s wife':v.seats>1?' and wife':'');
       note=(v.own==='wife'?h+'’s wife’s':h+'’s')+' own honoured-guest number, confirmed from the start. At the gate it is given like every guest’s.'+
         (v.kids?' '+cap1(WORDS[v.kids]||String(v.kids))+' children come in on it and take no chair.':'');
     }else{
