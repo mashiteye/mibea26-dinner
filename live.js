@@ -58,8 +58,10 @@
       return Math.max(0,n);
     }
     function chairsAt(t){return seats.filter(function(s){return s.table===t;});}
+    /* a table set aside with a name of its own (the bridal party's): its chairs are held by the host "party" */
+    function special(t){return plan.some(function(p){return p.table===t&&p.host==='party';})||invites.some(function(v){return v.table===t&&v.host==='party'&&v.status!=='expired';});}
     return {HOSTS:HOSTS,invites:invites,groups:groups,byNum:byNum,seats:seats,unseated:unseated,plan:plan,tables:names,
-      tally:tally,held:held,hostTables:hostTables,room:room,chairsAt:chairsAt,at:json.at||null,raw:json,
+      tally:tally,held:held,hostTables:hostTables,room:room,chairsAt:chairsAt,special:special,at:json.at||null,raw:json,
       group:function(v){return groups[v.group]||[v];},
       hostName:function(k){return k&&HOSTS[k]?HOSTS[k].name:'';},
       tableName:function(t){return names[t]?names[t].name:'';},

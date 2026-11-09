@@ -208,6 +208,7 @@
   }
   /* the line under a table, viewing every host: whose chairs these are */
   function whose(t){
+    if(B.special(t))return 'Set aside: '+B.tableName(t);
     if(t===18)return 'The family table: the family’s own seats are ringed in gold';
     var ps=B.plan.filter(function(p){return p.table===t;});
     if(!ps.length)return 'No host has chairs here';
@@ -229,13 +230,16 @@
         out+='<path d="M'+a1.x.toFixed(1)+' '+a1.y.toFixed(1)+' A'+R+' '+R+' 0 0 1 '+a2.x.toFixed(1)+' '+a2.y.toFixed(1)+'" fill="none" stroke="'+(s1.inv.status==='confirmed'?'#3e8e5a':'#e2b33a')+'" stroke-width="16" stroke-linecap="round" opacity=".38"/>';
       }
     }
-    var forYou=ADMIN?'':' for you';
-    out+='<g class="tablebtn" role="button" tabindex="0" data-t="'+t+'" aria-label="'+(can?'Invite to '+esc(B.tableName(t))+', '+plural(room,'seat')+' free'+forYou:'No free seats'+forYou+' at '+esc(B.tableName(t)))+'">'+
-      '<circle cx="'+C+'" cy="'+C+'" r="80" fill="#fffaf2" stroke="#c9b48f" stroke-width="1.5"/>'+(t===18?'<circle cx="'+C+'" cy="'+C+'" r="86" fill="none" stroke="#c9a45e" stroke-width="1.2"/>':'')+
-      '<text class="tname" x="'+C+'" y="'+(C-14)+'" text-anchor="middle">Table '+t+'</text>'+
-      '<text class="tno" x="'+C+'" y="'+(C+5)+'" text-anchor="middle">'+esc(B.tableName(t).toUpperCase())+'</text>'+
+    var forYou=ADMIN?'':' for you',sp=B.special(t),nm=B.tableName(t);
+    /* inside the table: its number (its name, for the table set aside), and the seats left for whoever is looking:
+       a host sees their own, the overall view sees everyone's */
+    var big=sp?nm:'Table '+t,small=sp?'TABLE '+t+(room>0?' · '+room+' LEFT':''):room>0?room+(room>1?' SEATS LEFT':' SEAT LEFT'):'FULL';
+    out+='<g class="tablebtn" role="button" tabindex="0" data-t="'+t+'" aria-label="'+(can?'Invite to '+esc(nm)+', '+plural(room,'seat')+' free'+forYou:'No free seats'+forYou+' at '+esc(nm))+'">'+
+      '<circle cx="'+C+'" cy="'+C+'" r="80" fill="#fffaf2" stroke="#c9b48f" stroke-width="1.5"/>'+(t===18||sp?'<circle cx="'+C+'" cy="'+C+'" r="86" fill="none" stroke="#c9a45e" stroke-width="1.2"/>':'')+
+      '<text class="tname'+(big.length>9?' long':'')+'" x="'+C+'" y="'+(C-14)+'" text-anchor="middle">'+esc(big)+'</text>'+
+      '<text class="tno" x="'+C+'" y="'+(C+5)+'" text-anchor="middle">'+esc(small)+'</text>'+
       (can?'<g class="add"><rect x="'+(C-50)+'" y="'+(C+16)+'" width="100" height="32" rx="16"/><text x="'+C+'" y="'+(C+36)+'" text-anchor="middle">+ INVITE</text></g>':
-        '<text class="full" x="'+C+'" y="'+(C+36)+'" text-anchor="middle">'+(closed?'CLOSED':'FULL')+'</text>')+'</g>';
+        closed?'<text class="full" x="'+C+'" y="'+(C+36)+'" text-anchor="middle">CLOSED</text>':'')+'</g>';
     row.forEach(function(s){
       var st=stateOf(s,room),pt=at(s.chair,R),v=s.inv,lab='Seat '+s.chair;
       if(v&&inView(v))lab+=', '+(v.family?(ADMIN?B.hostName(v.host)+', family':'you'):v.name||'honoured guest '+v.num)+(isAll()&&!v.family?', '+B.hostName(v.host)+'’s guest':'')+', '+(v.status==='confirmed'?'confirmed':'sent');
@@ -747,6 +751,7 @@
     e.preventDefault();var n=tabs[(tabs.indexOf(view)+(e.key==='ArrowRight'?1:tabs.length-1))%tabs.length];showView(n);$('t'+n).focus();
   });
   function tableWho(t){
+    if(B.special(t))return B.tableName(t);
     if(t===18)return 'Family';
     var hs=B.chairsAt(t).filter(function(s){return s.inv;}).map(function(s){return s.inv.host;});
     if(!hs.length)hs=B.chairsAt(t).map(function(s){return s.host;}).filter(Boolean);
@@ -825,7 +830,7 @@
   /* the private links Michael sends: one per host, and the gate's */
   function links(){
     if(!L.on||!ADMIN||!RAW.gate_token)return;
-    var items=Object.keys(B.HOSTS).filter(function(k){return B.HOSTS[k].token;}).map(function(k){
+    var items=Object.keys(B.HOSTS).filter(function(k){return B.HOSTS[k].token&&k!=='party';}).map(function(k){
       var h=B.HOSTS[k],u=L.pageLink('host.html',h.token);
       return {who:h.name+(h.role?' · '+h.role:''),note:'Their invitations page',url:u,
         text:'Hello '+h.name+', this is your private link for inviting guests to Dinner Night. Swipe to a table, tap it to invite, then press send in WhatsApp. Please keep this link to yourself.\n'+u};});
