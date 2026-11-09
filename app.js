@@ -64,7 +64,7 @@
      '<div id="pAll" role="tabpanel" aria-labelledby="tAll" hidden>'+
       (ADMIN?'<div class="mode" role="group" aria-label="When"><button type="button" id="vBefore" aria-pressed="true">Before the day</button><button type="button" id="vNight" aria-pressed="false">On the night</button></div>':'')+
       '<section class="card"><div class="card-head"><h2>The room</h2><span>'+(ADMIN?'Tap a table to open it':'Everyone’s tables')+'</span></div>'+
-        '<svg id="map" viewBox="0 0 400 560" role="img" aria-label="Twenty tables of nine, every chair coloured by its answer"></svg><div id="mapLegend"></div></section>'+
+        '<svg id="map" viewBox="0 0 400 600" role="img" aria-label="Twenty tables of nine, every chair coloured by its answer"></svg><div id="mapLegend"></div></section>'+
       '<section class="card total"><svg class="ring" id="ring" viewBox="0 0 200 200" role="img"></svg><p class="line" id="totLine"></p><span class="when" id="when"></span><p class="line" id="pulse"></p></section>'+
       (ADMIN?'<section class="card"><div class="card-head"><h2>By host</h2><span>Tap a name to view as that host</span></div><div class="tablewrap"><table class="hosts" id="hosts"></table></div></section>'+
         '<section class="card"><div class="card-head"><h2>To follow up</h2><span id="issueCount"></span></div><ul class="issues" id="issues"></ul></section>'+
@@ -233,11 +233,12 @@
     var forYou=ADMIN?'':' for you',sp=B.special(t),nm=B.tableName(t);
     /* inside the table: its number (its name, for the table set aside), and the seats left for whoever is looking:
        a host sees their own, the overall view sees everyone's */
-    var big=sp?nm:'Table '+t,small=sp?'TABLE '+t+(room>0?' · '+room+' LEFT':''):room>0?room+(room>1?' SEATS LEFT':' SEAT LEFT'):'FULL';
+    var big=sp?nm:'Table '+t,small=sp?'':room>0?room+(room>1?' SEATS LEFT':' SEAT LEFT'):'FULL',bl=L.nameLines(big);
     out+='<g class="tablebtn" role="button" tabindex="0" data-t="'+t+'" aria-label="'+(can?'Invite to '+esc(nm)+', '+plural(room,'seat')+' free'+forYou:'No free seats'+forYou+' at '+esc(nm))+'">'+
       '<circle cx="'+C+'" cy="'+C+'" r="80" fill="#fffaf2" stroke="#c9b48f" stroke-width="1.5"/>'+(t===18||sp?'<circle cx="'+C+'" cy="'+C+'" r="86" fill="none" stroke="#c9a45e" stroke-width="1.2"/>':'')+
-      '<text class="tname'+(big.length>9?' long':'')+'" x="'+C+'" y="'+(C-14)+'" text-anchor="middle">'+esc(big)+'</text>'+
-      '<text class="tno" x="'+C+'" y="'+(C+5)+'" text-anchor="middle">'+esc(small)+'</text>'+
+      (bl.length>1?'<text class="tname long" x="'+C+'" y="'+(C-14)+'" text-anchor="middle"><tspan x="'+C+'">'+esc(bl[0])+'</tspan><tspan x="'+C+'" dy="24">'+esc(bl[1])+'</tspan></text>':
+        '<text class="tname'+(big.length>9?' long':'')+'" x="'+C+'" y="'+(C-14)+'" text-anchor="middle">'+esc(big)+'</text>')+
+      (small?'<text class="tno" x="'+C+'" y="'+(C+5)+'" text-anchor="middle">'+esc(small)+'</text>':'')+
       (can?'<g class="add"><rect x="'+(C-50)+'" y="'+(C+16)+'" width="100" height="32" rx="16"/><text x="'+C+'" y="'+(C+36)+'" text-anchor="middle">+ INVITE</text></g>':
         closed?'<text class="full" x="'+C+'" y="'+(C+36)+'" text-anchor="middle">CLOSED</text>':'')+'</g>';
     row.forEach(function(s){
@@ -670,7 +671,7 @@
     $('lSum').textContent=items.length?plural(items.length,'invitation')+' · '+conf+' confirmed · '+sent+' sent'+(late?' · '+late+' not confirmed in time':''):'';
     $('lRows').innerHTML=items.length?items.map(function(v){
       var pill=v.family?['fam','Family']:v.status==='confirmed'?['conf','Confirmed']:v.status==='sent'?['sent','Sent']:['gone','Not in time'];
-      var where=v.table?'Table '+v.table+' '+B.tableName(v.table)+(v.chairs&&v.chairs.length?' · '+L.seatWords(v.chairs):''):'Not seated yet';
+      var where=v.table?(B.special(v.table)?B.tableName(v.table):'Table '+v.table+' '+B.tableName(v.table))+(v.chairs&&v.chairs.length?' · '+L.seatWords(v.chairs):''):'Not seated yet';
       var by=isAll()?B.hostName(v.host)+(v.family?', family':'’s guest'):'';
       return '<li><button type="button" data-n="'+v.num+'"><span class="no">'+v.num+'</span><span class="d">'+
         '<span class="r1"><b>'+esc(listName(v))+'</b><span class="st '+pill[0]+'">'+pill[1]+'</span></span>'+
@@ -711,7 +712,7 @@
   function shareText(items){
     return listTitle()+'\n\n'+items.map(function(v){
       return v.num+' · '+listName(v)+(v.phone?' · '+L.showPhone(v.phone):'')+' · '+plural(v.seats,'seat')+' · '+shortAnswer(v)+' · '+
-        (v.table?'Table '+v.table+' '+B.tableName(v.table)+(v.chairs&&v.chairs.length?', '+L.seatWords(v.chairs):''):'Not seated yet')+(isAll()?' · '+B.hostName(v.host):'');
+        (v.table?(B.special(v.table)?B.tableName(v.table):'Table '+v.table+' '+B.tableName(v.table))+(v.chairs&&v.chairs.length?', '+L.seatWords(v.chairs):''):'Not seated yet')+(isAll()?' · '+B.hostName(v.host):'');
     }).join('\n');
   }
   $('lDown').addEventListener('click',function(){
@@ -751,7 +752,7 @@
     e.preventDefault();var n=tabs[(tabs.indexOf(view)+(e.key==='ArrowRight'?1:tabs.length-1))%tabs.length];showView(n);$('t'+n).focus();
   });
   function tableWho(t){
-    if(B.special(t))return B.tableName(t);
+    if(B.special(t))return L.nameLines(B.tableName(t)).join('\n');
     if(t===18)return 'Family';
     var hs=B.chairsAt(t).filter(function(s){return s.inv;}).map(function(s){return s.inv.host;});
     if(!hs.length)hs=B.chairsAt(t).map(function(s){return s.host;}).filter(Boolean);

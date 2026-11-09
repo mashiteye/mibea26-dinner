@@ -65,7 +65,7 @@
       group:function(v){return groups[v.group]||[v];},
       hostName:function(k){return k&&HOSTS[k]?HOSTS[k].name:'';},
       tableName:function(t){return names[t]?names[t].name:'';},
-      tableLabel:function(t){return names[t]?'Table '+t+' · '+names[t].name:'Not seated yet';}};   /* the number first: it's what guests are shown to */
+      tableLabel:function(t){return !names[t]?'Not seated yet':special(t)?names[t].name:'Table '+t+' · '+names[t].name;}};   /* the number first: it's what guests are shown to. A table set aside goes by its name alone */
   }
   /* WhatsApp numbers: however they're typed, digits with the country code (Ghana's when there's none), and back again
      for reading. The same rules as the database's _phone() */
@@ -83,6 +83,13 @@
     if(!d)return '';
     if(/^233\d{9}$/.test(d)){var l='0'+d.slice(3);return l.slice(0,3)+' '+l.slice(3,6)+' '+l.slice(6);}
     return '+'+d;
+  }
+  /* a long table name in two lines for a small space: "Bridesmaid &" / "Groomsmen" */
+  function nameLines(n){
+    n=String(n||'');if(n.length<=12)return [n];
+    var i=n.indexOf(' & ');if(i>0)return [n.slice(0,i+2),n.slice(i+3)];
+    var best=-1,mid=n.length/2;for(var k=0;k<n.length;k++)if(n[k]===' '&&(best<0||Math.abs(k-mid)<Math.abs(best-mid)))best=k;
+    return best>0?[n.slice(0,best),n.slice(best+1)]:[n];
   }
   /* seat numbers for reading: "seat 4", "seats 3 to 5", "seats 2, 6 and 7" */
   function seatWords(c){
@@ -103,7 +110,7 @@
   }
   window.LIVE={on:!!(token&&window.API&&API.ready),token:token,page:page,remembered:remembered,
     forget:function(){try{localStorage.removeItem(KEY);}catch(e){}},
-    build:build,clock:clock,held:held,phone:phone,showPhone:showPhone,seatWords:seatWords,
+    build:build,clock:clock,held:held,phone:phone,showPhone:showPhone,seatWords:seatWords,nameLines:nameLines,
     /* the guest's link, on whatever address the site is served from */
     guestLink:function(t){return location.origin+location.pathname.replace(/[^\/]*$/,'')+'?i='+encodeURIComponent(t);},
     pageLink:function(page,t){return location.origin+location.pathname.replace(/[^\/]*$/,'')+page+'?k='+encodeURIComponent(t);}};

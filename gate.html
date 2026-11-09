@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./staff.css?v=32">
+<link rel="stylesheet" href="./staff.css?v=34">
 <style>
 .offline-note{margin-top:12px}
 .offline-note[hidden]{display:none}
@@ -27,6 +27,7 @@
 .pad button.fn{font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--choc);background:var(--card)}
 .pad button:active{background:var(--cream)}
 .big-table{margin-top:6px;font-family:var(--serif);font-weight:500;font-size:clamp(40px,12vw,60px);line-height:1.05;color:var(--choc-deep);text-align:center;overflow-wrap:anywhere}
+.big-table.long{font-size:clamp(26px,8vw,40px);overflow-wrap:normal}   /* a table set aside under a long name */
 .table-no{margin-top:4px;text-align:center;font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-deep)}
 .who{margin-top:6px;text-align:center;font-size:14px;color:var(--soft)}
 .who b{color:var(--choc-deep);font-weight:600}
@@ -112,11 +113,11 @@ select.find{padding-right:38px;background:#fff url("data:image/svg+xml,%3Csvg xm
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- ?v= changes with every update, so a phone never mixes a new page with scripts it kept from before -->
-<script src="./config.js?v=32"></script>
-<script src="./api.js?v=32"></script>
-<script src="./live.js?v=32"></script>
-<script src="./demo-data.js?v=32"></script>
-<script src="./install.js?v=32"></script>
+<script src="./config.js?v=34"></script>
+<script src="./api.js?v=34"></script>
+<script src="./live.js?v=34"></script>
+<script src="./demo-data.js?v=34"></script>
+<script src="./install.js?v=34"></script>
 <script>
 (function(){
   'use strict';
@@ -221,7 +222,7 @@ select.find{padding-right:38px;background:#fff url("data:image/svg+xml,%3Csvg xm
   function where(v){
     if(!v.table)return '<div class="big-table">No table yet</div><div class="table-no">Call the host</div>';
     var seats=v.chairs&&v.chairs.length?' · '+L.seatWords(v.chairs):'';
-    if(D.special&&D.special(v.table))return '<div class="big-table">'+esc(D.tableName(v.table))+'</div><div class="table-no">Table '+v.table+seats+'</div>';   /* set aside under its own name */
+    if(D.special&&D.special(v.table)){var n=D.tableName(v.table);return '<div class="big-table'+(n.length>12?' long':'')+'">'+esc(n)+'</div><div class="table-no">'+(seats?seats.slice(3):'')+'</div>';}   /* set aside under its own name, no number */
     return '<div class="big-table">Table '+v.table+'</div><div class="table-no">'+esc(D.tableName(v.table))+seats+'</div>';
   }
 
@@ -293,7 +294,7 @@ select.find{padding-right:38px;background:#fff url("data:image/svg+xml,%3Csvg xm
     var n=att(v),inn=Math.min(n,v.arrived||0);
     var st=v.status!=='confirmed'?['sent','Not confirmed']:inn>=n?['in','In']:inn?['in',inn+' of '+n+' in']:['conf','Confirmed'];
     return '<li><button type="button" data-n="'+v.num+'"><span class="no">'+v.num+'</span><span class="d"><b>'+esc(label(v))+'</b>'+
-      '<small>'+esc(D.hostName(v.host))+(v.family?', family':'’s guest')+(v.table?' · Table '+v.table:'')+' · '+plural(v.status==='confirmed'?n:v.seats,'seat')+'</small></span>'+
+      '<small>'+esc(D.hostName(v.host))+(v.family?', family':'’s guest')+(v.table?' · '+(D.special&&D.special(v.table)?esc(D.tableName(v.table)):'Table '+v.table):'')+' · '+plural(v.status==='confirmed'?n:v.seats,'seat')+'</small></span>'+
       '<span class="st '+st[0]+'">'+st[1]+'</span></button></li>';
   }
   function pickFrom(list){list.addEventListener('click',function(e){var b=e.target.closest('button[data-n]');if(b)lookup(b.getAttribute('data-n'));});}
