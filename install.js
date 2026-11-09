@@ -19,6 +19,9 @@
   if(later())return;
   var box=null,deferred=null;
   function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  /* Android sometimes flags the small wrapper it makes for the icon as "built for an older version of Android": the page
+     is fine, and the phone still allows it */
+  var PROTECT=' If your phone says <b>Unsafe app blocked</b>, tap <b>More details</b>, then <b>Install anyway</b>.';
   var SHARE='<svg class="ishare" viewBox="0 0 20 24" aria-hidden="true"><path d="M10 2v13M6 6l4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 10H3v12h14V10h-1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
   /* three guides: Android with the one-tap Add (Chrome), Android by the browser's own menu (Samsung Internet and others,
      or a link opened inside WhatsApp), and iPhone by Safari's Share */
@@ -28,8 +31,8 @@
     box=document.createElement('div');box.className='install';box.setAttribute('role','region');box.setAttribute('aria-label','Add to your home screen');box.setAttribute('data-kind',kind);
     box.innerHTML='<img src="./icon-192.png" alt="" width="48" height="48"><div class="t"><b>Put '+esc(NAME)+' on your home screen</b>'+
       (kind==='ios'?'<span>In Safari, tap Share '+SHARE+', then <b>Add to Home Screen</b>. Opened from WhatsApp? First tap the compass at the bottom right to open in Safari. One tap then opens your page, with no link to find.</span>':
-       kind==='menu'?'<span>'+menu+' Opened from WhatsApp? Choose <b>Open in Chrome</b> (or Open in browser) from that menu first. One tap then opens your page, with no link to find.</span>':
-        '<span>One tap opens your page, with no link to find.</span>')+'</div>'+
+       kind==='menu'?'<span>'+menu+' Opened from WhatsApp? Choose <b>Open in Chrome</b> (or Open in browser) from that menu first. One tap then opens your page, with no link to find.'+PROTECT+'</span>':
+        '<span>One tap opens your page, with no link to find.'+PROTECT+'</span>')+'</div>'+
       '<div class="b">'+(kind==='android'?'<button class="btn primary" type="button" data-i="add">Add</button>':'<button class="btn primary" type="button" data-i="ok">Got it</button>')+
       '<button class="btn" type="button" data-i="later">Not now</button></div>';
     document.body.appendChild(box);
